@@ -9,6 +9,56 @@ export interface UserProfile {
   };
 }
 
+// Tipi per il profilo utente da SneakerDB
+export interface SneakerDBUserProfile {
+  user: {
+    id: number;
+    username: string;
+    firstName: string;
+    lastName: string;
+    profilePhotoUrl: string;
+    profilePhotoData: {
+      id: number;
+      image: string;
+      idCardImageUrl: string | null;
+      caption: string;
+      isPublic: boolean;
+      createdAt: string;
+      updatedAt: string;
+    };
+    totalPoints: number;
+    dateJoined: string;
+    idNumber: string;
+    profileExcellenceRank: string | null;
+    profileExcellenceCategories: string[];
+    excellenceAwardsCount: number;
+  };
+  activities: Array<{
+    activityId: number;
+    activityTitle: string;
+    activityBadgeImage: string;
+    activityWeek: number;
+    activitySubheadWhenNew: string;
+    activitySubheadWhenViewed: string;
+    activitySubheadWhenNotCompletedToday: string;
+    activitySubheadWhenCompletedToday: string;
+    activitySubheadWhenLapsed: string;
+    isParticipating: boolean;
+    releaseDate: string;
+    participationId: number;
+    dateStarted: string;
+    level: number;
+    hasSubmittedToday: boolean;
+    hasSubmittedYesterday: boolean;
+  }>;
+  completedModules: Array<{
+    id: string;
+    name: string;
+    badgeText: string;
+    badgeIcon: string;
+  }>;
+}
+
 export interface ScoreDistributionItem {
   score: number;
   userCount: number;

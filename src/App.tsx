@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { ThemeProvider, createTheme } from '@material-ui/core/styles';
+import { Analytics } from "@vercel/analytics/react"
 import { 
   CssBaseline, 
   AppBar, 
@@ -20,6 +21,8 @@ import DashboardIcon from '@material-ui/icons/Dashboard';
 import SearchIcon from '@material-ui/icons/Search';
 import Dashboard from './components/Dashboard';
 import UserSearch from './components/UserSearch';
+import { UserProfile } from './components/UserProfile';
+import { UserProfileIcon } from './components/UserProfileIcon';
 import { fetchScoreDistribution } from './apiService';
 import { ScoreDistributionResponse } from './types';
 
@@ -180,11 +183,16 @@ const App = () => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState<0 | 1>(0);
-  const materialTheme = useTheme();
-  const isMobile = useMediaQuery(materialTheme.breakpoints.down('sm'));
+  const [username, setUsername] = useState<string>('');
+  const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   useEffect(() => {
     loadData();
+    // Load username from localStorage
+    const savedUsername = localStorage.getItem('isru-username');
+    if (savedUsername) {
+      setUsername(savedUsername);
+    }
   }, []);
 
   const loadData = async () => {
@@ -205,10 +213,65 @@ const App = () => {
     setActiveTab(newValue as 0 | 1);
   };
 
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <AppContent 
+        loading={loading}
+        error={error}
+        scoreDistribution={scoreDistribution}
+        activeTab={activeTab}
+        onTabChange={handleTabChange}
+        onLoadData={loadData}
+        username={username}
+        profileDialogOpen={profileDialogOpen}
+        onProfileDialogOpen={() => setProfileDialogOpen(true)}
+        onProfileDialogClose={() => setProfileDialogOpen(false)}
+        onUsernameSet={(newUsername) => {
+          setUsername(newUsername);
+          if (newUsername) {
+            localStorage.setItem('isru-username', newUsername);
+          } else {
+            localStorage.removeItem('isru-username');
+          }
+        }}
+      />
+      <Analytics />
+    </ThemeProvider>
+  );
+};
+
+const AppContent = ({ 
+  loading, 
+  error, 
+  scoreDistribution, 
+  activeTab, 
+  onTabChange, 
+  onLoadData,
+  username,
+  profileDialogOpen,
+  onProfileDialogOpen,
+  onProfileDialogClose,
+  onUsernameSet
+}: {
+  loading: boolean;
+  error: string | null;
+  scoreDistribution: ScoreDistributionResponse | null;
+  activeTab: 0 | 1;
+  onTabChange: (event: React.ChangeEvent<{}>, newValue: number) => void;
+  onLoadData: () => void;
+  username: string;
+  profileDialogOpen: boolean;
+  onProfileDialogOpen: () => void;
+  onProfileDialogClose: () => void;
+  onUsernameSet: (username: string) => void;
+}) => {
+  const materialTheme = useTheme();
+  const isMobile = useMediaQuery(materialTheme.breakpoints.down('sm'));
+
   if (loading) {
     return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+      <>
         <Container maxWidth="sm" style={{ marginTop: 64, textAlign: 'center' }}>
           <CircularProgress size={60} style={{ marginBottom: 16 }} />
           <Typography variant="h4" gutterBottom>
@@ -218,14 +281,13 @@ const App = () => {
             Please wait while we fetch the latest metrics
           </Typography>
         </Container>
-      </ThemeProvider>
+      </>
     );
   }
 
   if (error || !scoreDistribution) {
     return (
-      <ThemeProvider theme={theme}>
-        <CssBaseline />
+      <>
         <Container maxWidth="sm" style={{ marginTop: 64 }}>
           <Paper elevation={3} style={{ padding: 32, textAlign: 'center' }}>
             <Typography variant="h6" color="error" gutterBottom>
@@ -237,28 +299,27 @@ const App = () => {
             <Button
               variant="contained"
               startIcon={<RefreshIcon />}
-              onClick={loadData}
+              onClick={onLoadData}
               size="large"
             >
               Retry
             </Button>
           </Paper>
         </Container>
-      </ThemeProvider>
+      </>
     );
   }
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <>
       <AppBar position="static" elevation={0} style={{ background: '#e0dfca' }}>
-        {/* Header con logo Nike centrato */}
-        <Toolbar style={{ padding: isMobile ? '5px' : '12px', minHeight: isMobile ? 140 : 160, justifyContent: 'center' }}>
+        {/* Header con logo principale centrato */}
+        <Toolbar style={{ padding: isMobile ? '16px' : '24px', minHeight: isMobile ? 120 : 140, justifyContent: 'center' }}>
           {React.createElement('img', {
-            src: "/nike-header.jpg",
-            alt: "Nike Header",
+            src: "/main-logo.png",
+            alt: "Main Logo",
             style: {
-              height: isMobile ? 140 : 160,
+              height: isMobile ? 100 : 120,
               maxWidth: '100%',
               objectFit: 'contain' as const,
             }
@@ -271,7 +332,7 @@ const App = () => {
             <Button
               color="inherit"
               startIcon={<RefreshIcon />}
-              onClick={loadData}
+              onClick={onLoadData}
               size={isMobile ? "small" : "medium"}
               style={{ 
                 borderRadius: 12, 
@@ -284,7 +345,7 @@ const App = () => {
             </Button>
             <Tabs
               value={activeTab}
-              onChange={handleTabChange}
+              onChange={onTabChange}
               indicatorColor="primary"
               style={{
                 backgroundColor: 'rgba(0, 0, 0, 0.05)',
@@ -314,6 +375,11 @@ const App = () => {
                 }}
               />
             </Tabs>
+            
+            <UserProfileIcon
+              hasProfile={!!username}
+              onClick={onProfileDialogOpen}
+            />
           </Toolbar>
         </Box>
       </AppBar>
@@ -327,6 +393,13 @@ const App = () => {
           <UserSearch scoreDistribution={scoreDistribution} />
         )}
       </Container>
+
+      <UserProfile
+        open={profileDialogOpen}
+        onClose={onProfileDialogClose}
+        username={username}
+        onUsernameSet={onUsernameSet}
+      />
 
       <Box
         component="footer"
@@ -347,7 +420,7 @@ const App = () => {
           </Typography>
         </Container>
       </Box>
-    </ThemeProvider>
+    </>
   );
 };
 
