@@ -25,6 +25,7 @@ import { UserProfile } from './components/UserProfile';
 import { UserProfileIcon } from './components/UserProfileIcon';
 import { fetchScoreDistribution } from './apiService';
 import { ScoreDistributionResponse } from './types';
+import { NetworkDiagnostics } from './utils/networkDiagnostics';
 
 const theme = createTheme({
   palette: {
@@ -187,6 +188,20 @@ const App = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   useEffect(() => {
+    // Log environment info for debugging
+    NetworkDiagnostics.logEnvironmentInfo();
+    
+    // Run connectivity test on Safari mobile
+    if (NetworkDiagnostics.isSafariMobile()) {
+      console.log('📱 Safari mobile detected, running connectivity test...');
+      NetworkDiagnostics.testConnectivity().then(results => {
+        console.log('🔍 Connectivity test results:', results);
+        if (!results.canReachTarget) {
+          console.warn('⚠️ Cannot reach target API from Safari mobile');
+        }
+      });
+    }
+    
     loadData();
     // Load username from localStorage
     const savedUsername = localStorage.getItem('isru-username');
@@ -329,20 +344,44 @@ const AppContent = ({
         {/* Seconda riga - Controlli sempre su riga separata */}
         <Box style={{ borderTop: '1px solid rgba(0, 0, 0, 0.1)', backgroundColor: 'rgba(0, 0, 0, 0.02)' }}>
           <Toolbar style={{ padding: isMobile ? '8px 16px' : '12px 24px', minHeight: isMobile ? 48 : 56, justifyContent: 'space-between' }}>
-            <Button
-              color="inherit"
-              startIcon={<RefreshIcon />}
-              onClick={onLoadData}
-              size={isMobile ? "small" : "medium"}
-              style={{ 
-                borderRadius: 12, 
-                backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                color: '#333',
-                fontSize: isMobile ? '0.8rem' : '0.9rem',
-              }}
-            >
-              Refresh
-            </Button>
+            <Box display="flex" alignItems="center" style={{ gap: '8px' }}>
+              <Button
+                color="inherit"
+                startIcon={<RefreshIcon />}
+                onClick={onLoadData}
+                size={isMobile ? "small" : "medium"}
+                style={{ 
+                  borderRadius: 12, 
+                  backgroundColor: 'rgba(0, 0, 0, 0.05)',
+                  color: '#333',
+                  fontSize: isMobile ? '0.8rem' : '0.9rem',
+                }}
+              >
+                Refresh
+              </Button>
+              
+              {/* Debug button for Safari mobile */}
+              {NetworkDiagnostics.isSafariMobile() && (
+                <Button
+                  color="inherit"
+                  onClick={async () => {
+                    const results = await NetworkDiagnostics.testConnectivity();
+                    alert(`📱 Network Test:\nOnline: ${results.online}\nGoogle: ${results.canReachGoogle ? '✅' : '❌'}\nAPI: ${results.canReachTarget ? '✅' : '❌'}`);
+                  }}
+                  size="small"
+                  style={{ 
+                    borderRadius: 12, 
+                    backgroundColor: 'rgba(255, 165, 0, 0.1)',
+                    color: '#ff6600',
+                    fontSize: '0.7rem',
+                    minWidth: 'auto',
+                    padding: '4px 8px'
+                  }}
+                >
+                  🔍
+                </Button>
+              )}
+            </Box>
             <Tabs
               value={activeTab}
               onChange={onTabChange}

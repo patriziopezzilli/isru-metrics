@@ -111,17 +111,68 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     setLoading(true);
     setError(null);
     
+    const apiUrl = `https://tools.sneakerdb.net/api/isrucamp-user-profile/${usernameToFetch}`;
+    console.log('👤 Starting profile API call to:', apiUrl);
+    console.log('📱 User Agent:', navigator.userAgent);
+    console.log('🌐 Location:', window.location.href);
+    
     try {
-      const response = await fetch(`https://tools.sneakerdb.net/api/isrucamp-user-profile/${usernameToFetch}`);
+      console.log('📡 Making profile fetch request...');
+      const response = await fetch(apiUrl, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        cache: 'no-cache'
+      });
+      
+      console.log('📊 Profile response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        ok: response.ok,
+        url: response.url
+      });
       
       if (!response.ok) {
-        throw new Error('User profile not found');
+        throw new Error(`User profile not found - HTTP ${response.status}: ${response.statusText}`);
       }
       
       const data = await response.json();
+      console.log('✅ Profile data parsed successfully:', {
+        hasUser: !!data.user,
+        username: data.user?.username,
+        activitiesCount: data.activities?.length || 0,
+        modulesCount: data.completedModules?.length || 0
+      });
+      
       setProfileData(data);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to load profile');
+      const errorDetails = err instanceof Error ? {
+        message: err.message,
+        name: err.name,
+        stack: err.stack
+      } : {
+        message: String(err),
+        name: 'UnknownError',
+        stack: undefined
+      };
+      
+      console.error('❌ Profile API Error Details:', {
+        ...errorDetails,
+        url: apiUrl,
+        isSafari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent),
+        isMobile: /iPhone|iPad|iPod|Android/.test(navigator.userAgent)
+      });
+      
+      // Show user-friendly message on mobile
+      if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        alert(`📱 Profile loading issue on Safari mobile. Error: ${errorDetails.message}`);
+      }
+      
+      setError(errorDetails.message);
       setProfileData(null);
     } finally {
       setLoading(false);

@@ -20,6 +20,7 @@ import {
 } from '@material-ui/icons';
 import { ScoreDistributionResponse } from '../types';
 import { calculateDashboardMetrics } from '../apiService';
+import { FriendsLeague } from './FriendsLeague';
 
 interface DashboardProps {
   scoreDistribution: ScoreDistributionResponse;
@@ -32,7 +33,10 @@ const Dashboard = ({ scoreDistribution }: DashboardProps) => {
 
   return (
     <Box>
-      {/* General Metrics */}
+      {/* Friends League */}
+      <FriendsLeague />
+
+      {/* Statistics */}
       <Card 
         elevation={0} 
         style={{ 
@@ -56,8 +60,8 @@ const Dashboard = ({ scoreDistribution }: DashboardProps) => {
             >
               <AssessmentIcon style={{ color: 'white', fontSize: 24 }} />
             </Box>
-            <Typography variant="h5" component="h2" style={{ fontWeight: 600, color: '#3c3530' }}>
-              General Metrics
+                        <Typography variant="h5" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+              Statistics
             </Typography>
           </Box>
           <Grid container spacing={3}>

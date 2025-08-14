@@ -4,15 +4,63 @@ class ApiService {
   private static readonly API_URL = 'https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true';
 
   static async fetchScoreDistribution(): Promise<ScoreDistributionResponse> {
+    console.log('🔄 Starting API call to:', this.API_URL);
+    console.log('📱 User Agent:', navigator.userAgent);
+    console.log('🌐 Location:', window.location.href);
+    
     try {
-      const response = await fetch(this.API_URL);
+      console.log('📡 Making fetch request...');
+      const response = await fetch(this.API_URL, {
+        method: 'GET',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+        },
+        mode: 'cors',
+        cache: 'no-cache'
+      });
+      
+      console.log('📊 Response received:', {
+        status: response.status,
+        statusText: response.statusText,
+        headers: Object.fromEntries(response.headers.entries()),
+        ok: response.ok
+      });
+      
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
+        throw new Error(`HTTP error! status: ${response.status} - ${response.statusText}`);
       }
+      
       const data = await response.json();
+      console.log('✅ Data parsed successfully:', {
+        hasScoreDistribution: !!data.scoreDistribution,
+        itemCount: data.scoreDistribution?.length || 0
+      });
+      
       return data;
     } catch (error) {
-      console.warn('Error loading data from API, using fallback data:', error);
+      const errorDetails = error instanceof Error ? {
+        message: error.message,
+        name: error.name,
+        stack: error.stack
+      } : {
+        message: String(error),
+        name: 'UnknownError',
+        stack: undefined
+      };
+      
+      console.error('❌ API Error Details:', {
+        ...errorDetails,
+        isSafari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent),
+        isMobile: /iPhone|iPad|iPod|Android/.test(navigator.userAgent)
+      });
+      
+      // Show user-friendly message on mobile
+      if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        alert(`📱 Network issue detected on Safari mobile. Using offline data. Error: ${errorDetails.message}`);
+      }
+      
+      console.warn('🔄 Using fallback data due to API error');
       return this.getFallbackData();
     }
   }
