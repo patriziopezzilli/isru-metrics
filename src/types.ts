@@ -71,6 +71,11 @@ export interface ScoreDistributionItem {
 
 export interface ScoreDistributionResponse {
   scoreDistribution: ScoreDistributionItem[];
+  userScore?: number | null;
+  totalUsers?: number;
+  minScore?: number;
+  maxScore?: number;
+  countsHidden?: boolean;
 }
 
 export interface UserStats {
@@ -103,4 +108,35 @@ export interface UserData {
   profilePhotoData: {
     image: string;
   };
+}
+
+export interface SearchedUser {
+  username: string;
+  loading: boolean;
+  profile?: SneakerDBUserProfile;
+  ranking?: {
+    position: number;
+    percentageAbove: number;
+    percentageBelow: number;
+    usersAbove: number;
+    totalUsers: number;
+  };
+  error?: string;
+}
+
+export interface UserRanking {
+  position: number;
+  percentageAbove: number;
+  percentageBelow: number;
+  usersAbove: number;
+  totalUsers: number;
+}
+
+export interface SearchedUser {
+  id: string;
+  username: string;
+  loading: boolean;
+  error?: string;
+  profile?: SneakerDBUserProfile;
+  ranking?: UserRanking;
 }

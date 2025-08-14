@@ -29,6 +29,7 @@ import {
   Person as PersonIcon
 } from '@material-ui/icons';
 import { SneakerDBUserProfile } from '../types';
+import { fetchSneakerDBProfile } from '../apiService';
 
 const useStyles = makeStyles((theme) => ({
   card: {
@@ -158,21 +159,7 @@ export const FriendsLeague: React.FC = () => {
     console.log(`👥 Fetching profile for friend: ${username}`);
     
     try {
-      const response = await fetch(`https://tools.sneakerdb.net/api/isrucamp-user-profile/${username}`, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        mode: 'cors',
-        cache: 'no-cache'
-      });
-
-      if (!response.ok) {
-        throw new Error(`User not found: ${response.status}`);
-      }
-
-      const data = await response.json();
+      const data = await fetchSneakerDBProfile(username);
       console.log(`✅ Profile data loaded for ${username}:`, {
         totalPoints: data.user?.totalPoints,
         activitiesCount: data.activities?.length

@@ -17,6 +17,7 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { SneakerDBUserProfile } from '../types';
+import { fetchSneakerDBProfile } from '../apiService';
 
 const useStyles = makeStyles((theme) => ({
   dialog: {
@@ -111,36 +112,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     setLoading(true);
     setError(null);
     
-    const apiUrl = `https://tools.sneakerdb.net/api/isrucamp-user-profile/${usernameToFetch}`;
-    console.log('👤 Starting profile API call to:', apiUrl);
-    console.log('📱 User Agent:', navigator.userAgent);
-    console.log('🌐 Location:', window.location.href);
-    
     try {
-      console.log('📡 Making profile fetch request...');
-      const response = await fetch(apiUrl, {
-        method: 'GET',
-        headers: {
-          'Accept': 'application/json',
-          'Content-Type': 'application/json',
-        },
-        mode: 'cors',
-        cache: 'no-cache'
-      });
+      const data = await fetchSneakerDBProfile(usernameToFetch);
       
-      console.log('📊 Profile response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        ok: response.ok,
-        url: response.url
-      });
-      
-      if (!response.ok) {
-        throw new Error(`User profile not found - HTTP ${response.status}: ${response.statusText}`);
-      }
-      
-      const data = await response.json();
       console.log('✅ Profile data parsed successfully:', {
         hasUser: !!data.user,
         username: data.user?.username,
@@ -162,7 +136,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       
       console.error('❌ Profile API Error Details:', {
         ...errorDetails,
-        url: apiUrl,
+        username: usernameToFetch,
         isSafari: /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent),
         isMobile: /iPhone|iPad|iPod|Android/.test(navigator.userAgent)
       });

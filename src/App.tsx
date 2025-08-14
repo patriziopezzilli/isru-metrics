@@ -287,15 +287,36 @@ const AppContent = ({
   if (loading) {
     return (
       <>
-        <Container maxWidth="sm" style={{ marginTop: 64, textAlign: 'center' }}>
-          <CircularProgress size={60} style={{ marginBottom: 16 }} />
-          <Typography variant="h4" gutterBottom>
+        <Box 
+          display="flex" 
+          flexDirection="column" 
+          alignItems="center" 
+          justifyContent="center" 
+          minHeight="100vh"
+          style={{ textAlign: 'center' }}
+        >
+          <Box 
+            style={{ 
+              backgroundColor: '#8b7355', 
+              borderRadius: '50%', 
+              padding: 24, 
+              marginBottom: 24,
+              boxShadow: '0 8px 32px rgba(139, 115, 85, 0.3)',
+            }}
+          >
+            <CircularProgress 
+              size={48} 
+              thickness={4}
+              style={{ color: 'white' }} 
+            />
+          </Box>
+          <Typography variant="h6" gutterBottom style={{ fontWeight: 600, color: '#3c3530' }}>
             Loading ISRU Data...
           </Typography>
-          <Typography variant="body1" color="textSecondary">
+          <Typography variant="body2" color="textSecondary" style={{ fontSize: '0.875rem' }}>
             Please wait while we fetch the latest metrics
           </Typography>
-        </Container>
+        </Box>
       </>
     );
   }
@@ -347,17 +368,20 @@ const AppContent = ({
             <Box display="flex" alignItems="center" style={{ gap: '8px' }}>
               <Button
                 color="inherit"
-                startIcon={<RefreshIcon />}
                 onClick={onLoadData}
                 size={isMobile ? "small" : "medium"}
                 style={{ 
-                  borderRadius: 12, 
-                  backgroundColor: 'rgba(0, 0, 0, 0.05)',
-                  color: '#333',
+                  borderRadius: '50%',
+                  backgroundColor: 'rgba(139, 115, 85, 0.1)',
+                  color: '#8b7355',
                   fontSize: isMobile ? '0.8rem' : '0.9rem',
+                  minWidth: isMobile ? 40 : 48,
+                  width: isMobile ? 40 : 48,
+                  height: isMobile ? 40 : 48,
+                  padding: 0,
                 }}
               >
-                Refresh
+                <RefreshIcon fontSize={isMobile ? "small" : "medium"} />
               </Button>
               
               {/* Debug button for Safari mobile */}
@@ -455,7 +479,7 @@ const AppContent = ({
       >
         <Container maxWidth="lg">
           <Typography variant="body2" color="textSecondary" align="center" style={{ fontWeight: 500 }}>
-            📱 Mobile Optimized • 📊 Data from isrucamp.com • 🎯 Estimated Stock: 1500 pieces
+            📱 Mobile Optimized • 📊 Data from isrucamp.com
           </Typography>
         </Container>
       </Box>
