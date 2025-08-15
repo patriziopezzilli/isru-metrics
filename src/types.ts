@@ -65,17 +65,15 @@ export interface ScoreDistributionItem {
   percentage: number;
   isUserScore: boolean;
   countsHidden: boolean;
-  hasUsers: boolean;
+  hasUsers?: boolean;
   users?: UserProfile[];
 }
 
 export interface ScoreDistributionResponse {
   scoreDistribution: ScoreDistributionItem[];
-  userScore?: number | null;
   totalUsers?: number;
   minScore?: number;
   maxScore?: number;
-  countsHidden?: boolean;
 }
 
 export interface UserStats {
@@ -96,6 +94,52 @@ export interface DashboardMetrics {
     count: number;
     percentage: number;
   }[];
+}
+
+// Goal Tracker Types
+export interface UserGoal {
+  id: string;
+  userId: string;
+  targetPosition: number;
+  targetScore?: number;
+  createdAt: Date;
+  targetDate?: Date;
+  isActive: boolean;
+  achievedAt?: Date;
+}
+
+export interface GoalProgress {
+  currentPosition: number;
+  targetPosition: number;
+  positionsToGo: number;
+  progressPercentage: number;
+  estimatedDaysToAchieve?: number;
+  dailyProgressNeeded: number;
+  isOnTrack: boolean;
+}
+
+export interface GoalPrediction {
+  likelihood: 'high' | 'medium' | 'low';
+  estimatedAchievementDate: Date;
+  requiredDailyImprovement: number;
+  confidence: number; // 0-100
+  factors: string[];
+}
+
+// Offline Mode Types
+export interface OfflineData {
+  lastUpdate: Date;
+  scoreDistribution: ScoreDistributionResponse;
+  userStats?: UserStats;
+  userProfile?: SneakerDBUserProfile;
+  goals: UserGoal[];
+  cacheVersion: string;
+}
+
+export interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  expiry: number;
 }
 
 export interface UserData {

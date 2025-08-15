@@ -19,13 +19,16 @@ import {
 import RefreshIcon from '@material-ui/icons/Refresh';
 import DashboardIcon from '@material-ui/icons/Dashboard';
 import SearchIcon from '@material-ui/icons/Search';
+import SportsSoccerIcon from '@material-ui/icons/SportsSoccer';
 import Dashboard from './components/Dashboard';
 import UserSearch from './components/UserSearch';
 import { UserProfile } from './components/UserProfile';
 import { UserProfileIcon } from './components/UserProfileIcon';
-import { fetchScoreDistribution } from './apiService';
-import { ScoreDistributionResponse } from './types';
-import { NetworkDiagnostics } from './utils/networkDiagnostics';
+import { GoalTracker } from './components/GoalTracker';
+import { OfflineIndicator } from './components/OfflineIndicator';
+import { fetchScoreDistribution, calculateUserStats } from './apiService';
+import { ScoreDistributionResponse, UserStats } from './types';
+import OfflineService from './services/offlineService';
 
 const theme = createTheme({
   palette: {
@@ -180,28 +183,19 @@ const theme = createTheme({
 });
 
 const App = () => {
-  const [scoreDistribution, setScoreDistribution] = useState<ScoreDistributionResponse | null>(null);
+  const [data, setData] = useState<ScoreDistributionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [activeTab, setActiveTab] = useState<0 | 1>(0);
+  const [activeTab, setActiveTab] = useState(0);
   const [username, setUsername] = useState<string>('');
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+  const [showGoalTracker, setShowGoalTracker] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+  
+  const isMobile = useMediaQuery('(max-width:600px)');
+  const materialTheme = useTheme();
 
   useEffect(() => {
-    // Log environment info for debugging
-    NetworkDiagnostics.logEnvironmentInfo();
-    
-    // Run connectivity test on Safari mobile
-    if (NetworkDiagnostics.isSafariMobile()) {
-      console.log('📱 Safari mobile detected, running connectivity test...');
-      NetworkDiagnostics.testConnectivity().then(results => {
-        console.log('🔍 Connectivity test results:', results);
-        if (!results.canReachTarget) {
-          console.warn('⚠️ Cannot reach target API from Safari mobile');
-        }
-      });
-    }
-    
     loadData();
     // Load username from localStorage
     const savedUsername = localStorage.getItem('isru-username');
@@ -214,11 +208,21 @@ const App = () => {
     try {
       setLoading(true);
       setError(null);
-      const data = await fetchScoreDistribution();
-      setScoreDistribution(data);
+      const scoreDistribution = await fetchScoreDistribution();
+      setData(scoreDistribution);
+      
+      // Save to offline storage
+      OfflineService.saveOfflineData(scoreDistribution, userStats || undefined);
     } catch (err) {
       setError('Error loading data');
       console.error('Error:', err);
+      
+      // Try to load offline data as fallback
+      const offlineData = OfflineService.loadOfflineData();
+      if (offlineData) {
+        setData(offlineData.scoreDistribution);
+        setError(null);
+      }
     } finally {
       setLoading(false);
     }
@@ -234,8 +238,8 @@ const App = () => {
       <AppContent 
         loading={loading}
         error={error}
-        scoreDistribution={scoreDistribution}
-        activeTab={activeTab}
+        scoreDistribution={data}
+        activeTab={activeTab as 0 | 1}
         onTabChange={handleTabChange}
         onLoadData={loadData}
         username={username}
@@ -283,6 +287,23 @@ const AppContent = ({
 }) => {
   const materialTheme = useTheme();
   const isMobile = useMediaQuery(materialTheme.breakpoints.down('sm'));
+  const [showGoalTracker, setShowGoalTracker] = useState(false);
+  const [userStats, setUserStats] = useState<UserStats | null>(null);
+
+  // Load user stats when username changes
+  useEffect(() => {
+    const loadUserStats = async () => {
+      if (username && scoreDistribution) {
+        try {
+          const stats = calculateUserStats(username, scoreDistribution);
+          setUserStats(stats);
+        } catch (error) {
+          console.error('Error loading user stats:', error);
+        }
+      }
+    };
+    loadUserStats();
+  }, [username, scoreDistribution]);
 
   if (loading) {
     return (
@@ -348,7 +369,7 @@ const AppContent = ({
 
   return (
     <>
-      <AppBar position="static" elevation={0} style={{ background: '#e0dfca' }}>
+      <AppBar position="static" elevation={0} style={{ background: '#E5E4CF' }}>
         {/* Header con logo principale centrato */}
         <Toolbar style={{ padding: isMobile ? '16px' : '24px', minHeight: isMobile ? 120 : 140, justifyContent: 'center' }}>
           {React.createElement('img', {
@@ -384,27 +405,7 @@ const AppContent = ({
                 <RefreshIcon fontSize={isMobile ? "small" : "medium"} />
               </Button>
               
-              {/* Debug button for Safari mobile */}
-              {NetworkDiagnostics.isSafariMobile() && (
-                <Button
-                  color="inherit"
-                  onClick={async () => {
-                    const results = await NetworkDiagnostics.testConnectivity();
-                    alert(`📱 Network Test:\nOnline: ${results.online}\nGoogle: ${results.canReachGoogle ? '✅' : '❌'}\nAPI: ${results.canReachTarget ? '✅' : '❌'}`);
-                  }}
-                  size="small"
-                  style={{ 
-                    borderRadius: 12, 
-                    backgroundColor: 'rgba(255, 165, 0, 0.1)',
-                    color: '#ff6600',
-                    fontSize: '0.7rem',
-                    minWidth: 'auto',
-                    padding: '4px 8px'
-                  }}
-                >
-                  🔍
-                </Button>
-              )}
+              {/* Debug button removed for Safari */}
             </Box>
             <Tabs
               value={activeTab}
@@ -448,6 +449,21 @@ const AppContent = ({
       </AppBar>
       
       <Container maxWidth="lg" style={{ marginTop: 32, marginBottom: 32 }}>
+        {/* Goal Tracker Button */}
+        {username && (
+          <Box style={{ marginBottom: 16, textAlign: 'center' }}>
+            <Button
+              variant="outlined"
+              color="primary"
+              onClick={() => setShowGoalTracker(true)}
+              startIcon={<SportsSoccerIcon />}
+              style={{ marginRight: 8 }}
+            >
+              Open Goal Tracker
+            </Button>
+          </Box>
+        )}
+
         {activeTab === 0 && (
           <Dashboard scoreDistribution={scoreDistribution} />
         )}
@@ -456,6 +472,19 @@ const AppContent = ({
           <UserSearch scoreDistribution={scoreDistribution} />
         )}
       </Container>
+
+      {/* Goal Tracker Dialog */}
+      {username && (
+        <GoalTracker
+          open={showGoalTracker}
+          onClose={() => setShowGoalTracker(false)}
+          username={username}
+          currentStats={userStats || undefined}
+        />
+      )}
+
+      {/* Offline Indicator */}
+      <OfflineIndicator />
 
       <UserProfile
         open={profileDialogOpen}

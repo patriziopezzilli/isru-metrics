@@ -1,48 +1,84 @@
 import { ScoreDistributionResponse, UserStats, DashboardMetrics } from './types';
+import OfflineService from './services/offlineService';
+
+// Cache system for user-related API calls
+interface CacheEntry<T> {
+  data: T;
+  timestamp: number;
+  expiry: number;
+}
+
+class CacheService {
+  private static cache = new Map<string, CacheEntry<any>>();
+  private static readonly CACHE_DURATION = 20000; // 20 secondi in millisecondi
+
+  static set<T>(key: string, data: T, customDuration?: number): void {
+    const now = Date.now();
+    const duration = customDuration || this.CACHE_DURATION;
+    this.cache.set(key, {
+      data,
+      timestamp: now,
+      expiry: now + duration
+    });
+  }
+
+  static get<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    const now = Date.now();
+    if (now > entry.expiry) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.data as T;
+  }
+
+  static clear(): void {
+    this.cache.clear();
+  }
+
+  static cleanExpired(): void {
+    const now = Date.now();
+    const keysToDelete: string[] = [];
+    
+    this.cache.forEach((entry, key) => {
+      if (now > entry.expiry) {
+        keysToDelete.push(key);
+      }
+    });
+    
+    keysToDelete.forEach(key => this.cache.delete(key));
+  }
+}
 
 class ApiService {
   private static readonly API_URL = 'https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true';
   private static readonly PROXY_URLS = [
+    // AllOrigins - Solitamente il più veloce e affidabile
     'https://api.allorigins.win/get?url=' + encodeURIComponent('https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true'),
-    'https://cors-anywhere.herokuapp.com/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true',
-    'https://thingproxy.freeboard.io/fetch/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true'
+    // Proxy alternatives più veloci
+    'https://proxy.cors.sh/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true',
+    'https://api.codetabs.com/v1/proxy?quest=https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true',
+    // Fallback originali
+    'https://thingproxy.freeboard.io/fetch/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true',
+    'https://cors-anywhere.herokuapp.com/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true'
   ];
 
   static async fetchScoreDistribution(): Promise<ScoreDistributionResponse> {
-    console.log('🔄 Starting API call to:', this.API_URL);
+    console.log('🔄 Starting API call with proxy-first strategy');
     console.log('📱 User Agent:', navigator.userAgent);
     console.log('🌐 Location:', window.location.href);
     
-    // Try direct API first
-    try {
-      console.log('📡 Making direct fetch request...');
-      const response = await this.makeRequest(this.API_URL);
-      
-      console.log('📊 Direct Response received:', {
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries()),
-        ok: response.ok
-      });
-      
-      if (response.ok) {
-        const data = await response.json();
-        console.log('✅ Direct Data parsed successfully:', {
-          hasScoreDistribution: !!data.scoreDistribution,
-          itemCount: data.scoreDistribution?.length || 0
-        });
-        return data;
-      } else if (response.status === 403) {
-        console.warn('🚫 403 Forbidden - Server blocking requests. Trying proxy...');
-        throw new Error(`403 Forbidden: Access denied by server`);
-      } else {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-      }
-    } catch (error) {
-      console.warn('⚠️ Direct API failed, trying proxy...', error);
+    // Check if we should use offline data
+    const offlineData = OfflineService.loadOfflineData();
+    if (OfflineService.shouldUseOfflineData() && offlineData && !OfflineService.isDataExpired(offlineData.lastUpdate)) {
+      console.log('📱 Using offline data due to poor connection');
+      return offlineData.scoreDistribution;
     }
-
-    // Try proxy APIs as fallback
+    
+    // Use proxy APIs directly to avoid CORS issues
     for (let i = 0; i < this.PROXY_URLS.length; i++) {
       const proxyUrl = this.PROXY_URLS[i];
       try {
@@ -73,19 +109,27 @@ class ApiService {
                   hasScoreDistribution: !!data.scoreDistribution,
                   itemCount: data.scoreDistribution?.length || 0
                 });
+                
+                // Save to offline storage
+                OfflineService.saveOfflineData(data);
+                
                 return data;
               } catch (parseError) {
                 console.error('❌ Failed to parse AllOrigins contents:', parseError);
                 console.log('📄 Raw contents:', proxyData.contents);
               }
             }
-          } else if (proxyUrl.includes('cors-anywhere') || proxyUrl.includes('thingproxy')) {
+          } else if (proxyUrl.includes('cors-anywhere') || proxyUrl.includes('thingproxy') || proxyUrl.includes('cors.sh') || proxyUrl.includes('codetabs')) {
             // Direct JSON response from these proxies
             if (proxyData.scoreDistribution) {
               console.log('✅ Direct Proxy Data parsed successfully:', {
                 hasScoreDistribution: !!proxyData.scoreDistribution,
                 itemCount: proxyData.scoreDistribution?.length || 0
               });
+              
+              // Save to offline storage
+              OfflineService.saveOfflineData(proxyData);
+              
               return proxyData;
             }
           }
@@ -93,6 +137,12 @@ class ApiService {
       } catch (error) {
         console.warn(`⚠️ Proxy ${i + 1} failed:`, error);
       }
+    }
+
+    // If all proxies fail, try offline data as fallback
+    if (offlineData) {
+      console.log('📱 All proxies failed, using offline data as fallback');
+      return offlineData.scoreDistribution;
     }
 
     // If both fail, use fallback data
@@ -106,16 +156,32 @@ class ApiService {
     }
     
     console.warn('🔄 Using fallback data due to API errors');
-    return this.getFallbackData();
+    const fallbackData = this.getFallbackData();
+    
+    // Save fallback data to offline storage
+    OfflineService.saveOfflineData(fallbackData);
+    
+    return fallbackData;
   }
 
   private static async makeRequest(url: string): Promise<Response> {
-    // Use simple headers to avoid CORS preflight
-    return await fetch(url, {
-      method: 'GET',
-      mode: 'cors',
-      cache: 'no-cache'
-    });
+    // Timeout ottimizzato per proxy più veloci
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 8000); // 8 secondi invece di default
+
+    try {
+      const response = await fetch(url, {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-cache',
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      return response;
+    } catch (error) {
+      clearTimeout(timeoutId);
+      throw error;
+    }
   }
 
   static calculateUserStats(username: string, scoreDistribution: ScoreDistributionResponse): UserStats | null {
@@ -350,45 +416,55 @@ export const fetchScoreDistribution = ApiService.fetchScoreDistribution.bind(Api
 export const calculateUserStats = ApiService.calculateUserStats.bind(ApiService);
 export const calculateDashboardMetrics = ApiService.calculateDashboardMetrics.bind(ApiService);
 
-// SneakerDB API helper with proxy support
+// Auto-cleanup expired cache entries every 30 seconds
+setInterval(() => {
+  CacheService.cleanExpired();
+}, 30000);
+
+// SneakerDB API helper with proxy support and caching
 export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
+  const cacheKey = `sneakerdb_profile_${username.toLowerCase()}`;
+  
+  // Check cache first
+  const cachedData = CacheService.get(cacheKey);
+  if (cachedData) {
+    console.log(`📦 Using cached SneakerDB profile for: ${username}`);
+    return cachedData;
+  }
+
   const directUrl = `https://tools.sneakerdb.net/api/isrucamp-user-profile/${username}`;
   const proxyUrls = [
+    // AllOrigins - Migliore per affidabilità
     `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`,
-    `https://cors-anywhere.herokuapp.com/${directUrl}`,
-    `https://thingproxy.freeboard.io/fetch/${directUrl}`
+    // Proxy più veloci
+    `https://proxy.cors.sh/${directUrl}`,
+    `https://api.codetabs.com/v1/proxy?quest=${directUrl}`,
+    // Fallback
+    `https://thingproxy.freeboard.io/fetch/${directUrl}`,
+    `https://cors-anywhere.herokuapp.com/${directUrl}`
   ];
 
   console.log('👤 Starting SneakerDB API call for:', username);
 
-  // Try direct API first
-  try {
-    console.log('📡 Making direct SneakerDB request...');
-    const response = await fetch(directUrl, {
-      method: 'GET',
-      mode: 'cors',
-      cache: 'no-cache'
-    });
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ SneakerDB Direct Data parsed successfully');
-      return data;
-    }
-  } catch (error) {
-    console.warn('⚠️ Direct SneakerDB API failed, trying proxies...', error);
-  }
-
-  // Try proxy APIs as fallback
+  // Use proxy APIs directly to avoid CORS issues
   for (let i = 0; i < proxyUrls.length; i++) {
     const proxyUrl = proxyUrls[i];
+    let timeoutId: NodeJS.Timeout | undefined;
     try {
       console.log(`🔄 Trying SneakerDB proxy ${i + 1}:`, proxyUrl);
+      
+      // Timeout ottimizzato per SneakerDB
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 6000); // 6 secondi per profili
+      
       const response = await fetch(proxyUrl, {
         method: 'GET',
         mode: 'cors',
-        cache: 'no-cache'
+        cache: 'no-cache',
+        signal: controller.signal
       });
+      
+      clearTimeout(timeoutId);
 
       if (response.ok) {
         const proxyData = await response.json();
@@ -408,20 +484,25 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
                 : proxyData.contents;
                 
               console.log('✅ SneakerDB AllOrigins Data parsed successfully');
+              // Cache the successful response
+              CacheService.set(cacheKey, data);
               return data;
             } catch (parseError) {
               console.error('❌ Failed to parse SneakerDB AllOrigins contents:', parseError);
             }
           }
-        } else if (proxyUrl.includes('cors-anywhere') || proxyUrl.includes('thingproxy')) {
+        } else if (proxyUrl.includes('cors-anywhere') || proxyUrl.includes('thingproxy') || proxyUrl.includes('cors.sh') || proxyUrl.includes('codetabs')) {
           // Direct JSON response from these proxies
           if (proxyData && typeof proxyData === 'object') {
             console.log('✅ SneakerDB Direct Proxy Data parsed successfully');
+            // Cache the successful response
+            CacheService.set(cacheKey, proxyData);
             return proxyData;
           }
         }
       }
     } catch (error) {
+      if (timeoutId) clearTimeout(timeoutId);
       console.warn(`⚠️ SneakerDB Proxy ${i + 1} failed:`, error);
     }
   }
@@ -459,9 +540,18 @@ export const testApiConnectivity = async (): Promise<{direct: boolean, proxy: bo
   return result;
 };
 
-// New search function for users
+// New search function for users with caching
 export const searchUsers = (query: string, scoreDistribution: ScoreDistributionResponse): any[] => {
   if (!query.trim()) return [];
+  
+  // Use query and timestamp as cache key for search results
+  const cacheKey = `user_search_${query.toLowerCase().trim()}`;
+  const cachedResults = CacheService.get<any[]>(cacheKey);
+  
+  if (cachedResults) {
+    console.log(`📦 Using cached search results for: ${query}`);
+    return cachedResults;
+  }
   
   const searchQuery = query.toLowerCase();
   const results: any[] = [];
@@ -483,7 +573,12 @@ export const searchUsers = (query: string, scoreDistribution: ScoreDistributionR
     }
   });
   
-  return results.slice(0, 10); // Limit to 10 results
+  const limitedResults = results.slice(0, 10); // Limit to 10 results
+  
+  // Cache the search results for 15 seconds (shorter cache for searches)
+  CacheService.set(cacheKey, limitedResults, 15000);
+  
+  return limitedResults;
 };
 
 // Function to calculate user ranking position and percentage

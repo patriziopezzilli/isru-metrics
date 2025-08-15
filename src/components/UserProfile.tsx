@@ -181,11 +181,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const renderFirstTimeSetup = () => (
     <>
       <DialogTitle className={classes.dialogTitle}>
-        Welcome to ISRU Metrics
+        Welcome to ISRU League
       </DialogTitle>
       <DialogContent>
         <Typography variant="body1" style={{ marginBottom: 16, color: '#8b7355' }}>
-          Enter your username to set up your profile and track your metrics:
+          Enter your username to set up your profile and track your league position:
         </Typography>
         <TextField
           fullWidth
