@@ -50,7 +50,7 @@ class MigrationService {
     console.log('   - Is old domain:', isOldDomain);
     console.log('   - Has username:', hasUsername);
     
-    const shouldMigrate = isOldDomain && hasUsername;
+    const shouldMigrate = isOldDomain;
     console.log('🔍 Should migrate:', shouldMigrate);
     
     return shouldMigrate;
