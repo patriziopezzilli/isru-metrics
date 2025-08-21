@@ -104,7 +104,7 @@ class ApiService {
         headers: {
           'Accept': 'application/json',
           'Content-Type': 'application/json',
-          'User-Agent': 'ISRU-League-App/1.0',
+          'User-Agent': 'I.S.R.U-League-App/1.0',
           'Referer': 'https://isrucamp.com',
         }
       });
@@ -258,7 +258,7 @@ class ApiService {
     console.error('❌ All API attempts failed. Using fallback data.');
     
     if (isMobile) {
-      alert('📡 ISRU API temporarily unavailable (403 error). Showing sample data. Please try again later or check with ISRU support.');
+      alert('📡 I.S.R.U API temporarily unavailable (403 error). Showing sample data. Please try again later or check with I.S.R.U support.');
     }
     
     console.warn('🔄 Using fallback data due to API errors');

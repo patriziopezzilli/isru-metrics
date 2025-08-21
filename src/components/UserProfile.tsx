@@ -15,11 +15,18 @@ import {
   CircularProgress,
   Chip,
   useMediaQuery,
-  useTheme
+  useTheme,
+  IconButton,
+  Tooltip,
+  Snackbar
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
+import ShareIcon from '@material-ui/icons/Share';
+import GetAppIcon from '@material-ui/icons/GetApp';
+import FileCopyIcon from '@material-ui/icons/FileCopy';
 import { SneakerDBUserProfile } from '../types';
 import { fetchSneakerDBProfile } from '../apiService';
+import ProfileExportService from '../services/profileExportService';
 
 const useStyles = makeStyles((theme) => ({
   dialog: {
@@ -105,6 +112,59 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFirstTime, setIsFirstTime] = useState(!username);
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({ open: false, message: '', severity: 'success' });
+
+  // Notification handlers
+  const showNotification = (message: string, severity: 'success' | 'error' = 'success') => {
+    setNotification({ open: true, message, severity });
+  };
+
+  const closeNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  // Export handlers
+  const handleExportProfile = async () => {
+    if (!username || !profileData) return;
+    try {
+      const elementId = 'user-profile-modal-content';
+      await ProfileExportService.exportProfileAsImage(elementId, username);
+      showNotification('✅ Profile exported successfully!');
+    } catch (error) {
+      console.error('Export failed:', error);
+      showNotification('❌ Export failed. Please try again.', 'error');
+    }
+  };
+
+  const handleShareProfile = async () => {
+    if (!username || !profileData) return;
+    try {
+      const elementId = 'user-profile-modal-content';
+      const fullName = `${profileData.user.firstName} ${profileData.user.lastName}`;
+      
+      await ProfileExportService.shareProfile(elementId, username, `${fullName}'s I.S.R.U League Profile`);
+      showNotification('✅ Profile shared successfully!');
+    } catch (error) {
+      console.error('Share failed:', error);
+      showNotification('❌ Share failed. Profile exported instead.', 'error');
+    }
+  };
+
+  const handleCopyProfile = async () => {
+    if (!username || !profileData) return;
+    try {
+      const elementId = 'user-profile-modal-content';
+      await ProfileExportService.copyProfileToClipboard(elementId);
+      showNotification('✅ Profile copied to clipboard!');
+    } catch (error) {
+      console.error('Copy failed:', error);
+      showNotification('❌ Copy failed. This feature may not be supported.', 'error');
+    }
+  };
 
   useEffect(() => {
     if (username && open) {
@@ -185,7 +245,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const renderFirstTimeSetup = () => (
     <>
       <DialogTitle className={classes.dialogTitle}>
-        Welcome to ISRU League
+        Welcome to I.S.R.U League
       </DialogTitle>
       <DialogContent>
         <Typography variant="body1" style={{ marginBottom: 16, color: '#8b7355' }}>
@@ -249,8 +309,16 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         )}
 
         {profileData && (
-          <Card className={classes.profileCard}>
-            <CardContent>
+          <Card 
+            className={classes.profileCard}
+          >
+            <CardContent id="user-profile-modal-content"
+              style={{
+                background: 'linear-gradient(135deg, #fefdfb 0%, #f8f6f1 100%)',
+                borderRadius: 12,
+                padding: 24,
+              }}
+            >
               <Box display="flex" alignItems="center" mb={2}>
                 <Avatar
                   className={classes.avatar}
@@ -381,6 +449,66 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             </Typography>
           )}
         </Box>
+
+        {/* Export Controls - Solo se il profilo è caricato */}
+        {profileData && !loading && !error && (
+          <Box 
+            display="flex" 
+            justifyContent="center"
+            alignItems="center"
+            style={{ 
+              gap: 8,
+              marginTop: 16,
+              marginBottom: 8,
+              padding: '0 16px',
+            }}
+          >
+            <Tooltip title="Share Profile">
+              <IconButton
+                onClick={handleShareProfile}
+                style={{
+                  backgroundColor: '#8b7355',
+                  color: 'white',
+                  padding: 10,
+                  borderRadius: 12,
+                }}
+                size="small"
+              >
+                <ShareIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            
+            <Tooltip title="Download as Image">
+              <IconButton
+                onClick={handleExportProfile}
+                style={{
+                  backgroundColor: '#a0916c',
+                  color: 'white',
+                  padding: 10,
+                  borderRadius: 12,
+                }}
+                size="small"
+              >
+                <GetAppIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+            
+            <Tooltip title="Copy to Clipboard">
+              <IconButton
+                onClick={handleCopyProfile}
+                style={{
+                  backgroundColor: '#6b7d5a',
+                  color: 'white',
+                  padding: 10,
+                  borderRadius: 12,
+                }}
+                size="small"
+              >
+                <FileCopyIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          </Box>
+        )}
       </DialogContent>
       <DialogActions>
         <Button onClick={handleDeleteProfile} style={{ color: '#d32f2f' }}>
@@ -413,6 +541,27 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       }}
     >
       {isFirstTime ? renderFirstTimeSetup() : renderProfileView()}
+      
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={closeNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <div
+          style={{
+            backgroundColor: notification.severity === 'success' ? '#4caf50' : '#f44336',
+            color: 'white',
+            padding: '12px 16px',
+            borderRadius: 8,
+            fontWeight: 500,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}
+        >
+          {notification.message}
+        </div>
+      </Snackbar>
     </Dialog>
   );
 };

@@ -29,6 +29,7 @@ import { OfflineIndicator } from './components/OfflineIndicator';
 import { MarsYardCountdown } from './components/MarsYardCountdown';
 import OnlineUserCounter from './components/OnlineUserCounter';
 import DomainMigrationWarning from './components/DomainMigrationWarning';
+import ChangelogNotification from './components/ChangelogNotification';
 import { fetchScoreDistribution, calculateUserStats } from './apiService';
 import { ScoreDistributionResponse, UserStats } from './types';
 import OfflineService from './services/offlineService';
@@ -169,9 +170,6 @@ const App = () => {
             }}
           />
           <Analytics />
-          
-          {/* Global Offline Indicator */}
-          <OfflineIndicator />
         </>
       )}
     </ThemeProvider>
@@ -250,7 +248,7 @@ const AppContent = ({
             />
           </Box>
           <Typography variant="h6" gutterBottom style={{ fontWeight: 600, color: '#3c3530' }}>
-            Loading ISRU League...
+            Loading I.S.R.U League...
           </Typography>
           <Typography variant="body2" color="textSecondary" style={{ fontSize: '0.875rem' }}>
             Please wait while we fetch the latest league data
@@ -318,7 +316,7 @@ const AppContent = ({
         </Box>
         
         {/* Online Users Counter sotto il disclaimer */}
-        <Box display="flex" justifyContent="center" style={{ paddingBottom: '12px' }}>
+        <Box display="flex" justifyContent="center" alignItems="center" style={{ paddingBottom: '12px' }}>
           <OnlineUserCounter />
         </Box>
         
@@ -390,6 +388,9 @@ const AppContent = ({
       {/* Mars Yard 3.0 Countdown */}
       <MarsYardCountdown />
       
+      {/* Changelog Notification - New features announcement */}
+      <ChangelogNotification version="v2.1.0" />
+      
       {/* Domain Migration Warning - only show on old domain or after migration */}
       <DomainMigrationWarning />
       
@@ -452,6 +453,11 @@ const AppContent = ({
           <Typography variant="body2" color="textSecondary" align="center" style={{ fontWeight: 500 }}>
             📱 Mobile Optimized • 📊 Data from isrucamp.com
           </Typography>
+          
+          {/* Connection Status nel footer */}
+          <Box display="flex" justifyContent="center" alignItems="center" style={{ marginTop: '16px' }}>
+            <OfflineIndicator />
+          </Box>
         </Container>
       </Box>
     </>

@@ -2,7 +2,7 @@
  * League Image Export Utility
  * 
  * Genera immagini condivisibili della Friends League
- * con il design e branding del sito ISRU League
+ * con il design e branding del sito I.S.R.U League
  */
 
 export interface LeagueExportData {
@@ -116,7 +116,7 @@ export class LeagueImageExporter {
     this.ctx.textAlign = 'center';
     this.ctx.shadowColor = 'rgba(255, 107, 53, 0.5)';
     this.ctx.shadowBlur = 10;
-    this.ctx.fillText('🚀 ISRU LEAGUE 🚀', this.WIDTH / 2, 65);
+    this.ctx.fillText('🚀 I.S.R.U LEAGUE 🚀', this.WIDTH / 2, 65);
 
     // Reset shadow
     this.ctx.shadowColor = 'transparent';
@@ -263,7 +263,7 @@ export class LeagueImageExporter {
     
     this.ctx.fillStyle = this.COLORS.primary;
     this.ctx.font = 'bold 16px "Courier New", monospace';
-    this.ctx.fillText('📱 ISRU LEAGUE APP • ISRUCAMP.COM', this.WIDTH / 2, footerY + 50);
+    this.ctx.fillText('📱 I.S.R.U LEAGUE APP • ISRUCAMP.COM', this.WIDTH / 2, footerY + 50);
     
     // Mars mission tagline
     this.ctx.fillStyle = this.COLORS.primary;
@@ -290,8 +290,8 @@ export class LeagueImageExporter {
         
         if (navigator.canShare({ files: [file] })) {
           await navigator.share({
-            title: 'ISRU League - Friends Leaderboard',
-            text: 'Check out our ISRU League competition! 🚀',
+            title: 'I.S.R.U League - Friends Leaderboard',
+            text: 'Check out our I.S.R.U League competition! 🚀',
             files: [file]
           });
         }

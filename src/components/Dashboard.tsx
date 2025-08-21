@@ -74,7 +74,7 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
             >
               <AssessmentIcon style={{ color: 'white', fontSize: 24 }} />
             </Box>
-                        <Typography variant="h5" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+            <Typography variant="h5" style={{ color: '#8b7355', fontWeight: 'bold', fontSize: '1.25rem' }}>
               Statistics
             </Typography>
           </Box>
@@ -168,7 +168,7 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
               >
                 <TrophyIcon style={{ color: 'white', fontSize: 24 }} />
               </Box>
-              <Typography variant="h5" component="h2" style={{ fontWeight: 600, color: '#3c3530' }}>
+              <Typography variant="h5" component="h2" style={{ fontWeight: 600, color: '#3c3530', fontSize: '1.25rem' }}>
                 Top 10 Scores
               </Typography>
               <Chip 
@@ -269,7 +269,7 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
               >
                 <BarChartIcon style={{ color: 'white', fontSize: 24 }} />
               </Box>
-              <Typography variant="h5" component="h2" style={{ fontWeight: 600, color: '#3c3530' }}>
+              <Typography variant="h5" component="h2" style={{ fontWeight: 600, color: '#3c3530', fontSize: '1.25rem' }}>
                 Score Distribution
               </Typography>
               <Chip 

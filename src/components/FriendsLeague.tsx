@@ -600,7 +600,7 @@ export const FriendsLeague: React.FC = () => {
         </DialogTitle>
         <DialogContent style={{ paddingTop: 16 }}>
           <Typography variant="body2" style={{ color: '#8b7355', marginBottom: 16 }}>
-            Enter your friend's ISRU Camp username:
+            Enter your friend's I.S.R.U Camp username:
           </Typography>
           <TextField
             fullWidth

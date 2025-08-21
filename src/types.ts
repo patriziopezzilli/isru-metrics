@@ -1,4 +1,4 @@
-// Tipi per l'API ISRU
+// Tipi per l'API I.S.R.U
 export interface UserProfile {
   id: number;
   username: string;

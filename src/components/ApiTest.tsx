@@ -14,7 +14,7 @@ const ApiTest: React.FC = () => {
         🧪 API Direct Call Test
       </Typography>
       <Typography variant="body2" style={{ marginBottom: 16 }}>
-        Questo test verifica se possiamo chiamare l'API ISRU direttamente senza proxy.
+        Questo test verifica se possiamo chiamare l'API I.S.R.U direttamente senza proxy.
         Apri la Console del Browser (F12) per vedere i risultati.
       </Typography>
       <Box>

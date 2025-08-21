@@ -112,6 +112,19 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
               fontWeight: 'bold',
             }}
           />
+          {profileData?.user?.totalPoints !== undefined && (
+            <Chip
+              label={`${profileData.user.totalPoints} pts`}
+              size="small"
+              style={{
+                backgroundColor: 'rgba(255, 255, 255, 0.15)',
+                color: 'white',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                border: '1px solid rgba(255, 255, 255, 0.2)',
+              }}
+            />
+          )}
           {completedActivities.length === totalActivities && (
             <Typography style={{ color: 'white', fontSize: '1.2rem' }}>🎉</Typography>
           )}

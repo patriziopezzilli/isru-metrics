@@ -16,12 +16,19 @@ import {
   CircularProgress,
   Button,
   useMediaQuery,
-  useTheme
+  useTheme,
+  IconButton,
+  Tooltip,
+  Snackbar
 } from '@material-ui/core';
 import SearchIcon from '@material-ui/icons/Search';
 import TrendingUpIcon from '@material-ui/icons/TrendingUp';
+import ShareIcon from '@material-ui/icons/Share';
+import GetAppIcon from '@material-ui/icons/GetApp';
+import FileCopyIcon from '@material-ui/icons/FileCopy';
 import { ScoreDistributionResponse, SneakerDBUserProfile } from '../types';
 import { searchUsers, fetchSneakerDBProfile, calculateUserRanking } from '../apiService';
+import ProfileExportService from '../services/profileExportService';
 
 interface UserSearchProps {
   scoreDistribution: ScoreDistributionResponse;
@@ -40,11 +47,62 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [searchQuery, setSearchQuery] = useState('');
   const [searchedUsers, setSearchedUsers] = useState<SearchedUser[]>([]);
+  const [notification, setNotification] = useState<{
+    open: boolean;
+    message: string;
+    severity: 'success' | 'error';
+  }>({ open: false, message: '', severity: 'success' });
 
   // Search in local data
   const localSearchResults = useMemo(() => {
     return searchUsers(searchQuery, scoreDistribution);
   }, [searchQuery, scoreDistribution]);
+
+  // Notification handlers
+  const showNotification = (message: string, severity: 'success' | 'error' = 'success') => {
+    setNotification({ open: true, message, severity });
+  };
+
+  const closeNotification = () => {
+    setNotification(prev => ({ ...prev, open: false }));
+  };
+
+  // Export handlers
+  const handleExportProfile = async (username: string) => {
+    try {
+      const elementId = `profile-card-${username}`;
+      await ProfileExportService.exportProfileAsImage(elementId, username);
+      showNotification(`✅ Profile exported successfully!`);
+    } catch (error) {
+      console.error('Export failed:', error);
+      showNotification('❌ Export failed. Please try again.', 'error');
+    }
+  };
+
+  const handleShareProfile = async (username: string) => {
+    try {
+      const elementId = `profile-card-${username}`;
+      const profile = searchedUsers.find(u => u.username === username)?.profile;
+      const fullName = profile?.user ? `${profile.user.firstName} ${profile.user.lastName}` : username;
+      
+      await ProfileExportService.shareProfile(elementId, username, `${fullName}'s I.S.R.U League Profile`);
+      showNotification(`✅ Profile shared successfully!`);
+    } catch (error) {
+      console.error('Share failed:', error);
+      showNotification('❌ Share failed. Profile exported instead.', 'error');
+    }
+  };
+
+  const handleCopyProfile = async (username: string) => {
+    try {
+      const elementId = `profile-card-${username}`;
+      await ProfileExportService.copyProfileToClipboard(elementId);
+      showNotification(`✅ Profile copied to clipboard!`);
+    } catch (error) {
+      console.error('Copy failed:', error);
+      showNotification('❌ Copy failed. This feature may not be supported.', 'error');
+    }
+  };
 
   // Function to search for a specific user via API
   const searchUserProfile = async (username: string) => {
@@ -248,7 +306,17 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
             <List style={{ padding: 0 }}>
               {searchedUsers.map((searchedUser, index) => (
                 <React.Fragment key={searchedUser.username}>
-                  <ListItem style={{ padding: '16px 0', borderRadius: 12 }}>
+                  <ListItem 
+                    id={`profile-card-${searchedUser.username}`}
+                    style={{ 
+                      padding: '20px 24px', 
+                      borderRadius: 12,
+                      position: 'relative',
+                      background: 'linear-gradient(135deg, #fefdfb 0%, #f8f6f1 100%)',
+                      margin: '8px 0',
+                      border: '1px solid #e6ddd4',
+                    }}
+                  >
                     <ListItemAvatar>
                       {searchedUser.loading ? (
                         <CircularProgress size={48} style={{ color: '#8b7355' }} />
@@ -411,6 +479,67 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                       }
                     />
                   </ListItem>
+                  
+                  {/* Export Controls - Centrati in basso */}
+                  {searchedUser.profile && !searchedUser.loading && !searchedUser.error && (
+                    <Box 
+                      display="flex" 
+                      justifyContent="center"
+                      alignItems="center"
+                      style={{ 
+                        gap: 8,
+                        marginTop: 12,
+                        marginBottom: 8,
+                        paddingLeft: 16,
+                        paddingRight: 16,
+                      }}
+                    >
+                      <Tooltip title="Share Profile">
+                        <IconButton
+                          onClick={() => handleShareProfile(searchedUser.username)}
+                          style={{
+                            backgroundColor: '#8b7355',
+                            color: 'white',
+                            padding: 10,
+                            borderRadius: 12,
+                          }}
+                          size="small"
+                        >
+                          <ShareIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      
+                      <Tooltip title="Download as Image">
+                        <IconButton
+                          onClick={() => handleExportProfile(searchedUser.username)}
+                          style={{
+                            backgroundColor: '#a0916c',
+                            color: 'white',
+                            padding: 10,
+                            borderRadius: 12,
+                          }}
+                          size="small"
+                        >
+                          <GetAppIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                      
+                      <Tooltip title="Copy to Clipboard">
+                        <IconButton
+                          onClick={() => handleCopyProfile(searchedUser.username)}
+                          style={{
+                            backgroundColor: '#6b7d5a',
+                            color: 'white',
+                            padding: 10,
+                            borderRadius: 12,
+                          }}
+                          size="small"
+                        >
+                          <FileCopyIcon fontSize="small" />
+                        </IconButton>
+                      </Tooltip>
+                    </Box>
+                  )}
                   {index < searchedUsers.length - 1 && <Divider style={{ margin: '0 16px', backgroundColor: '#e6ddd4' }} />}
                 </React.Fragment>
               ))}
@@ -418,6 +547,27 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
           </CardContent>
         </Card>
       )}
+
+      {/* Notification Snackbar */}
+      <Snackbar
+        open={notification.open}
+        autoHideDuration={4000}
+        onClose={closeNotification}
+        anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+      >
+        <div
+          style={{
+            backgroundColor: notification.severity === 'success' ? '#4caf50' : '#f44336',
+            color: 'white',
+            padding: '12px 16px',
+            borderRadius: 8,
+            fontWeight: 500,
+            boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+          }}
+        >
+          {notification.message}
+        </div>
+      </Snackbar>
     </Box>
   );
 };

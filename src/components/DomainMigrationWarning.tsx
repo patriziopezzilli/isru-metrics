@@ -135,7 +135,7 @@ const DomainMigrationWarning: React.FC<DomainMigrationWarningProps> = ({
   const [isVisible, setIsVisible] = useState(true);
   const [loadingStage, setLoadingStage] = useState('initializing');
   const [progress, setProgress] = useState(0);
-  const [statusMessage, setStatusMessage] = useState('Initializing ISRU League...');
+  const [statusMessage, setStatusMessage] = useState('Initializing I.S.R.U League...');
   const STORAGE_KEY = 'domain-migration-warning-dismissed';
 
   useEffect(() => {
@@ -309,12 +309,12 @@ const DomainMigrationWarning: React.FC<DomainMigrationWarningProps> = ({
       <Box className={classes.loaderContainer}>
         <img 
           src="/main-logo-new.jpg" 
-          alt="ISRU League" 
+          alt="I.S.R.U League" 
           className={classes.logo}
         />
         
         <Typography className={classes.title}>
-          ISRU LEAGUE
+          I.S.R.U LEAGUE
         </Typography>
         
         <Typography className={classes.subtitle}>

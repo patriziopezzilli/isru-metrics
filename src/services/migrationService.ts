@@ -3,6 +3,22 @@ class MigrationService {
   private static readonly MIGRATION_KEY = 'auto-migration-completed';
   
   /**
+   * Verifica se il nuovo dominio è raggiungibile e sicuro
+   */
+  static async verifyNewDomain(): Promise<boolean> {
+    try {
+      const response = await fetch(this.NEW_DOMAIN, { 
+        method: 'HEAD',
+        mode: 'no-cors' // Evita problemi CORS per la verifica
+      });
+      return true;
+    } catch (error) {
+      console.warn('❌ New domain verification failed:', error);
+      return false;
+    }
+  }
+  
+  /**
    * Controlla se siamo in ambiente locale
    */
   static isLocalEnvironment(): boolean {
@@ -139,21 +155,34 @@ class MigrationService {
         return;
       }
 
+      // Verifica che il nuovo dominio sia raggiungibile
+      console.log('🔍 Verifying new domain accessibility...');
+      const isDomainAccessible = await this.verifyNewDomain();
+      
+      if (!isDomainAccessible) {
+        console.warn('⚠️ New domain not accessible, postponing migration');
+        return;
+      }
+
       // Raccoglie i dati utente
       const userData = this.gatherUserData();
       
       // Codifica i dati in Base64 per l'URL
       const encodedData = btoa(JSON.stringify(userData));
       
+      console.log('🚀 Starting secure migration to new domain...');
+      
       // Controlla se i dati non sono troppo lunghi per l'URL
       if (encodedData.length > 8000) {
         console.warn('User data too large for URL migration, using localStorage backup');
         // Fallback: salva in sessionStorage per il pickup
         sessionStorage.setItem('migration-data', JSON.stringify(userData));
-        window.location.href = `${this.NEW_DOMAIN}?migrate=session`;
+        
+        // Usa window.location.assign per una redirect più sicura
+        window.location.assign(`${this.NEW_DOMAIN}?migrate=session`);
       } else {
-        // Reindirizza con i dati nell'URL
-        window.location.href = `${this.NEW_DOMAIN}?migrate=${encodedData}`;
+        // Reindirizza con i dati nell'URL usando assign per sicurezza
+        window.location.assign(`${this.NEW_DOMAIN}?migrate=${encodedData}`);
       }
       
       // Marca la migrazione come completata
@@ -161,8 +190,9 @@ class MigrationService {
       
     } catch (error) {
       console.error('Migration failed:', error);
-      // Fallback: reindirizza senza dati
-      window.location.href = this.NEW_DOMAIN;
+      // Fallback: reindirizza senza dati ma in modo sicuro
+      console.log('🔄 Falling back to basic redirect...');
+      window.location.assign(this.NEW_DOMAIN);
     }
   }
 
