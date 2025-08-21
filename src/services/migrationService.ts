@@ -163,7 +163,7 @@ class MigrationService {
       timestamp: new Date().toISOString(),
       fromDomain: window.location.hostname,
       userAgent: navigator.userAgent,
-      version: '2.0',
+      version: '3.0',
       totalKeys: Object.keys(userData).length - 1 // -1 per escludere _migrationMeta
     });
 
@@ -199,7 +199,7 @@ class MigrationService {
       timestamp: new Date().toISOString(),
       fromDomain: 'localhost-simulation',
       userAgent: navigator.userAgent,
-      version: '1.0',
+      version: '3.0',
       isSimulation: true
     }));
     
@@ -207,10 +207,10 @@ class MigrationService {
   }
 
   /**
-   * Esegue la migrazione automatica verso il nuovo dominio
+   * Esegue la migrazione automatica verso il nuovo dominio - SOLO URL PARAMETERS
    */
   static async performMigration(): Promise<void> {
-    console.log('🚀 === STARTING PERFORM MIGRATION ===');
+    console.log('🚀 === STARTING PERFORM MIGRATION (URL-ONLY) ===');
     console.log('🚀 Current URL:', window.location.href);
     console.log('🚀 Current domain:', window.location.hostname);
     
@@ -237,50 +237,52 @@ class MigrationService {
       console.log('📦 Gathered ALL localStorage data for migration');
       console.log('📦 Total keys to migrate:', Object.keys(userData).length - 1); // -1 per _migrationMeta
       
-      // Salva tutto nel sessionStorage per il trasferimento
-      sessionStorage.setItem('migration-data-full', JSON.stringify(userData));
-      console.log('💾 ALL localStorage data saved to sessionStorage');
-      console.log('💾 SessionStorage data size:', JSON.stringify(userData).length, 'characters');
+      // STRATEGIA COMPLETAMENTE URL-BASED (il sessionStorage non funziona tra domini)
+      console.log('🔄 Using URL-only migration strategy...');
       
-      // BACKUP: Estrai dati critici per URL parameters come fallback
-      const criticalData = {
-        username: userData['isru-username'] || '',
-        league: userData['friends-league'] || '',
-        goals: userData['user-goals'] || userData['isru-goals'] || ''
+      // Crea dati compatti per l'URL usando chiavi abbreviate
+      const migrationData = {
+        u: userData['isru-username'] || '',
+        l: userData['friends-league'] || '',
+        g: userData['user-goals'] || userData['isru-goals'] || '',
+        o: userData['isru-offline-data'] || '',
+        s: userData['online-sessions'] || '',
+        t: new Date().toISOString()
       };
       
-      // Codifica i dati critici per l'URL (compressi)
-      const criticalDataEncoded = btoa(JSON.stringify(criticalData));
-      console.log('🔐 Critical data encoded for URL backup:', criticalDataEncoded.length, 'chars');
-      console.log('� Critical data content:', criticalData);
+      console.log('📦 Migration data to encode:', migrationData);
       
-      console.log('�🚀 Starting complete data migration to new domain...');
+      // Codifica i dati per l'URL
+      const encodedData = btoa(JSON.stringify(migrationData));
+      console.log('🔐 Data encoded, length:', encodedData.length, 'characters');
+      
+      // Verifica se i dati sono troppo lunghi per l'URL (limit ~2000 chars)
+      let finalUrl = '';
+      if (encodedData.length > 2000) {
+        console.warn('⚠️ Data too large for URL, using minimal critical data only');
+        const minimalData = {
+          u: userData['isru-username'] || '',
+          l: userData['friends-league'] || '',
+          t: new Date().toISOString()
+        };
+        const minimalEncoded = btoa(JSON.stringify(minimalData));
+        console.log('🔐 Minimal data encoded, length:', minimalEncoded.length, 'characters');
+        finalUrl = `${this.NEW_DOMAIN}?migrate=url&data=${encodeURIComponent(minimalEncoded)}`;
+      } else {
+        finalUrl = `${this.NEW_DOMAIN}?migrate=url&data=${encodeURIComponent(encodedData)}`;
+      }
+      
+      console.log('🔄 Final redirect URL:', finalUrl);
       
       // Marca la migrazione come completata PRIMA del redirect
       localStorage.setItem(this.MIGRATION_KEY, 'true');
       console.log('✅ Migration key set to true before redirect');
       
-      // Usa sessionStorage come metodo primario + URL backup per dati critici
-      const redirectUrl = `${this.NEW_DOMAIN}?migrate=full-session&backup=${encodeURIComponent(criticalDataEncoded)}`;
-      console.log('🔄 Redirecting with sessionStorage + URL backup...');
-      console.log('🔄 Redirect URL:', redirectUrl);
-      
       // Piccolo delay per assicurarsi che tutto sia salvato
       await new Promise(resolve => setTimeout(resolve, 100));
       
-      window.location.assign(redirectUrl);
-      
-      console.log('🔄 Redirect initiated - this should not be logged if redirect works');
-      console.log('💾 ALL localStorage data saved to sessionStorage');
-      
-      console.log('� Starting complete data migration to new domain...');
-      
-      // Usa solo sessionStorage per trasferire tutto
-      console.log('🔄 Redirecting with complete sessionStorage migration...');
-      window.location.assign(`${this.NEW_DOMAIN}?migrate=full-session`);
-      
-      // Marca la migrazione come completata
-      localStorage.setItem(this.MIGRATION_KEY, 'true');
+      console.log('🔄 Redirecting now...');
+      window.location.assign(finalUrl);
       
     } catch (error) {
       console.error('Migration failed:', error);
@@ -290,16 +292,19 @@ class MigrationService {
     }
   }
 
+  /**
+   * Importa i dati migrati tramite URL parameters
+   */
   static importMigratedData(): boolean {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const migrateParam = urlParams.get('migrate');
-      const backupParam = urlParams.get('backup');
+      const dataParam = urlParams.get('data');
       
-      console.log('🔍 === STARTING MIGRATION IMPORT ===');
+      console.log('🔍 === STARTING MIGRATION IMPORT (URL-ONLY) ===');
       console.log('🔍 URL params:', window.location.search);
       console.log('🔍 Migration param found:', migrateParam);
-      console.log('🔍 Backup param found:', backupParam ? 'YES' : 'NO');
+      console.log('🔍 Data param found:', dataParam ? 'YES' : 'NO');
       
       // Prima mostra cosa c'è attualmente nel localStorage di destinazione
       console.log('🔍 === DESTINATION LOCALSTORAGE BEFORE IMPORT ===');
@@ -310,127 +315,63 @@ class MigrationService {
           console.log(`   📋 Existing: "${key}" -> "${value?.substring(0, 50)}"`);
         }
       }
-      
-      let userData: Record<string, any> | null = null;
-      let importMethod = 'none';
 
-      // METODO 1: Prova prima sessionStorage (metodo principale)
-      if (migrateParam === 'full-session') {
-        console.log('📦 Loading COMPLETE migration data from sessionStorage...');
-        
-        // RETRY MECHANISM: Prova più volte per gestire possibili timing issues
-        let attempts = 0;
-        const maxAttempts = 3;
-        
-        while (!userData && attempts < maxAttempts) {
-          attempts++;
-          console.log(`🔄 Attempt ${attempts}/${maxAttempts} to load sessionStorage data...`);
-          
-          const sessionData = sessionStorage.getItem('migration-data-full');
-          console.log('🔍 SessionStorage keys available:', Object.keys(sessionStorage));
-          console.log('🔍 Migration data in sessionStorage:', sessionData ? `FOUND (${sessionData.length} chars)` : 'NOT FOUND');
-          
-          if (sessionData) {
-            try {
-              userData = JSON.parse(sessionData);
-              importMethod = 'sessionStorage';
-              console.log('✅ COMPLETE migration data loaded from sessionStorage');
-              console.log('📋 Keys found:', userData ? Object.keys(userData).filter(k => k !== '_migrationMeta') : []);
-              
-              // Controlli specifici
-              if (userData) {
-                console.log('🔍 === IMPORTED DATA CHECK (SessionStorage) ===');
-                console.log('🔍 isru-username in imported data:', userData['isru-username']);
-                console.log('🔍 friends-league in imported data:', userData['friends-league']);
-              }
-              break; // Successo, esci dal loop
-            } catch (parseError) {
-              console.error(`❌ Failed to parse sessionStorage data on attempt ${attempts}:`, parseError);
-              userData = null;
-            }
-          } else {
-            console.log(`❌ No sessionStorage data found on attempt ${attempts}`);
-          }
-          
-          // Se non è l'ultimo tentativo, aspetta un po'
-          if (attempts < maxAttempts && !userData) {
-            console.log(`⏳ Waiting 100ms before retry...`);
-            // In questo contesto sincrono, non possiamo usare await, ma possiamo provare subito
-            // Il browser potrebbe aver bisogno di un momento per popolare sessionStorage
-          }
-        }
-        
-        if (!userData) {
-          console.log('❌ No complete migration data found after all attempts');
-        } else {
-          // Pulisci il sessionStorage solo dopo aver caricato con successo
-          sessionStorage.removeItem('migration-data-full');
-          console.log('🧹 Cleaned migration data from sessionStorage');
-        }
-      }
-
-      // METODO 2: Se sessionStorage fallisce, usa il backup URL
-      if (!userData && backupParam) {
-        console.log('📦 SessionStorage failed, trying URL backup method...');
-        try {
-          const criticalData = JSON.parse(atob(decodeURIComponent(backupParam)));
-          console.log('🔐 Critical data decoded from URL:', criticalData);
-          
-          // Crea un oggetto userData minimale con i dati critici
-          userData = {};
-          if (criticalData.username) userData['isru-username'] = criticalData.username;
-          if (criticalData.league) userData['friends-league'] = criticalData.league;
-          if (criticalData.goals) {
-            userData['user-goals'] = criticalData.goals;
-            userData['isru-goals'] = criticalData.goals;
-          }
-          
-          // Aggiungi metadati
-          userData._migrationMeta = JSON.stringify({
-            timestamp: new Date().toISOString(),
-            fromDomain: 'backup-url-method',
-            userAgent: navigator.userAgent,
-            version: '2.0-backup',
-            totalKeys: Object.keys(userData).length - 1
-          });
-          
-          importMethod = 'URL-backup';
-          console.log('✅ Critical data loaded from URL backup');
-          console.log('🔍 === IMPORTED DATA CHECK (URL Backup) ===');
-          console.log('🔍 isru-username in imported data:', userData['isru-username']);
-          console.log('🔍 friends-league in imported data:', userData['friends-league']);
-          
-        } catch (backupError) {
-          console.error('❌ Failed to decode backup data from URL:', backupError);
-          userData = null;
-        }
-      }
-
-      if (!userData) {
-        console.log('❌ No migration data could be loaded from any method');
+      if (migrateParam !== 'url' || !dataParam) {
+        console.log('❌ No valid URL migration data found');
         return false;
       }
 
-      console.log(`📋 === MIGRATION DATA TO IMPORT (via ${importMethod}) ===`);
-      console.log('📋 Total migration data keys:', Object.keys(userData).length - 1); // -1 per _migrationMeta
+      // Decodifica i dati dall'URL
+      console.log('📦 Decoding migration data from URL...');
+      let migrationData: any;
+      
+      try {
+        const decodedData = decodeURIComponent(dataParam);
+        migrationData = JSON.parse(atob(decodedData));
+        console.log('✅ Migration data decoded successfully:', migrationData);
+      } catch (decodeError) {
+        console.error('❌ Failed to decode migration data:', decodeError);
+        return false;
+      }
+
+      // Converte da formato abbreviato a formato completo
+      const userData: Record<string, any> = {};
+      
+      if (migrationData.u) userData['isru-username'] = migrationData.u;
+      if (migrationData.l) userData['friends-league'] = migrationData.l;
+      if (migrationData.g) {
+        userData['user-goals'] = migrationData.g;
+        userData['isru-goals'] = migrationData.g;
+      }
+      if (migrationData.o) userData['isru-offline-data'] = migrationData.o;
+      if (migrationData.s) userData['online-sessions'] = migrationData.s;
+
+      // Aggiungi metadati
+      userData._migrationMeta = JSON.stringify({
+        timestamp: migrationData.t || new Date().toISOString(),
+        fromDomain: 'url-migration',
+        userAgent: navigator.userAgent,
+        version: '3.0-url',
+        totalKeys: Object.keys(userData).length - 1
+      });
+
+      console.log('📋 === MIGRATION DATA TO IMPORT (URL METHOD) ===');
+      console.log('📋 Total migration data keys:', Object.keys(userData).length - 1);
       console.log('📋 All keys to import:', Object.keys(userData).filter(k => k !== '_migrationMeta'));
 
-      // RIPRISTINA TUTTO il localStorage - sostituisce completamente il contenuto
-      console.log('🧹 Clearing current localStorage before import...');
-      localStorage.clear();
-
-      // Importa tutti i dati nel localStorage
+      // RIPRISTINA i dati nel localStorage
+      console.log('🔄 Importing data to localStorage...');
+      
       let importedCount = 0;
       Object.entries(userData).forEach(([key, value]) => {
         if (key !== '_migrationMeta') {
-          // Mantieni il valore come stringa (era già stringa quando copiato)
           localStorage.setItem(key, value as string);
           importedCount++;
           console.log(`✅ RESTORED: ${key} = ${(value as string).substring(0, 50)}${(value as string).length > 50 ? '...' : ''}`);
         }
       });
 
-      console.log(`✅ === IMPORT COMPLETED (${importMethod}) ===`);
+      console.log(`✅ === IMPORT COMPLETED (URL METHOD) ===`);
       console.log(`✅ Successfully restored ${importedCount} localStorage entries`);
       
       // Verifica che i dati critici siano stati importati correttamente
@@ -449,7 +390,7 @@ class MigrationService {
       window.history.replaceState({}, document.title, newUrl);
       console.log('🧹 URL cleaned, migration parameters removed');
 
-      console.log(`🎉 COMPLETE localStorage migration completed successfully via ${importMethod}!`);
+      console.log('🎉 URL-based migration completed successfully!');
       return true;
 
     } catch (error) {
