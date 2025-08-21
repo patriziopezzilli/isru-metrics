@@ -279,7 +279,7 @@ const AppContent = ({
         {/* Header con logo principale centrato */}
         <Toolbar style={{ padding: isMobile ? '16px' : '24px', minHeight: isMobile ? 120 : 140, justifyContent: 'center' }}>
           {React.createElement('img', {
-            src: "/main-logo.png",
+            src: "/main-logo-new.jpg",
             alt: "Main Logo",
             style: {
               height: isMobile ? 100 : 120,
@@ -290,7 +290,7 @@ const AppContent = ({
         </Toolbar>
         
         {/* Disclaimer S/N tra logo e counter */}
-        <Box display="flex" justifyContent="center" style={{ paddingTop: '4px', paddingBottom: '8px' }}>
+        <Box display="flex" justifyContent="center" style={{ paddingTop: '0px', paddingBottom: '8px' }}>
           <Typography 
             variant="caption" 
             style={{ 
