@@ -27,10 +27,13 @@ import {
   Delete as DeleteIcon,
   Refresh as RefreshIcon,
   EmojiEvents as TrophyIcon,
-  Person as PersonIcon
+  Person as PersonIcon,
+  Share as ShareIcon,
+  GetApp as DownloadIcon
 } from '@material-ui/icons';
 import { SneakerDBUserProfile } from '../types';
 import { fetchSneakerDBProfile } from '../apiService';
+import { LeagueImageExporter } from '../utils/leagueImageExporter';
 
 const useStyles = makeStyles((theme) => ({
   card: {
@@ -212,6 +215,14 @@ const useStyles = makeStyles((theme) => ({
       marginTop: theme.spacing(0.5),
     },
   },
+  exportButton: {
+    borderColor: '#8b7355',
+    color: '#8b7355',
+    '&:hover': {
+      backgroundColor: 'rgba(139, 115, 85, 0.1)',
+      borderColor: '#8b7355',
+    },
+  },
 }));
 
 interface Friend {
@@ -229,6 +240,7 @@ export const FriendsLeague: React.FC = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [loading, setLoading] = useState(false);
+  const [exporting, setExporting] = useState(false);
 
   // Load friends from localStorage on component mount
   useEffect(() => {
@@ -372,6 +384,34 @@ export const FriendsLeague: React.FC = () => {
       });
   };
 
+  // Export league image
+  const handleExportImage = async () => {
+    if (exporting || leaderboard.length === 0) return;
+    
+    setExporting(true);
+    
+    try {
+      const exportData = {
+        leaderboard: leaderboard.map((friend, index) => ({
+          position: index + 1,
+          username: friend.username,
+          score: friend.profileData?.user?.totalPoints || 0,
+          profilePicture: undefined // Non abbiamo le foto profilo
+        })),
+        timestamp: new Date().toISOString(),
+        totalFriends: leaderboard.length
+      };
+
+      const exporter = new LeagueImageExporter();
+      const imageDataUrl = await exporter.generateLeagueImage(exportData);
+      await exporter.shareImage(imageDataUrl);
+    } catch (error) {
+      console.error('Error exporting league image:', error);
+    } finally {
+      setExporting(false);
+    }
+  };
+
   const getRankBadgeClass = (position: number) => {
     if (position === 0) return `${classes.rankBadge} ${classes.goldBadge}`;
     if (position === 1) return `${classes.rankBadge} ${classes.silverBadge}`;
@@ -388,10 +428,21 @@ export const FriendsLeague: React.FC = () => {
           <Box display="flex" alignItems="center" style={{ flex: 1 }}>
             <TrophyIcon style={{ marginRight: 8 }} />
             <Typography variant="h6" style={{ fontWeight: 'bold' }}>
-              Friends League ({friends.length})
+              Friends League
             </Typography>
           </Box>
           <Box display="flex" alignItems="center">
+            {leaderboard.length > 0 && (
+              <IconButton
+                onClick={handleExportImage}
+                disabled={exporting}
+                style={{ color: '#ffffff', marginRight: 8 }}
+                size="small"
+                title="Export & Share"
+              >
+                {exporting ? <CircularProgress size={20} style={{ color: '#ffffff' }} /> : <ShareIcon />}
+              </IconButton>
+            )}
             <IconButton
               onClick={() => refreshAllFriends()}
               disabled={loading}
@@ -518,6 +569,19 @@ export const FriendsLeague: React.FC = () => {
                   </Box>
                 </Box>
               ))}
+              
+              {/* Export Button */}
+              <Box display="flex" justifyContent="center" mt={3}>
+                <Button
+                  onClick={handleExportImage}
+                  disabled={exporting}
+                  startIcon={exporting ? <CircularProgress size={20} /> : <ShareIcon />}
+                  variant="outlined"
+                  className={classes.exportButton}
+                >
+                  {exporting ? 'Creating Image...' : 'Share League'}
+                </Button>
+              </Box>
             </>
           )}
         </CardContent>

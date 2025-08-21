@@ -8,7 +8,7 @@ const useStyles = makeStyles((theme) => ({
     background: 'linear-gradient(135deg, #0a0a0a 0%, #1a1a1a 50%, #2a1a0a 100%)',
     borderBottom: '2px solid #ff6b35',
     borderTop: '1px solid rgba(255, 107, 53, 0.3)',
-    padding: theme.spacing(2),
+    padding: theme.spacing(1.5), // Ridotto da 2 per mobile
     position: 'relative',
     overflow: 'hidden',
     '&::before': {
@@ -39,37 +39,41 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     justifyContent: 'center',
     alignItems: 'center',
-    gap: theme.spacing(2),
-    flexWrap: 'wrap',
+    gap: theme.spacing(1), // Ridotto da 2 a 1 per mobile
+    flexWrap: 'nowrap', // Cambiato da 'wrap' a 'nowrap'
+    overflow: 'hidden', // Previene overflow
   },
   timeUnit: {
     display: 'flex',
     flexDirection: 'column',
     alignItems: 'center',
-    minWidth: '60px',
-    padding: theme.spacing(1),
+    minWidth: '45px', // Ridotto da 60px a 45px per mobile
+    padding: theme.spacing(0.5), // Ridotto padding
     background: 'rgba(255, 107, 53, 0.1)',
     border: '1px solid rgba(255, 107, 53, 0.3)',
-    borderRadius: '8px',
+    borderRadius: '6px', // Ridotto da 8px
     backdropFilter: 'blur(5px)',
+    flex: '0 1 auto', // Permette flessibilità ma non crescita
   },
   timeValue: {
     color: '#ffffff',
     fontFamily: '"Courier New", monospace',
-    fontSize: '1.5rem',
+    fontSize: '1.2rem', // Ridotto da 1.5rem per mobile
     fontWeight: 'bold',
     textShadow: '0 0 5px rgba(255, 255, 255, 0.5)',
-    minHeight: '32px',
+    minHeight: '28px', // Ridotto da 32px
     display: 'flex',
     alignItems: 'center',
+    lineHeight: 1,
   },
   timeLabel: {
     color: '#ff6b35',
     fontFamily: '"Courier New", monospace',
-    fontSize: '0.7rem',
+    fontSize: '0.6rem', // Ridotto da 0.7rem
     textTransform: 'uppercase',
-    letterSpacing: '1px',
-    marginTop: theme.spacing(0.5),
+    letterSpacing: '0.5px', // Ridotto da 1px
+    marginTop: theme.spacing(0.25), // Ridotto da 0.5
+    lineHeight: 1,
   },
   missionInfo: {
     color: '#cccccc',
@@ -206,8 +210,10 @@ export const MarsYardCountdown: React.FC = () => {
         <Typography 
           style={{ 
             color: '#ff6b35', 
-            fontSize: isMobile ? '1.2rem' : '1.5rem',
+            fontSize: isMobile ? '1rem' : '1.5rem',
             fontFamily: '"Courier New", monospace',
+            lineHeight: 1,
+            margin: '0 2px',
           }}
         >
           :
@@ -225,8 +231,10 @@ export const MarsYardCountdown: React.FC = () => {
         <Typography 
           style={{ 
             color: '#ff6b35', 
-            fontSize: isMobile ? '1.2rem' : '1.5rem',
+            fontSize: isMobile ? '1rem' : '1.5rem',
             fontFamily: '"Courier New", monospace',
+            lineHeight: 1,
+            margin: '0 2px',
           }}
         >
           :
@@ -244,8 +252,10 @@ export const MarsYardCountdown: React.FC = () => {
         <Typography 
           style={{ 
             color: '#ff6b35', 
-            fontSize: isMobile ? '1.2rem' : '1.5rem',
+            fontSize: isMobile ? '1rem' : '1.5rem',
             fontFamily: '"Courier New", monospace',
+            lineHeight: 1,
+            margin: '0 2px',
           }}
         >
           :

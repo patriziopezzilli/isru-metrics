@@ -55,16 +55,93 @@ class CacheService {
 
 class ApiService {
   private static readonly API_URL = 'https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true';
+  
+  // Proxy proprietario come prima opzione
   private static readonly PROXY_URLS = [
-    // AllOrigins - Solitamente il più veloce e affidabile
+    // 🏆 Proxy universale proprietario - Massima velocità e affidabilità
+    '/api/universal-proxy?api=isru-leaderboard',
+    // Backup specifico
+    '/api/isru-proxy',
+    // Backup proxy esterni (solo se necessario)
     'https://api.allorigins.win/get?url=' + encodeURIComponent('https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true'),
-    // Proxy alternatives più veloci
     'https://proxy.cors.sh/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true',
     'https://api.codetabs.com/v1/proxy?quest=https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true',
-    // Fallback originali
     'https://thingproxy.freeboard.io/fetch/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true',
     'https://cors-anywhere.herokuapp.com/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true'
   ];
+
+  // Test function to check direct API call without proxy
+  static async testDirectApiCall(): Promise<void> {
+    console.log('🧪 Testing direct API call without proxy...');
+    console.log('🎯 Target URL:', this.API_URL);
+    
+    try {
+      // Test 1: Basic fetch
+      console.log('📞 Test 1: Basic fetch call');
+      const response1 = await fetch(this.API_URL);
+      console.log('✅ Test 1 Response:', {
+        status: response1.status,
+        statusText: response1.statusText,
+        headers: Object.fromEntries(response1.headers.entries()),
+        ok: response1.ok
+      });
+      
+      if (response1.ok) {
+        const data1 = await response1.json();
+        console.log('✅ Test 1 Data received:', !!data1.scoreDistribution);
+        return;
+      }
+    } catch (error) {
+      console.log('❌ Test 1 Error:', error);
+    }
+    
+    try {
+      // Test 2: With CORS headers
+      console.log('📞 Test 2: With custom headers');
+      const response2 = await fetch(this.API_URL, {
+        method: 'GET',
+        mode: 'cors',
+        headers: {
+          'Accept': 'application/json',
+          'Content-Type': 'application/json',
+          'User-Agent': 'ISRU-League-App/1.0',
+          'Referer': 'https://isrucamp.com',
+        }
+      });
+      console.log('✅ Test 2 Response:', {
+        status: response2.status,
+        statusText: response2.statusText,
+        ok: response2.ok
+      });
+      
+      if (response2.ok) {
+        const data2 = await response2.json();
+        console.log('✅ Test 2 Data received:', !!data2.scoreDistribution);
+        return;
+      }
+    } catch (error) {
+      console.log('❌ Test 2 Error:', error);
+    }
+    
+    try {
+      // Test 3: no-cors mode (will return opaque response)
+      console.log('📞 Test 3: no-cors mode');
+      const response3 = await fetch(this.API_URL, {
+        method: 'GET',
+        mode: 'no-cors',
+      });
+      console.log('✅ Test 3 Response:', {
+        status: response3.status,
+        statusText: response3.statusText,
+        type: response3.type,
+        ok: response3.ok
+      });
+    } catch (error) {
+      console.log('❌ Test 3 Error:', error);
+    }
+    
+    console.log('🏁 Direct API test completed. Check console for results.');
+  }
 
   static async fetchScoreDistribution(): Promise<ScoreDistributionResponse> {
     console.log('🔄 Starting API call with proxy-first strategy');
@@ -90,7 +167,36 @@ class ApiService {
           console.log('🔍 Proxy response structure:', proxyData);
           
           // Handle different proxy response formats
-          if (proxyUrl.includes('allorigins.win')) {
+          if (proxyUrl.includes('/api/universal-proxy')) {
+            // 🏆 Proxy universale proprietario - Risposta diretta e pulita
+            if (proxyData.scoreDistribution) {
+              console.log('✅ Universal Proxy Data parsed successfully:', {
+                hasScoreDistribution: !!proxyData.scoreDistribution,
+                itemCount: proxyData.scoreDistribution?.length || 0,
+                proxyVersion: proxyData._proxy?.version || 'unknown',
+                apiType: proxyData._proxy?.api || 'unknown'
+              });
+              
+              // Save to offline storage
+              OfflineService.saveOfflineData(proxyData);
+              
+              return proxyData;
+            }
+          } else if (proxyUrl.includes('/api/isru-proxy')) {
+            // 🏆 Proxy proprietario - Risposta diretta e pulita
+            if (proxyData.scoreDistribution) {
+              console.log('✅ Proprietary Proxy Data parsed successfully:', {
+                hasScoreDistribution: !!proxyData.scoreDistribution,
+                itemCount: proxyData.scoreDistribution?.length || 0,
+                proxyVersion: proxyData._proxy?.version || 'unknown'
+              });
+              
+              // Save to offline storage
+              OfflineService.saveOfflineData(proxyData);
+              
+              return proxyData;
+            }
+          } else if (proxyUrl.includes('allorigins.win')) {
             console.log('📦 AllOrigins response:', {
               hasStatus: !!proxyData.status,
               hasContents: !!proxyData.contents,
@@ -415,6 +521,7 @@ class ApiService {
 export const fetchScoreDistribution = ApiService.fetchScoreDistribution.bind(ApiService);
 export const calculateUserStats = ApiService.calculateUserStats.bind(ApiService);
 export const calculateDashboardMetrics = ApiService.calculateDashboardMetrics.bind(ApiService);
+export const testDirectApiCall = ApiService.testDirectApiCall.bind(ApiService);
 
 // Auto-cleanup expired cache entries every 30 seconds
 setInterval(() => {
@@ -434,12 +541,14 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
 
   const directUrl = `https://tools.sneakerdb.net/api/isrucamp-user-profile/${username}`;
   const proxyUrls = [
-    // AllOrigins - Migliore per affidabilità
+    // 🏆 Proxy universale proprietario - Massima velocità e affidabilità
+    `/api/universal-proxy?api=sneakerdb-profile&username=${encodeURIComponent(username)}`,
+    // Backup specifico
+    `/api/sneakerdb-proxy?username=${encodeURIComponent(username)}`,
+    // Backup proxy esterni (solo se necessario)
     `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`,
-    // Proxy più veloci
     `https://proxy.cors.sh/${directUrl}`,
     `https://api.codetabs.com/v1/proxy?quest=${directUrl}`,
-    // Fallback
     `https://thingproxy.freeboard.io/fetch/${directUrl}`,
     `https://cors-anywhere.herokuapp.com/${directUrl}`
   ];
@@ -471,7 +580,28 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
         console.log('🔍 SneakerDB Proxy response structure:', proxyData);
 
         // Handle different proxy response formats
-        if (proxyUrl.includes('allorigins.win')) {
+        if (proxyUrl.includes('/api/universal-proxy')) {
+          // 🏆 Proxy universale proprietario - Risposta diretta e pulita
+          console.log('✅ SneakerDB Universal Proxy Data received:', {
+            hasData: !!proxyData,
+            proxyVersion: proxyData._proxy?.version || 'unknown',
+            apiType: proxyData._proxy?.api || 'unknown'
+          });
+          
+          // Cache the successful response
+          CacheService.set(cacheKey, proxyData);
+          return proxyData;
+        } else if (proxyUrl.includes('/api/sneakerdb-proxy')) {
+          // 🏆 Proxy proprietario - Risposta diretta e pulita
+          console.log('✅ SneakerDB Proprietary Proxy Data received:', {
+            hasData: !!proxyData,
+            proxyVersion: proxyData._proxy?.version || 'unknown'
+          });
+          
+          // Cache the successful response
+          CacheService.set(cacheKey, proxyData);
+          return proxyData;
+        } else if (proxyUrl.includes('allorigins.win')) {
           console.log('📦 SneakerDB AllOrigins response:', {
             hasContents: !!proxyData.contents,
             contentsType: typeof proxyData.contents

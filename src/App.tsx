@@ -243,10 +243,10 @@ const AppContent = ({
             />
           </Box>
           <Typography variant="h6" gutterBottom style={{ fontWeight: 600, color: '#3c3530' }}>
-            Loading ISRU Data...
+            Loading ISRU League...
           </Typography>
           <Typography variant="body2" color="textSecondary" style={{ fontSize: '0.875rem' }}>
-            Please wait while we fetch the latest metrics
+            Please wait while we fetch the latest league data
           </Typography>
         </Box>
       </>

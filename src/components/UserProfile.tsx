@@ -13,7 +13,9 @@ import {
   CardContent,
   Divider,
   CircularProgress,
-  Chip
+  Chip,
+  useMediaQuery,
+  useTheme
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { SneakerDBUserProfile } from '../types';
@@ -96,6 +98,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onUsernameSet,
 }) => {
   const classes = useStyles();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [inputUsername, setInputUsername] = useState(username || '');
   const [profileData, setProfileData] = useState<SneakerDBUserProfile | null>(null);
   const [loading, setLoading] = useState(false);
@@ -398,11 +402,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       onClose={onClose}
       maxWidth="md"
       fullWidth
+      fullScreen={isMobile} // Full screen su mobile
       className={classes.dialog}
       PaperProps={{
         style: {
-          maxHeight: '90vh',
-          overflow: 'auto'
+          maxHeight: isMobile ? '100vh' : '75vh', // Full height su mobile, limitata su desktop
+          overflow: 'auto',
+          margin: isMobile ? 0 : undefined, // Rimuove margini su mobile
         }
       }}
     >
