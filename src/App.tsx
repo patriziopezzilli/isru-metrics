@@ -35,7 +35,7 @@ import OfflineService from './services/offlineService';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#8b7355',
+      main: '#8b7355',  
     },
     secondary: {
       main: '#c4a07a',
@@ -96,12 +96,7 @@ const App = () => {
   const [error, setError] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState(0);
   const [username, setUsername] = useState<string>('');
-  const [userStats, setUserStats] = useState<UserStats | null>(null);
-  const [showGoalTracker, setShowGoalTracker] = useState(false);
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
-  
-  const isMobile = useMediaQuery('(max-width:600px)');
-  const materialTheme = useTheme();
 
   useEffect(() => {
     loadData();
@@ -120,7 +115,7 @@ const App = () => {
       setData(scoreDistribution);
       
       // Save to offline storage
-      OfflineService.saveOfflineData(scoreDistribution, userStats || undefined);
+      OfflineService.saveOfflineData(scoreDistribution, undefined);
     } catch (err) {
       setError('Error loading data');
       console.error('Error:', err);
@@ -384,23 +379,8 @@ const AppContent = ({
       <MarsYardCountdown />
       
       <Container maxWidth="lg" style={{ marginTop: 32, marginBottom: 32 }}>
-        {/* Goal Tracker Button */}
-        {username && (
-          <Box style={{ marginBottom: 16, textAlign: 'center' }}>
-            <Button
-              variant="outlined"
-              color="primary"
-              onClick={() => setShowGoalTracker(true)}
-              startIcon={<SportsSoccerIcon />}
-              style={{ marginRight: 8 }}
-            >
-              Open Goal Tracker
-            </Button>
-          </Box>
-        )}
-
         {activeTab === 0 && (
-          <Dashboard scoreDistribution={scoreDistribution} />
+          <Dashboard scoreDistribution={scoreDistribution} currentUsername={username} />
         )}
         
         {activeTab === 1 && (
@@ -424,6 +404,21 @@ const AppContent = ({
         username={username}
         onUsernameSet={onUsernameSet}
       />
+
+      {/* Goal Tracker Button - Moved to bottom */}
+      {username && (
+        <Box style={{ marginTop: 32, marginBottom: 32, textAlign: 'center' }}>
+          <Button
+            variant="outlined"
+            color="primary"
+            onClick={() => setShowGoalTracker(true)}
+            startIcon={<SportsSoccerIcon />}
+            style={{ marginRight: 8 }}
+          >
+            Open Goal Tracker
+          </Button>
+        </Box>
+      )}
 
       <Box
         component="footer"

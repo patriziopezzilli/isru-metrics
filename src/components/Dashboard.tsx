@@ -25,12 +25,14 @@ import {
 import { ScoreDistributionResponse } from '../types';
 import { calculateDashboardMetrics } from '../apiService';
 import { FriendsLeague } from './FriendsLeague';
+import { CurrentUserActivities } from './CurrentUserActivities';
 
 interface DashboardProps {
   scoreDistribution: ScoreDistributionResponse;
+  currentUsername?: string;
 }
 
-const Dashboard = ({ scoreDistribution }: DashboardProps) => {
+const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
   const [topScoresExpanded, setTopScoresExpanded] = useState(false);
   const [distributionExpanded, setDistributionExpanded] = useState(false);
   
@@ -40,6 +42,11 @@ const Dashboard = ({ scoreDistribution }: DashboardProps) => {
 
   return (
     <Box>
+      {/* Current User Activities */}
+      {currentUsername && (
+        <CurrentUserActivities username={currentUsername} />
+      )}
+
       {/* Friends League */}
       <FriendsLeague />
 
