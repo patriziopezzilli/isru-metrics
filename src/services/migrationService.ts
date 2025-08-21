@@ -30,12 +30,26 @@ class MigrationService {
    * Controlla se siamo sul vecchio dominio e se la migrazione è necessaria
    */
   static shouldMigrate(): boolean {
+    console.log('🔍 === CHECKING IF SHOULD MIGRATE ===');
+    console.log('🔍 Current hostname:', window.location.hostname);
+    console.log('🔍 Current full URL:', window.location.href);
+    
     // In locale, simula la migrazione solo se c'è un flag specifico per testing
     if (this.isLocalEnvironment()) {
+      console.log('🏠 Local environment detected');
       const forceTestMigration = localStorage.getItem('test-migration-flow') === 'true';
       const hasData = this.hasUserDataToMigrate();
       const notCompleted = localStorage.getItem(this.MIGRATION_KEY) !== 'true';
-      return forceTestMigration && hasData && notCompleted;
+      
+      console.log('🔍 Local migration conditions:');
+      console.log('   - Force test migration flag:', forceTestMigration);
+      console.log('   - Has user data:', hasData);
+      console.log('   - Migration not completed:', notCompleted);
+      console.log('   - Migration key value:', localStorage.getItem(this.MIGRATION_KEY));
+      
+      const shouldMigrateLocal = forceTestMigration && hasData && notCompleted;
+      console.log('🔍 Local shouldMigrate result:', shouldMigrateLocal);
+      return shouldMigrateLocal;
     }
     
     // Controlla se siamo sul dominio vecchio (non www.isru-league.com)
@@ -45,9 +59,18 @@ class MigrationService {
     // Controlla se la migrazione è già stata fatta
     const migrationCompleted = localStorage.getItem(this.MIGRATION_KEY) === 'true';
     
+    console.log('🔍 Production migration conditions:');
+    console.log('   - Current domain:', currentDomain);
+    console.log('   - Is old domain (not isru-league.com):', isOldDomain);
+    console.log('   - Migration completed:', migrationCompleted);
+    console.log('   - Migration key value:', localStorage.getItem(this.MIGRATION_KEY));
+    
     // Per utenti sul vecchio dominio, migra sempre (anche senza dati)
     // Questo garantisce che tutti vengano indirizzati al nuovo dominio
-    return isOldDomain && !migrationCompleted;
+    const shouldMigrateProduction = isOldDomain && !migrationCompleted;
+    console.log('🔍 Production shouldMigrate result:', shouldMigrateProduction);
+    
+    return shouldMigrateProduction;
   }
 
   /**
@@ -161,6 +184,10 @@ class MigrationService {
    * Esegue la migrazione automatica verso il nuovo dominio
    */
   static async performMigration(): Promise<void> {
+    console.log('🚀 === STARTING PERFORM MIGRATION ===');
+    console.log('🚀 Current URL:', window.location.href);
+    console.log('🚀 Current domain:', window.location.hostname);
+    
     try {
       // Se siamo in locale, simula la migrazione senza redirect
       if (this.isLocalEnvironment()) {
@@ -179,12 +206,32 @@ class MigrationService {
       }
 
       // Raccoglie TUTTI i dati del localStorage
+      console.log('📦 Gathering user data for migration...');
       const userData = this.gatherUserData();
       console.log('📦 Gathered ALL localStorage data for migration');
       console.log('📦 Total keys to migrate:', Object.keys(userData).length - 1); // -1 per _migrationMeta
       
       // Salva tutto nel sessionStorage per il trasferimento
       sessionStorage.setItem('migration-data-full', JSON.stringify(userData));
+      console.log('💾 ALL localStorage data saved to sessionStorage');
+      console.log('💾 SessionStorage data size:', JSON.stringify(userData).length, 'characters');
+      
+      console.log('🚀 Starting complete data migration to new domain...');
+      
+      // Marca la migrazione come completata PRIMA del redirect
+      localStorage.setItem(this.MIGRATION_KEY, 'true');
+      console.log('✅ Migration key set to true before redirect');
+      
+      // Usa solo sessionStorage per trasferire tutto
+      console.log('🔄 Redirecting with complete sessionStorage migration...');
+      console.log('🔄 Redirect URL:', `${this.NEW_DOMAIN}?migrate=full-session`);
+      
+      // Piccolo delay per assicurarsi che tutto sia salvato
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      window.location.assign(`${this.NEW_DOMAIN}?migrate=full-session`);
+      
+      console.log('🔄 Redirect initiated - this should not be logged if redirect works');
       console.log('💾 ALL localStorage data saved to sessionStorage');
       
       console.log('� Starting complete data migration to new domain...');
