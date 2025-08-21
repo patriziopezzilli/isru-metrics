@@ -9,7 +9,6 @@ import {
   List,
   ListItem,
   ListItemText,
-  ListItemSecondaryAction,
   IconButton,
   Avatar,
   Chip,
@@ -18,7 +17,9 @@ import {
   DialogTitle,
   DialogContent,
   DialogActions,
-  Divider
+  Divider,
+  useMediaQuery,
+  useTheme
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import {
@@ -38,6 +39,10 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: theme.spacing(3),
     border: '1px solid #d4c4a8',
     boxShadow: '0 4px 6px -1px rgba(139, 115, 85, 0.1)',
+    [theme.breakpoints.down('sm')]: {
+      borderRadius: '12px',
+      marginBottom: theme.spacing(2),
+    },
   },
   header: {
     backgroundColor: '#8b7355',
@@ -47,12 +52,25 @@ const useStyles = makeStyles((theme) => ({
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
+    flexWrap: 'wrap',
+    gap: theme.spacing(1),
+    [theme.breakpoints.down('sm')]: {
+      padding: '12px 16px',
+      borderRadius: '12px 12px 0 0',
+      flexDirection: 'row', // Mantieni sempre su una riga su mobile
+      alignItems: 'center',
+      justifyContent: 'space-between',
+    },
   },
   leaderboardItem: {
     backgroundColor: '#f9f8f6',
     marginBottom: '8px',
     borderRadius: '12px',
     border: '1px solid #e6ddd4',
+    [theme.breakpoints.down('sm')]: {
+      borderRadius: '8px',
+      marginBottom: '6px',
+    },
   },
   rankBadge: {
     backgroundColor: '#8b7355',
@@ -65,6 +83,12 @@ const useStyles = makeStyles((theme) => ({
     alignItems: 'center',
     justifyContent: 'center',
     marginRight: '12px',
+    [theme.breakpoints.down('sm')]: {
+      minWidth: '28px',
+      height: '28px',
+      marginRight: '8px',
+      fontSize: '0.8rem',
+    },
   },
   goldBadge: {
     backgroundColor: '#FFD700',
@@ -83,18 +107,52 @@ const useStyles = makeStyles((theme) => ({
     height: 48,
     backgroundColor: '#8b7355',
     marginRight: '12px',
+    [theme.breakpoints.down('sm')]: {
+      width: 40,
+      height: 40,
+      marginRight: '8px',
+    },
   },
   statChip: {
     backgroundColor: '#d4c4a8',
     color: '#8b7355',
     fontWeight: 'bold',
     margin: '2px',
+    [theme.breakpoints.down('sm')]: {
+      fontSize: '0.7rem',
+      height: '24px',
+      margin: '1px',
+    },
+  },
+  deleteButton: {
+    position: 'absolute',
+    top: '8px',
+    right: '8px',
+    color: '#d32f2f',
+    backgroundColor: 'rgba(255, 255, 255, 0.9)',
+    width: '32px',
+    height: '32px',
+    '&:hover': {
+      backgroundColor: 'rgba(211, 47, 47, 0.1)',
+      color: '#d32f2f',
+    },
+    [theme.breakpoints.down('sm')]: {
+      top: '6px',
+      right: '6px',
+      width: '28px',
+      height: '28px',
+    },
   },
   addButton: {
     backgroundColor: '#8b7355',
     color: '#ffffff',
     '&:hover': {
       backgroundColor: '#6d5a42',
+    },
+    [theme.breakpoints.down('sm')]: {
+      minWidth: 'auto',
+      padding: '6px 12px',
+      fontSize: '0.8rem',
     },
   },
   dialog: {
@@ -118,6 +176,42 @@ const useStyles = makeStyles((theme) => ({
       },
     },
   },
+  listItemContent: {
+    display: 'flex',
+    alignItems: 'center',
+    width: '100%',
+    [theme.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+      alignItems: 'flex-start',
+      gap: theme.spacing(1),
+    },
+  },
+  userInfo: {
+    display: 'flex',
+    alignItems: 'center',
+    flex: 1,
+    [theme.breakpoints.down('sm')]: {
+      width: '100%',
+    },
+  },
+  statsContainer: {
+    display: 'flex',
+    flexWrap: 'wrap',
+    gap: '4px',
+    alignItems: 'center',
+    [theme.breakpoints.down('sm')]: {
+      width: '100%',
+      marginTop: theme.spacing(0.5),
+    },
+  },
+  mobileActions: {
+    [theme.breakpoints.down('sm')]: {
+      width: '100%',
+      display: 'flex',
+      justifyContent: 'flex-end',
+      marginTop: theme.spacing(0.5),
+    },
+  },
 }));
 
 interface Friend {
@@ -129,6 +223,8 @@ interface Friend {
 
 export const FriendsLeague: React.FC = () => {
   const classes = useStyles();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [friends, setFriends] = useState<Friend[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [newUsername, setNewUsername] = useState('');
@@ -289,17 +385,18 @@ export const FriendsLeague: React.FC = () => {
     <>
       <Card className={classes.card}>
         <Box className={classes.header}>
-          <Box display="flex" alignItems="center">
+          <Box display="flex" alignItems="center" style={{ flex: 1 }}>
             <TrophyIcon style={{ marginRight: 8 }} />
             <Typography variant="h6" style={{ fontWeight: 'bold' }}>
               Friends League ({friends.length})
             </Typography>
           </Box>
-          <Box>
+          <Box display="flex" alignItems="center">
             <IconButton
               onClick={() => refreshAllFriends()}
               disabled={loading}
               style={{ color: '#ffffff', marginRight: 8 }}
+              size="small"
             >
               <RefreshIcon />
             </IconButton>
@@ -309,7 +406,7 @@ export const FriendsLeague: React.FC = () => {
               className={classes.addButton}
               size="small"
             >
-              Add Friend
+              {isMobile ? 'Add' : 'Add Friend'}
             </Button>
           </Box>
         </Box>
@@ -334,105 +431,93 @@ export const FriendsLeague: React.FC = () => {
             </Box>
           ) : (
             <>
-              {/* Leaderboard */}
-              {leaderboard.length > 0 && (
-                <Box mb={3}>
-                  <Typography variant="subtitle1" style={{ color: '#8b7355', fontWeight: 'bold', marginBottom: 16 }}>
-                    🏆 Leaderboard
-                  </Typography>
-                  {leaderboard.map((friend, index) => (
-                    <Box key={friend.username} className={classes.leaderboardItem} p={2}>
-                      <Box display="flex" alignItems="center">
-                        <Box className={getRankBadgeClass(index)}>
-                          {index + 1}
+              {/* Unified Friends Leaderboard */}
+              <Typography variant="subtitle1" style={{ color: '#8b7355', fontWeight: 'bold', marginBottom: 16, display: 'flex', alignItems: 'center', gap: '8px' }}>
+                🏆 Friends League
+                <Chip 
+                  label={`${leaderboard.length} friends`} 
+                  size="small" 
+                  style={{ backgroundColor: 'rgba(139, 115, 85, 0.1)', color: '#8b7355', fontSize: '0.7rem' }}
+                />
+              </Typography>
+              
+              {leaderboard.map((friend, index) => (
+                <Box key={friend.username} className={classes.leaderboardItem} p={2} style={{ position: 'relative' }}>
+                  {/* Delete button - top right corner */}
+                  <IconButton
+                    onClick={() => removeFriend(friend.username)}
+                    className={classes.deleteButton}
+                    size="small"
+                  >
+                    <DeleteIcon fontSize="small" />
+                  </IconButton>
+
+                  <Box className={classes.listItemContent}>
+                    <Box className={classes.userInfo}>
+                      <Box className={getRankBadgeClass(index)}>
+                        {index + 1}
+                      </Box>
+                      
+                      {friend.loading ? (
+                        <Box display="flex" alignItems="center" mr={2}>
+                          <CircularProgress size={32} style={{ color: '#8b7355' }} />
                         </Box>
+                      ) : friend.error ? (
+                        <Box display="flex" alignItems="center" mr={2} style={{ 
+                          width: '40px', 
+                          height: '40px', 
+                          borderRadius: '50%', 
+                          backgroundColor: 'rgba(211, 47, 47, 0.1)',
+                          justifyContent: 'center'
+                        }}>
+                          <Box style={{ color: '#d32f2f', fontSize: '20px' }}>⚠️</Box>
+                        </Box>
+                      ) : (
                         <Avatar
                           src={friend.profileData?.user?.profilePhotoUrl}
                           className={classes.avatar}
                         >
                           {friend.profileData?.user?.firstName?.charAt(0) || friend.username.charAt(0).toUpperCase()}
                         </Avatar>
-                        <Box flex={1}>
-                          <Typography variant="body1" style={{ color: '#8b7355', fontWeight: 'bold' }}>
-                            {friend.profileData?.user?.firstName} {friend.profileData?.user?.lastName}
-                          </Typography>
-                          <Typography variant="body2" style={{ color: '#8b7355' }}>
-                            @{friend.username}
-                          </Typography>
-                          <Box mt={1}>
-                            <Chip
-                              label={`${friend.profileData?.user?.totalPoints || 0} points`}
-                              className={classes.statChip}
-                              size="small"
-                            />
-                            <Chip
-                              label={`${friend.profileData?.activities?.length || 0} activities`}
-                              className={classes.statChip}
-                              size="small"
-                            />
-                            <Chip
-                              label={`${friend.profileData?.completedModules?.length || 0} modules`}
-                              className={classes.statChip}
-                              size="small"
-                            />
-                          </Box>
-                        </Box>
+                      )}
+                      
+                      <Box style={{ flex: 1, minWidth: 0 }}>
+                        <Typography variant="body1" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+                          {friend.loading ? 'Loading...' :
+                           friend.error ? friend.username :
+                           `${friend.profileData?.user?.firstName} ${friend.profileData?.user?.lastName}`}
+                        </Typography>
+                        <Typography variant="body2" style={{ color: friend.error ? '#d32f2f' : '#8b7355' }}>
+                          {friend.loading ? 'Fetching profile...' :
+                           friend.error ? `Error: ${friend.error}` :
+                           `@${friend.username}`}
+                        </Typography>
                       </Box>
                     </Box>
-                  ))}
+                    
+                    {!friend.loading && !friend.error && (
+                      <Box className={classes.statsContainer} style={{ paddingRight: '40px' }}>
+                        <Chip
+                          label={`${friend.profileData?.user?.totalPoints || 0} pts`}
+                          className={classes.statChip}
+                          size="small"
+                          icon={<TrophyIcon style={{ fontSize: '14px' }} />}
+                        />
+                        <Chip
+                          label={`${friend.profileData?.activities?.length || 0} activities`}
+                          className={classes.statChip}
+                          size="small"
+                        />
+                        <Chip
+                          label={`${friend.profileData?.completedModules?.length || 0} modules`}
+                          className={classes.statChip}
+                          size="small"
+                        />
+                      </Box>
+                    )}
+                  </Box>
                 </Box>
-              )}
-
-              <Divider style={{ backgroundColor: '#d4c4a8', margin: '16px 0' }} />
-
-              {/* All friends list */}
-              <Typography variant="subtitle1" style={{ color: '#8b7355', fontWeight: 'bold', marginBottom: 16 }}>
-                👥 All Friends
-              </Typography>
-              <List>
-                {friends.map((friend) => (
-                  <ListItem key={friend.username} divider>
-                    <Box display="flex" alignItems="center" mr={2}>
-                      {friend.loading ? (
-                        <CircularProgress size={24} style={{ color: '#8b7355' }} />
-                      ) : friend.error ? (
-                        <Box style={{ color: '#d32f2f', fontSize: '20px' }}>⚠️</Box>
-                      ) : (
-                        <Avatar
-                          src={friend.profileData?.user?.profilePhotoUrl}
-                          style={{ width: 32, height: 32, backgroundColor: '#8b7355' }}
-                        >
-                          {friend.profileData?.user?.firstName?.charAt(0) || friend.username.charAt(0).toUpperCase()}
-                        </Avatar>
-                      )}
-                    </Box>
-                    <ListItemText
-                      primary={
-                        friend.profileData 
-                          ? `${friend.profileData.user?.firstName} ${friend.profileData.user?.lastName}`
-                          : friend.username
-                      }
-                      secondary={
-                        friend.loading ? 'Loading...' :
-                        friend.error ? `Error: ${friend.error}` :
-                        `@${friend.username} • ${friend.profileData?.user?.totalPoints || 0} points`
-                      }
-                      primaryTypographyProps={{ style: { color: '#8b7355', fontWeight: 'bold' } }}
-                      secondaryTypographyProps={{ style: { color: friend.error ? '#d32f2f' : '#8b7355' } }}
-                    />
-                    <ListItemSecondaryAction>
-                      <IconButton
-                        edge="end"
-                        aria-label="delete"
-                        onClick={() => removeFriend(friend.username)}
-                        style={{ color: '#d32f2f' }}
-                      >
-                        <DeleteIcon />
-                      </IconButton>
-                    </ListItemSecondaryAction>
-                  </ListItem>
-                ))}
-              </List>
+              ))}
             </>
           )}
         </CardContent>

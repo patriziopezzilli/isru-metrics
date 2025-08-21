@@ -6,14 +6,27 @@
 }
 
 body {
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', 'Oxygen',
-    'Ubuntu', 'Cantarell', 'Fira Sans', 'Droid Sans', 'Helvetica Neue',
-    sans-serif;
+  font-family: 'Courier New', 'Courier', monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
 code {
-  font-family: source-code-pro, Menlo, Monaco, Consolas, 'Courier New',
-    monospace;
+  font-family: 'Courier New', 'Courier', monospace;
+}
+
+/* Applica font monospace a tutti gli elementi */
+* {
+  font-family: 'Courier New', 'Courier', monospace !important;
+}
+
+/* Specifici per Material-UI */
+.MuiTypography-root,
+.MuiButton-root,
+.MuiTab-root,
+.MuiInputBase-root,
+.MuiFormLabel-root,
+.MuiListItem-root,
+.MuiMenuItem-root {
+  font-family: 'Courier New', 'Courier', monospace !important;
 }

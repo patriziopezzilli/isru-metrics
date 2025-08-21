@@ -26,6 +26,8 @@ import { UserProfile } from './components/UserProfile';
 import { UserProfileIcon } from './components/UserProfileIcon';
 import { GoalTracker } from './components/GoalTracker';
 import { OfflineIndicator } from './components/OfflineIndicator';
+import { MarsYardCountdown } from './components/MarsYardCountdown';
+import OnlineUserCounter from './components/OnlineUserCounter';
 import { fetchScoreDistribution, calculateUserStats } from './apiService';
 import { ScoreDistributionResponse, UserStats } from './types';
 import OfflineService from './services/offlineService';
@@ -33,151 +35,57 @@ import OfflineService from './services/offlineService';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#8b7355', // Marrone caldo dalla foto
-      light: '#a0916c',
-      dark: '#6b5d4a',
-      contrastText: '#ffffff',
+      main: '#8b7355',
     },
     secondary: {
-      main: '#d4c4a8', // Beige dalla foto
-      light: '#e6ddd4',
-      dark: '#a0916c',
-      contrastText: '#3c3530',
+      main: '#c4a07a',
     },
     background: {
-      default: '#f5f1eb', // Avorio dalla foto
-      paper: '#fefdfb',
-    },
-    text: {
-      primary: '#3c3530', // Marrone scuro
-      secondary: '#6b5d52', // Marrone medio
-    },
-    // Sovrascriviamo tutti i colori di default
-    info: {
-      main: '#8b7355',
-      light: '#a0916c',
-      dark: '#6b5d4a',
-    },
-    success: {
-      main: '#6b7d5a', // Verde terra
-      light: '#8a9b77',
-      dark: '#4d5c3f',
-    },
-    warning: {
-      main: '#b8965a', // Oro terroso
-      light: '#d4b377',
-      dark: '#9c7f42',
-    },
-    error: {
-      main: '#a55c52', // Rosso terroso
-      light: '#c2796f',
-      dark: '#8a453c',
+      default: '#fefdfb',
     },
   },
   typography: {
-    fontFamily: '"Inter", "Roboto", "Helvetica", "Arial", sans-serif',
+    fontFamily: '"Courier New", "Courier", monospace',
+    h1: {
+      fontFamily: '"Courier New", "Courier", monospace',
+      fontWeight: 'bold',
+    },
+    h2: {
+      fontFamily: '"Courier New", "Courier", monospace',
+      fontWeight: 'bold',
+    },
+    h3: {
+      fontFamily: '"Courier New", "Courier", monospace',
+      fontWeight: 'bold',
+    },
     h4: {
-      fontWeight: 600,
+      fontFamily: '"Courier New", "Courier", monospace',
+      fontWeight: 'bold',
     },
     h5: {
-      fontWeight: 600,
+      fontFamily: '"Courier New", "Courier", monospace',
+      fontWeight: 'bold',
     },
     h6: {
-      fontWeight: 600,
+      fontFamily: '"Courier New", "Courier", monospace',
+      fontWeight: 'bold',
     },
-  },
-  shape: {
-    borderRadius: 16, // Bordi più arrotondati
-  },
-  overrides: {
-    MuiCard: {
-      root: {
-        borderRadius: 16,
-        boxShadow: '0 4px 6px -1px rgba(139, 115, 85, 0.1), 0 2px 4px -1px rgba(139, 115, 85, 0.06)',
-      },
+    body1: {
+      fontFamily: '"Courier New", "Courier", monospace',
     },
-    MuiButton: {
-      root: {
-        borderRadius: 12,
-        textTransform: 'none' as const,
-        fontWeight: 500,
-      },
-      containedPrimary: {
-        backgroundColor: '#8b7355',
-        color: '#ffffff',
-        '&:hover': {
-          backgroundColor: '#6b5d4a',
-        },
-      },
-      containedSecondary: {
-        backgroundColor: '#d4c4a8',
-        color: '#3c3530',
-        '&:hover': {
-          backgroundColor: '#a0916c',
-        },
-      },
+    body2: {
+      fontFamily: '"Courier New", "Courier", monospace',
     },
-    MuiTab: {
-      root: {
-        textTransform: 'none' as const,
-        '&.Mui-selected': {
-          color: '#ffffff',
-        },
-      },
+    button: {
+      fontFamily: '"Courier New", "Courier", monospace',
+      fontWeight: 'bold',
     },
-    MuiTabs: {
-      indicator: {
-        backgroundColor: '#ffffff',
-        height: 3,
-        borderRadius: 2,
-      },
+    caption: {
+      fontFamily: '"Courier New", "Courier", monospace',
     },
-    MuiCircularProgress: {
-      root: {
-        color: '#8b7355',
-      },
-    },
-    MuiLinearProgress: {
-      root: {
-        backgroundColor: 'rgba(139, 115, 85, 0.1)',
-      },
-      bar: {
-        backgroundColor: '#8b7355',
-      },
-    },
-    MuiTextField: {
-      root: {
-        '& .MuiOutlinedInput-root': {
-          borderRadius: 12,
-          '& fieldset': {
-            borderColor: 'rgba(139, 115, 85, 0.3)',
-          },
-          '&:hover fieldset': {
-            borderColor: '#8b7355',
-          },
-          '&.Mui-focused fieldset': {
-            borderColor: '#8b7355',
-          },
-        },
-      },
-    },
-    MuiPaper: {
-      rounded: {
-        borderRadius: 16,
-      },
-      elevation1: {
-        boxShadow: '0 1px 3px 0 rgba(139, 115, 85, 0.1), 0 1px 2px 0 rgba(139, 115, 85, 0.06)',
-      },
-      elevation3: {
-        boxShadow: '0 4px 6px -1px rgba(139, 115, 85, 0.1), 0 2px 4px -1px rgba(139, 115, 85, 0.06)',
-      },
-    },
-    MuiChip: {
-      root: {
-        borderRadius: 8,
-        backgroundColor: 'rgba(139, 115, 85, 0.1)',
-        color: '#3c3530',
-      },
+    overline: {
+      fontFamily: '"Courier New", "Courier", monospace',
+      fontWeight: 'bold',
     },
   },
 });
@@ -256,6 +164,9 @@ const App = () => {
         }}
       />
       <Analytics />
+      
+      {/* Global Offline Indicator */}
+      <OfflineIndicator />
     </ThemeProvider>
   );
 };
@@ -383,6 +294,11 @@ const AppContent = ({
           })}
         </Toolbar>
         
+        {/* Online Users Counter sotto il logo */}
+        <Box display="flex" justifyContent="center" style={{ paddingBottom: '12px' }}>
+          <OnlineUserCounter />
+        </Box>
+        
         {/* Seconda riga - Controlli sempre su riga separata */}
         <Box style={{ borderTop: '1px solid rgba(0, 0, 0, 0.1)', backgroundColor: 'rgba(0, 0, 0, 0.02)' }}>
           <Toolbar style={{ padding: isMobile ? '8px 16px' : '12px 24px', minHeight: isMobile ? 48 : 56, justifyContent: 'space-between' }}>
@@ -448,6 +364,9 @@ const AppContent = ({
         </Box>
       </AppBar>
       
+      {/* Mars Yard 3.0 Countdown */}
+      <MarsYardCountdown />
+      
       <Container maxWidth="lg" style={{ marginTop: 32, marginBottom: 32 }}>
         {/* Goal Tracker Button */}
         {username && (
@@ -482,9 +401,6 @@ const AppContent = ({
           currentStats={userStats || undefined}
         />
       )}
-
-      {/* Offline Indicator */}
-      <OfflineIndicator />
 
       <UserProfile
         open={profileDialogOpen}

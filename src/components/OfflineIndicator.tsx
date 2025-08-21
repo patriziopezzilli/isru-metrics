@@ -324,7 +324,15 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ onSync }) =>
   );
 
   return (
-    <>
+    <Box
+      style={{
+        position: 'fixed',
+        bottom: 80,
+        left: '50%',
+        transform: 'translateX(-50%)',
+        zIndex: 1000,
+      }}
+    >
       <Tooltip title="Click for connection details">
         <Chip
           icon={getConnectionIcon()}
@@ -337,6 +345,6 @@ export const OfflineIndicator: React.FC<OfflineIndicatorProps> = ({ onSync }) =>
       </Tooltip>
       
       {renderDetailsDialog()}
-    </>
+    </Box>
   );
 };

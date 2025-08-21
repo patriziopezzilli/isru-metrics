@@ -184,3 +184,31 @@ export interface SearchedUser {
   profile?: SneakerDBUserProfile;
   ranking?: UserRanking;
 }
+
+// Mars Yard 3.0 Countdown Types
+export interface CountdownTime {
+  days: number;
+  hours: number;
+  minutes: number;
+  seconds: number;
+  totalMs: number;
+  isExpired: boolean;
+}
+
+// Online Users Tracker Types
+export interface OnlineUserStats {
+  currentOnline: number;
+  peakToday: number;
+  totalVisitsToday: number;
+  lastUpdated: Date;
+}
+
+export interface UserSession {
+  sessionId: string;
+  userId?: string;
+  username?: string;
+  joinedAt: Date;
+  lastActivity: Date;
+  userAgent: string;
+  location?: string;
+}
