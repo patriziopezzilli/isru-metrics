@@ -28,6 +28,7 @@ import { GoalTracker } from './components/GoalTracker';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MarsYardCountdown } from './components/MarsYardCountdown';
 import OnlineUserCounter from './components/OnlineUserCounter';
+import DomainMigrationWarning from './components/DomainMigrationWarning';
 import { fetchScoreDistribution, calculateUserStats } from './apiService';
 import { ScoreDistributionResponse, UserStats } from './types';
 import OfflineService from './services/offlineService';
@@ -91,6 +92,7 @@ const theme = createTheme({
 });
 
 const App = () => {
+  const [appLoaded, setAppLoaded] = useState(false);
   const [data, setData] = useState<ScoreDistributionResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -99,13 +101,9 @@ const App = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   useEffect(() => {
-    loadData();
-    // Load username from localStorage
-    const savedUsername = localStorage.getItem('isru-username');
-    if (savedUsername) {
-      setUsername(savedUsername);
-    }
-  }, []);
+    // Non caricare i dati qui, verranno caricati dal loader
+    // Il loader passerà i dati tramite onLoadComplete
+  }, [appLoaded]);
 
   const loadData = async () => {
     try {
@@ -138,30 +136,44 @@ const App = () => {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <AppContent 
-        loading={loading}
-        error={error}
-        scoreDistribution={data}
-        activeTab={activeTab as 0 | 1}
-        onTabChange={handleTabChange}
-        onLoadData={loadData}
-        username={username}
-        profileDialogOpen={profileDialogOpen}
-        onProfileDialogOpen={() => setProfileDialogOpen(true)}
-        onProfileDialogClose={() => setProfileDialogOpen(false)}
-        onUsernameSet={(newUsername) => {
-          setUsername(newUsername);
-          if (newUsername) {
-            localStorage.setItem('isru-username', newUsername);
-          } else {
-            localStorage.removeItem('isru-username');
-          }
-        }}
-      />
-      <Analytics />
-      
-      {/* Global Offline Indicator */}
-      <OfflineIndicator />
+      {!appLoaded ? (
+        <DomainMigrationWarning 
+          showAsLoader={true}
+          onLoadComplete={(data, loadedUsername) => {
+            setData(data);
+            setUsername(loadedUsername);
+            setLoading(false);
+            setAppLoaded(true);
+          }} 
+        />
+      ) : (
+        <>
+          <AppContent 
+            loading={loading}
+            error={error}
+            scoreDistribution={data}
+            activeTab={activeTab as 0 | 1}
+            onTabChange={handleTabChange}
+            onLoadData={loadData}
+            username={username}
+            profileDialogOpen={profileDialogOpen}
+            onProfileDialogOpen={() => setProfileDialogOpen(true)}
+            onProfileDialogClose={() => setProfileDialogOpen(false)}
+            onUsernameSet={(newUsername) => {
+              setUsername(newUsername);
+              if (newUsername) {
+                localStorage.setItem('isru-username', newUsername);
+              } else {
+                localStorage.removeItem('isru-username');
+              }
+            }}
+          />
+          <Analytics />
+          
+          {/* Global Offline Indicator */}
+          <OfflineIndicator />
+        </>
+      )}
     </ThemeProvider>
   );
 };
@@ -275,7 +287,7 @@ const AppContent = ({
 
   return (
     <>
-      <AppBar position="static" elevation={0} style={{ background: '#E5E4CF' }}>
+      <AppBar position="static" elevation={0} style={{ background: '#E5E4CF', paddingTop: '16px' }}>
         {/* Header con logo principale centrato */}
         <Toolbar style={{ padding: isMobile ? '16px' : '24px', minHeight: isMobile ? 120 : 140, justifyContent: 'center' }}>
           {React.createElement('img', {
@@ -377,6 +389,9 @@ const AppContent = ({
       
       {/* Mars Yard 3.0 Countdown */}
       <MarsYardCountdown />
+      
+      {/* Domain Migration Warning - only show on old domain or after migration */}
+      <DomainMigrationWarning />
       
       <Container maxWidth="lg" style={{ marginTop: 32, marginBottom: 32 }}>
         {activeTab === 0 && (
