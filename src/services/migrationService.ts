@@ -177,23 +177,30 @@ class MigrationService {
       console.log('📦 Gathered user data for migration:', userData);
       console.log('📦 Data keys to migrate:', Object.keys(userData));
       
-      // Codifica i dati in Base64 per l'URL
+      // Usa sempre sessionStorage come metodo più affidabile
+      sessionStorage.setItem('migration-data', JSON.stringify(userData));
+      console.log('💾 Migration data saved to sessionStorage');
+      
+      // Codifica i dati in Base64 per l'URL come backup
       const encodedData = btoa(JSON.stringify(userData));
       console.log('🔐 Data encoded successfully, length:', encodedData.length);
       
       console.log('🚀 Starting secure migration to new domain...');
       
-      // Controlla se i dati non sono troppo lunghi per l'URL
-      if (encodedData.length > 8000) {
-        console.warn('User data too large for URL migration, using localStorage backup');
-        // Fallback: salva in sessionStorage per il pickup
-        sessionStorage.setItem('migration-data', JSON.stringify(userData));
-        
-        // Usa window.location.assign per una redirect più sicura
-        window.location.assign(`${this.NEW_DOMAIN}?migrate=session`);
-      } else {
-        // Reindirizza con i dati nell'URL usando assign per sicurezza
-        window.location.assign(`${this.NEW_DOMAIN}?migrate=${encodedData}`);
+      // Usa sessionStorage come metodo primario, URL come backup
+      try {
+        // Prima prova con sessionStorage
+        console.log('🔄 Redirecting with sessionStorage method...');
+        window.location.assign(`${this.NEW_DOMAIN}?migrate=session&backup=${encodeURIComponent(encodedData.substring(0, 1000))}`);
+      } catch (error) {
+        console.warn('⚠️ SessionStorage redirect failed, trying URL method:', error);
+        // Fallback al metodo URL
+        if (encodedData.length > 8000) {
+          console.warn('User data too large for URL migration, using sessionStorage only');
+          window.location.assign(`${this.NEW_DOMAIN}?migrate=session`);
+        } else {
+          window.location.assign(`${this.NEW_DOMAIN}?migrate=${encodedData}`);
+        }
       }
       
       // Marca la migrazione come completata
@@ -214,33 +221,52 @@ class MigrationService {
     try {
       const urlParams = new URLSearchParams(window.location.search);
       const migrateParam = urlParams.get('migrate');
+      const backupParam = urlParams.get('backup');
       
       console.log('🔍 Migration check - URL params:', window.location.search);
       console.log('🔍 Migration param found:', migrateParam);
+      console.log('🔍 Backup param found:', backupParam ? 'Yes' : 'No');
       
-      if (!migrateParam) {
-        console.log('❌ No migration parameter found in URL');
-        return false;
-      }
+      let userData: Record<string, any> | null = null;
 
-      let userData: Record<string, any>;
-
+      // Prova prima sessionStorage
       if (migrateParam === 'session') {
         console.log('📦 Loading migration data from sessionStorage...');
-        // Dati da sessionStorage
         const sessionData = sessionStorage.getItem('migration-data');
-        if (!sessionData) {
+        if (sessionData) {
+          userData = JSON.parse(sessionData);
+          sessionStorage.removeItem('migration-data');
+          console.log('✅ Migration data loaded from sessionStorage');
+        } else {
           console.log('❌ No migration data found in sessionStorage');
-          return false;
         }
-        userData = JSON.parse(sessionData);
-        sessionStorage.removeItem('migration-data');
-        console.log('✅ Migration data loaded from sessionStorage');
-      } else {
+      }
+      
+      // Se sessionStorage fallisce, prova l'URL
+      if (!userData && migrateParam && migrateParam !== 'session') {
         console.log('📦 Decoding migration data from URL...');
-        // Dati dall'URL
-        userData = JSON.parse(atob(migrateParam));
-        console.log('✅ Migration data decoded from URL');
+        try {
+          userData = JSON.parse(atob(migrateParam));
+          console.log('✅ Migration data decoded from URL');
+        } catch (error) {
+          console.log('❌ Failed to decode from URL:', error);
+        }
+      }
+      
+      // Se tutto fallisce, prova il backup
+      if (!userData && backupParam) {
+        console.log('📦 Trying backup data from URL...');
+        try {
+          userData = JSON.parse(atob(decodeURIComponent(backupParam)));
+          console.log('✅ Migration data loaded from backup');
+        } catch (error) {
+          console.log('❌ Failed to decode backup data:', error);
+        }
+      }
+
+      if (!userData) {
+        console.log('❌ No migration data could be loaded from any source');
+        return false;
       }
 
       console.log('📋 Migration data keys found:', Object.keys(userData));
