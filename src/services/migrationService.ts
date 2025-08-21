@@ -89,15 +89,22 @@ class MigrationService {
       // Aggiungi altre chiavi se necessario
     ];
 
+    console.log('🔍 Checking localStorage for migration data...');
+    console.log('🔍 All localStorage keys:', Object.keys(localStorage));
+
     keysToMigrate.forEach(key => {
       const value = localStorage.getItem(key);
       if (value !== null) {
         try {
           // Prova a parsare come JSON, se fallisce mantieni come stringa
           userData[key] = JSON.parse(value);
+          console.log(`✅ Found data for ${key}:`, typeof userData[key], userData[key]);
         } catch {
           userData[key] = value;
+          console.log(`✅ Found string data for ${key}:`, value);
         }
+      } else {
+        console.log(`❌ No data found for ${key}`);
       }
     });
 
@@ -109,6 +116,7 @@ class MigrationService {
       version: '1.0'
     };
 
+    console.log('📋 Final userData object:', userData);
     return userData;
   }
 
@@ -166,9 +174,12 @@ class MigrationService {
 
       // Raccoglie i dati utente
       const userData = this.gatherUserData();
+      console.log('📦 Gathered user data for migration:', userData);
+      console.log('📦 Data keys to migrate:', Object.keys(userData));
       
       // Codifica i dati in Base64 per l'URL
       const encodedData = btoa(JSON.stringify(userData));
+      console.log('🔐 Data encoded successfully, length:', encodedData.length);
       
       console.log('🚀 Starting secure migration to new domain...');
       
@@ -204,43 +215,68 @@ class MigrationService {
       const urlParams = new URLSearchParams(window.location.search);
       const migrateParam = urlParams.get('migrate');
       
-      if (!migrateParam) return false;
+      console.log('🔍 Migration check - URL params:', window.location.search);
+      console.log('🔍 Migration param found:', migrateParam);
+      
+      if (!migrateParam) {
+        console.log('❌ No migration parameter found in URL');
+        return false;
+      }
 
       let userData: Record<string, any>;
 
       if (migrateParam === 'session') {
+        console.log('📦 Loading migration data from sessionStorage...');
         // Dati da sessionStorage
         const sessionData = sessionStorage.getItem('migration-data');
-        if (!sessionData) return false;
+        if (!sessionData) {
+          console.log('❌ No migration data found in sessionStorage');
+          return false;
+        }
         userData = JSON.parse(sessionData);
         sessionStorage.removeItem('migration-data');
+        console.log('✅ Migration data loaded from sessionStorage');
       } else {
+        console.log('📦 Decoding migration data from URL...');
         // Dati dall'URL
         userData = JSON.parse(atob(migrateParam));
+        console.log('✅ Migration data decoded from URL');
       }
 
+      console.log('📋 Migration data keys found:', Object.keys(userData));
+      console.log('📋 Migration data:', userData);
+
       // Importa tutti i dati nel localStorage
+      let importedCount = 0;
       Object.entries(userData).forEach(([key, value]) => {
         if (key !== '_migrationMeta') {
           const stringValue = typeof value === 'string' ? value : JSON.stringify(value);
           localStorage.setItem(key, stringValue);
+          importedCount++;
+          console.log(`✅ Imported: ${key} = ${stringValue.substring(0, 100)}${stringValue.length > 100 ? '...' : ''}`);
         }
       });
+
+      console.log(`✅ Successfully imported ${importedCount} data entries`);
 
       // Salva i metadati della migrazione
       if (userData._migrationMeta) {
         localStorage.setItem('migration-completed', JSON.stringify(userData._migrationMeta));
+        console.log('✅ Migration metadata saved');
       }
 
       // Rimuovi il parametro dall'URL
       const newUrl = window.location.pathname + window.location.hash;
       window.history.replaceState({}, document.title, newUrl);
+      console.log('🧹 URL cleaned, migration parameters removed');
 
-      console.log('✅ Migration completed successfully!');
+      console.log('🎉 Migration completed successfully!');
       return true;
 
     } catch (error) {
-      console.error('Failed to import migrated data:', error);
+      console.error('❌ Failed to import migrated data:', error);
+      console.error('❌ Current URL:', window.location.href);
+      console.error('❌ URL search params:', window.location.search);
       return false;
     }
   }
