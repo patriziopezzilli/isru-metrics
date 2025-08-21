@@ -194,7 +194,13 @@ const DomainMigrationWarning: React.FC<DomainMigrationWarningProps> = ({
       // Controlla se dobbiamo migrare verso il nuovo dominio
       if (MigrationService.shouldMigrate()) {
         setLoadingStage('migrating');
-        setStatusMessage('Preparing data for migration...');
+        const hasData = localStorage.getItem('isru-username') !== null;
+        
+        if (hasData) {
+          setStatusMessage('Preparing data for migration...');
+        } else {
+          setStatusMessage('Redirecting to new domain...');
+        }
         setProgress(25);
         await new Promise(resolve => setTimeout(resolve, 1000));
         

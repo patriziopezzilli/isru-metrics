@@ -29,10 +29,9 @@ class MigrationService {
     // Controlla se la migrazione è già stata fatta
     const migrationCompleted = localStorage.getItem(this.MIGRATION_KEY) === 'true';
     
-    // Controlla se l'utente ha dati da migrare
-    const hasUserData = this.hasUserDataToMigrate();
-    
-    return isOldDomain && !migrationCompleted && hasUserData;
+    // Per utenti sul vecchio dominio, migra sempre (anche senza dati)
+    // Questo garantisce che tutti vengano indirizzati al nuovo dominio
+    return isOldDomain && !migrationCompleted;
   }
 
   /**
