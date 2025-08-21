@@ -58,8 +58,9 @@ class MigrationService {
       'isru-username',
       'friends-league',
       'user-goals',
+      'isru-offline-data',
       'online-sessions',
-      'offline-data'
+      'isru-goals'
     ];
     
     // In locale, per testing, considera che ci sono dati se c'è almeno un username
@@ -81,17 +82,20 @@ class MigrationService {
       'isru-username',
       'friends-league',
       'user-goals',
-      'offline-data',
+      'isru-offline-data',  // Corretto nome della chiave
       'online-sessions',
       'online-stats',
       'goal-tracker-data',
       'domain-migration-warning-dismissed',
+      'isru-goals',  // Altra chiave possibile per i goals
+      'isru-progress-history',  // Storia progressi
       // Aggiungi altre chiavi se necessario
     ];
 
     console.log('🔍 Checking localStorage for migration data...');
     console.log('🔍 All localStorage keys:', Object.keys(localStorage));
 
+    // Prima raccogli le chiavi specifiche
     keysToMigrate.forEach(key => {
       const value = localStorage.getItem(key);
       if (value !== null) {
@@ -105,6 +109,22 @@ class MigrationService {
         }
       } else {
         console.log(`❌ No data found for ${key}`);
+      }
+    });
+
+    // Poi cerca dinamicamente tutte le chiavi che iniziano con "isru-" o contengono "league"/"friend"
+    Object.keys(localStorage).forEach(key => {
+      if ((key.startsWith('isru-') || key.includes('league') || key.includes('friend')) && !keysToMigrate.includes(key) && !userData[key]) {
+        const value = localStorage.getItem(key);
+        if (value !== null) {
+          try {
+            userData[key] = JSON.parse(value);
+            console.log(`✅ Found additional data for ${key}:`, typeof userData[key]);
+          } catch {
+            userData[key] = value;
+            console.log(`✅ Found additional string data for ${key}:`, value.substring(0, 50));
+          }
+        }
       }
     });
 
