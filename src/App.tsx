@@ -294,7 +294,23 @@ const AppContent = ({
           })}
         </Toolbar>
         
-        {/* Online Users Counter sotto il logo */}
+        {/* Disclaimer S/N tra logo e counter */}
+        <Box display="flex" justifyContent="center" style={{ paddingTop: '4px', paddingBottom: '8px' }}>
+          <Typography 
+            variant="caption" 
+            style={{ 
+              fontFamily: '"Courier New", monospace',
+              fontSize: '0.7rem',
+              color: 'rgba(139, 115, 85, 0.7)',
+              letterSpacing: '0.5px',
+              fontWeight: 'bold'
+            }}
+          >
+            S/N: 2025.063.03452
+          </Typography>
+        </Box>
+        
+        {/* Online Users Counter sotto il disclaimer */}
         <Box display="flex" justifyContent="center" style={{ paddingBottom: '12px' }}>
           <OnlineUserCounter />
         </Box>
