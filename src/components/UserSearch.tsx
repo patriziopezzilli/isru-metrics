@@ -14,7 +14,9 @@ import {
   InputAdornment,
   Divider,
   CircularProgress,
-  Button
+  Button,
+  useMediaQuery,
+  useTheme
 } from '@material-ui/core';
 import SearchIcon from '@material-ui/icons/Search';
 import TrendingUpIcon from '@material-ui/icons/TrendingUp';
@@ -34,6 +36,8 @@ interface SearchedUser {
 }
 
 const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [searchQuery, setSearchQuery] = useState('');
   const [searchedUsers, setSearchedUsers] = useState<SearchedUser[]>([]);
 
@@ -137,11 +141,16 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
           </Box>
           
           <form onSubmit={handleSearchSubmit}>
-            <Box display="flex" alignItems="center" style={{ gap: 16 }}>
+            <Box 
+              display="flex" 
+              alignItems="center" 
+              flexDirection={isMobile ? "column" : "row"}
+              style={{ gap: isMobile ? 12 : 16 }}
+            >
               <TextField
                 fullWidth
                 variant="outlined"
-                placeholder="Enter username to search (e.g., cokisnake)..."
+                placeholder={isMobile ? "Enter username..." : "Enter username to search (e.g., cokisnake)..."}
                 value={searchQuery}
                 onChange={handleSearchChange}
                 InputProps={{
@@ -154,6 +163,7 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                     borderRadius: 12,
                     backgroundColor: '#f5f1eb',
                     border: '1px solid #e6ddd4',
+                    fontSize: isMobile ? '0.9rem' : '1rem'
                   }
                 }}
               />
@@ -161,16 +171,18 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                 type="submit"
                 variant="contained"
                 disabled={!searchQuery.trim()}
+                fullWidth={isMobile}
                 style={{
                   backgroundColor: '#8b7355',
                   color: 'white',
                   borderRadius: 12,
-                  padding: '12px 24px',
+                  padding: isMobile ? '12px 16px' : '12px 24px',
                   fontWeight: 600,
                   textTransform: 'none',
+                  minWidth: isMobile ? 'auto' : '120px'
                 }}
               >
-                Search
+                {isMobile ? 'Search' : 'Search'}
               </Button>
             </Box>
           </form>
@@ -256,8 +268,21 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                     </ListItemAvatar>
                     <ListItemText
                       primary={
-                        <Box display="flex" alignItems="center" style={{ gap: 12, marginBottom: 8 }}>
-                          <Typography variant="h6" style={{ fontWeight: 600, color: '#3c3530' }}>
+                        <Box 
+                          display="flex" 
+                          alignItems={isMobile ? "flex-start" : "center"} 
+                          flexDirection={isMobile ? "column" : "row"}
+                          style={{ gap: isMobile ? 4 : 12, marginBottom: 8 }}
+                        >
+                          <Typography 
+                            variant="h6" 
+                            style={{ 
+                              fontWeight: 600, 
+                              color: '#3c3530',
+                              fontSize: isMobile ? '1rem' : '1.25rem',
+                              lineHeight: 1.2
+                            }}
+                          >
                             {searchedUser.loading ? 'Loading...' : 
                              searchedUser.error ? `@${searchedUser.username}` :
                              `${searchedUser.profile?.user?.firstName} ${searchedUser.profile?.user?.lastName}`}
@@ -271,6 +296,7 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                               border: '1px solid #e6ddd4',
                               borderRadius: 8,
                               fontWeight: 500,
+                              fontSize: isMobile ? '0.7rem' : '0.75rem'
                             }}
                           />
                         </Box>
@@ -291,7 +317,12 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                           
                           {searchedUser.profile && searchedUser.ranking && (
                             <Box>
-                              <Box display="flex" alignItems="center" style={{ gap: 12, marginBottom: 8 }}>
+                              <Box 
+                                display="flex" 
+                                alignItems="center" 
+                                flexWrap="wrap"
+                                style={{ gap: isMobile ? 4 : 12, marginBottom: 8 }}
+                              >
                                 <Chip 
                                   label={`${searchedUser.profile.user?.totalPoints || 0} points`} 
                                   size="small"
@@ -300,17 +331,19 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                     color: 'white',
                                     fontWeight: 600,
                                     borderRadius: 8,
+                                    fontSize: isMobile ? '0.7rem' : '0.75rem'
                                   }}
                                 />
                                 <Chip 
                                   label={`Position: #${searchedUser.ranking.position?.toLocaleString() || 'N/A'}`} 
                                   size="small"
-                                  icon={<TrendingUpIcon style={{ fontSize: 16 }} />}
+                                  icon={<TrendingUpIcon style={{ fontSize: isMobile ? 14 : 16 }} />}
                                   style={{
                                     backgroundColor: '#a0916c',
                                     color: 'white',
                                     fontWeight: 600,
                                     borderRadius: 8,
+                                    fontSize: isMobile ? '0.7rem' : '0.75rem'
                                   }}
                                 />
                                 <Chip 
@@ -321,10 +354,16 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                     color: 'white',
                                     fontWeight: 600,
                                     borderRadius: 8,
+                                    fontSize: isMobile ? '0.7rem' : '0.75rem'
                                   }}
                                 />
                               </Box>
-                              <Box display="flex" alignItems="center" style={{ gap: 12 }}>
+                              <Box 
+                                display="flex" 
+                                alignItems="center" 
+                                flexWrap="wrap"
+                                style={{ gap: isMobile ? 4 : 12 }}
+                              >
                                 <Chip 
                                   label={`${searchedUser.profile.activities?.length || 0} activities`} 
                                   size="small"
@@ -333,6 +372,7 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                     color: '#8b7355',
                                     fontWeight: 500,
                                     borderRadius: 8,
+                                    fontSize: isMobile ? '0.7rem' : '0.75rem'
                                   }}
                                 />
                                 <Chip 
@@ -343,12 +383,28 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                     color: '#8b7355',
                                     fontWeight: 500,
                                     borderRadius: 8,
+                                    fontSize: isMobile ? '0.7rem' : '0.75rem'
                                   }}
                                 />
-                                <Typography variant="body2" color="textSecondary" style={{ fontSize: '0.75rem' }}>
+                                {!isMobile && (
+                                  <Typography variant="body2" color="textSecondary" style={{ fontSize: '0.75rem' }}>
+                                    {(searchedUser.ranking.usersAbove || 0).toLocaleString()} users above • {(searchedUser.ranking.totalUsers || 0).toLocaleString()} total
+                                  </Typography>
+                                )}
+                              </Box>
+                              {isMobile && (
+                                <Typography 
+                                  variant="body2" 
+                                  color="textSecondary" 
+                                  style={{ 
+                                    fontSize: '0.7rem', 
+                                    marginTop: 4,
+                                    textAlign: 'left'
+                                  }}
+                                >
                                   {(searchedUser.ranking.usersAbove || 0).toLocaleString()} users above • {(searchedUser.ranking.totalUsers || 0).toLocaleString()} total
                                 </Typography>
-                              </Box>
+                              )}
                             </Box>
                           )}
                         </Box>
