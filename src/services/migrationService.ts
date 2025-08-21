@@ -77,8 +77,18 @@ class MigrationService {
   static gatherUserData(): Record<string, any> {
     const userData: Record<string, any> = {};
     
-    console.log('🔍 Copying ALL localStorage data for migration...');
+    console.log('🔍 === STARTING MIGRATION DATA GATHERING ===');
     console.log('🔍 Total localStorage keys found:', localStorage.length);
+    
+    // Prima mostra tutte le chiavi che esistono
+    console.log('🔍 All current localStorage keys:');
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        const value = localStorage.getItem(key);
+        console.log(`   📋 Key: "${key}" -> Value: "${value?.substring(0, 50)}${value && value.length > 50 ? '...' : ''}"`);
+      }
+    }
 
     // Copia TUTTE le chiavi del localStorage senza filtri
     for (let i = 0; i < localStorage.length; i++) {
@@ -87,10 +97,17 @@ class MigrationService {
         const value = localStorage.getItem(key);
         if (value !== null) {
           userData[key] = value; // Mantieni come stringa per evitare problemi di parsing
-          console.log(`✅ Copied: ${key} = ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}`);
+          console.log(`✅ COPIED: ${key} = ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}`);
         }
       }
     }
+
+    // Controlli specifici per i dati critici
+    console.log('🔍 === CRITICAL DATA CHECK ===');
+    console.log('🔍 isru-username:', localStorage.getItem('isru-username'));
+    console.log('🔍 friends-league:', localStorage.getItem('friends-league'));
+    console.log('🔍 Username in userData:', userData['isru-username']);
+    console.log('🔍 Friends-league in userData:', userData['friends-league']);
 
     // Aggiungi metadati sulla migrazione
     userData._migrationMeta = JSON.stringify({
@@ -101,8 +118,11 @@ class MigrationService {
       totalKeys: Object.keys(userData).length - 1 // -1 per escludere _migrationMeta
     });
 
+    console.log('📋 === FINAL MIGRATION DATA ===');
     console.log('📋 Total data copied:', Object.keys(userData).length - 1, 'keys');
-    console.log('📋 All keys:', Object.keys(userData).filter(k => k !== '_migrationMeta'));
+    console.log('📋 All keys to migrate:', Object.keys(userData).filter(k => k !== '_migrationMeta'));
+    console.log('📋 Complete userData object:', userData);
+    
     return userData;
   }
 
@@ -192,22 +212,73 @@ class MigrationService {
       const urlParams = new URLSearchParams(window.location.search);
       const migrateParam = urlParams.get('migrate');
       
-      console.log('🔍 Migration check - URL params:', window.location.search);
+      console.log('🔍 === STARTING MIGRATION IMPORT ===');
+      console.log('🔍 URL params:', window.location.search);
       console.log('🔍 Migration param found:', migrateParam);
+      
+      // Prima mostra cosa c'è attualmente nel localStorage di destinazione
+      console.log('🔍 === DESTINATION LOCALSTORAGE BEFORE IMPORT ===');
+      for (let i = 0; i < localStorage.length; i++) {
+        const key = localStorage.key(i);
+        if (key) {
+          const value = localStorage.getItem(key);
+          console.log(`   📋 Existing: "${key}" -> "${value?.substring(0, 50)}"`);
+        }
+      }
       
       let userData: Record<string, any> | null = null;
 
       // Controlla se è una migrazione completa
       if (migrateParam === 'full-session') {
         console.log('📦 Loading COMPLETE migration data from sessionStorage...');
-        const sessionData = sessionStorage.getItem('migration-data-full');
-        if (sessionData) {
-          userData = JSON.parse(sessionData);
-          sessionStorage.removeItem('migration-data-full'); // Pulisce subito
-          console.log('✅ COMPLETE migration data loaded from sessionStorage');
-          console.log('📋 Keys found:', userData ? Object.keys(userData).filter(k => k !== '_migrationMeta') : []);
+        
+        // RETRY MECHANISM: Prova più volte per gestire possibili timing issues
+        let attempts = 0;
+        const maxAttempts = 3;
+        
+        while (!userData && attempts < maxAttempts) {
+          attempts++;
+          console.log(`🔄 Attempt ${attempts}/${maxAttempts} to load sessionStorage data...`);
+          
+          const sessionData = sessionStorage.getItem('migration-data-full');
+          console.log('🔍 SessionStorage keys available:', Object.keys(sessionStorage));
+          console.log('🔍 Migration data in sessionStorage:', sessionData ? `FOUND (${sessionData.length} chars)` : 'NOT FOUND');
+          
+          if (sessionData) {
+            try {
+              userData = JSON.parse(sessionData);
+              console.log('✅ COMPLETE migration data loaded from sessionStorage');
+              console.log('📋 Keys found:', userData ? Object.keys(userData).filter(k => k !== '_migrationMeta') : []);
+              
+              // Controlli specifici
+              if (userData) {
+                console.log('🔍 === IMPORTED DATA CHECK ===');
+                console.log('🔍 isru-username in imported data:', userData['isru-username']);
+                console.log('🔍 friends-league in imported data:', userData['friends-league']);
+              }
+              break; // Successo, esci dal loop
+            } catch (parseError) {
+              console.error(`❌ Failed to parse sessionStorage data on attempt ${attempts}:`, parseError);
+              userData = null;
+            }
+          } else {
+            console.log(`❌ No sessionStorage data found on attempt ${attempts}`);
+          }
+          
+          // Se non è l'ultimo tentativo, aspetta un po'
+          if (attempts < maxAttempts && !userData) {
+            console.log(`⏳ Waiting 100ms before retry...`);
+            // In questo contesto sincrono, non possiamo usare await, ma possiamo provare subito
+            // Il browser potrebbe aver bisogno di un momento per popolare sessionStorage
+          }
+        }
+        
+        if (!userData) {
+          console.log('❌ No complete migration data found after all attempts');
         } else {
-          console.log('❌ No complete migration data found in sessionStorage');
+          // Pulisci il sessionStorage solo dopo aver caricato con successo
+          sessionStorage.removeItem('migration-data-full');
+          console.log('🧹 Cleaned migration data from sessionStorage');
         }
       }
 
@@ -216,7 +287,9 @@ class MigrationService {
         return false;
       }
 
+      console.log('📋 === MIGRATION DATA TO IMPORT ===');
       console.log('📋 Total migration data keys:', Object.keys(userData).length - 1); // -1 per _migrationMeta
+      console.log('📋 All keys to import:', Object.keys(userData).filter(k => k !== '_migrationMeta'));
 
       // RIPRISTINA TUTTO il localStorage - sostituisce completamente il contenuto
       console.log('🧹 Clearing current localStorage before import...');
@@ -229,11 +302,17 @@ class MigrationService {
           // Mantieni il valore come stringa (era già stringa quando copiato)
           localStorage.setItem(key, value as string);
           importedCount++;
-          console.log(`✅ Restored: ${key}`);
+          console.log(`✅ RESTORED: ${key} = ${(value as string).substring(0, 50)}${(value as string).length > 50 ? '...' : ''}`);
         }
       });
 
+      console.log(`✅ === IMPORT COMPLETED ===`);
       console.log(`✅ Successfully restored ${importedCount} localStorage entries`);
+      
+      // Verifica che i dati critici siano stati importati correttamente
+      console.log('🔍 === POST-IMPORT VERIFICATION ===');
+      console.log('🔍 isru-username after import:', localStorage.getItem('isru-username'));
+      console.log('🔍 friends-league after import:', localStorage.getItem('friends-league'));
 
       // Salva i metadati della migrazione
       if (userData._migrationMeta) {

@@ -95,8 +95,15 @@ const AppLoader: React.FC<AppLoaderProps> = ({ onLoadComplete }) => {
         
         await new Promise(resolve => setTimeout(resolve, 800));
 
+        console.log('🔍 AppLoader: Checking for migration import...');
+        console.log('🔍 Current URL:', window.location.href);
+        console.log('🔍 SessionStorage keys:', Object.keys(sessionStorage));
+        console.log('🔍 Migration data in sessionStorage:', sessionStorage.getItem('migration-data-full') ? 'FOUND' : 'NOT FOUND');
+
         // Controlla se sul nuovo dominio dobbiamo importare dati
         const migrationImported = MigrationService.importMigratedData();
+        console.log('🔍 Migration import result:', migrationImported);
+        
         if (migrationImported) {
           setLoadingStage('importing');
           setStatusMessage('Importing your data from old domain...');
@@ -110,8 +117,12 @@ const AppLoader: React.FC<AppLoaderProps> = ({ onLoadComplete }) => {
           MigrationService.showMigrationSuccess();
         }
 
+        console.log('🔍 AppLoader: Checking if should migrate...');
+        console.log('🔍 Should migrate:', MigrationService.shouldMigrate());
+
         // Controlla se dobbiamo migrare verso il nuovo dominio
         if (MigrationService.shouldMigrate()) {
+          console.log('🔍 AppLoader: Starting migration process...');
           setLoadingStage('migrating');
           setStatusMessage('Preparing data for migration...');
           setProgress(40);
@@ -125,11 +136,13 @@ const AppLoader: React.FC<AppLoaderProps> = ({ onLoadComplete }) => {
           setProgress(70);
           await new Promise(resolve => setTimeout(resolve, 800));
           
+          console.log('🔍 AppLoader: Calling performMigration...');
           // Esegue la migrazione (in locale simula, altrimenti reindirizza)
           await MigrationService.performMigration();
           
           // Se siamo in locale, continua il caricamento normale
           if (!MigrationService.isLocalEnvironment()) {
+            console.log('🔍 AppLoader: Not local environment, should redirect now');
             return; // Non continua perché verrà reindirizzato
           }
           
