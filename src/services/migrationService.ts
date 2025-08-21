@@ -19,6 +19,30 @@ class MigrationService {
   }
   
   /**
+   * Forza la migrazione rimuovendo i flag di completamento (per debug/testing)
+   */
+  static forceMigration(): void {
+    console.log('🔧 === FORCING MIGRATION ===');
+    console.log('🔧 Current domain:', window.location.hostname);
+    console.log('🔧 Removing migration completion flags...');
+    
+    // Rimuovi tutti i flag di migrazione completata
+    localStorage.removeItem(this.MIGRATION_KEY);
+    localStorage.removeItem('migration-completed');
+    
+    console.log('🔧 Migration flags removed');
+    console.log('🔧 shouldMigrate() now returns:', this.shouldMigrate());
+    
+    // Se dovrebbe migrare, avvia subito la migrazione
+    if (this.shouldMigrate()) {
+      console.log('🔧 Starting forced migration...');
+      this.performMigration();
+    } else {
+      console.log('🔧 Migration conditions not met after reset');
+    }
+  }
+
+  /**
    * Controlla se siamo in ambiente locale
    */
   static isLocalEnvironment(): boolean {
@@ -54,14 +78,16 @@ class MigrationService {
     
     // Controlla se siamo sul dominio vecchio (non www.isru-league.com)
     const currentDomain = window.location.hostname;
-    const isOldDomain = !currentDomain.includes('isru-league.com');
+    const isNewDomain = currentDomain === 'www.isru-league.com' || currentDomain === 'isru-league.com';
+    const isOldDomain = !isNewDomain;
     
     // Controlla se la migrazione è già stata fatta
     const migrationCompleted = localStorage.getItem(this.MIGRATION_KEY) === 'true';
     
     console.log('🔍 Production migration conditions:');
     console.log('   - Current domain:', currentDomain);
-    console.log('   - Is old domain (not isru-league.com):', isOldDomain);
+    console.log('   - Is new domain (isru-league.com):', isNewDomain);
+    console.log('   - Is old domain (needs migration):', isOldDomain);
     console.log('   - Migration completed:', migrationCompleted);
     console.log('   - Migration key value:', localStorage.getItem(this.MIGRATION_KEY));
     
