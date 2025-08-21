@@ -60,7 +60,7 @@ class MigrationService {
    * Esegue la migrazione automatica verso il nuovo dominio
    */
   static async performMigration(): Promise<void> {
-    console.log('🚀 === STARTING PERFORM MIGRATION (USERNAME + LEAGUE) ===');
+    console.log('🚀 === STARTING PERFORM MIGRATION (USERNAME + FRIENDS LIST) ===');
     
     try {
       // Verifica accessibilità nuovo dominio
@@ -72,11 +72,11 @@ class MigrationService {
 
       // Raccogli dati critici
       const username = localStorage.getItem('isru-username');
-      const friendsLeague = localStorage.getItem('friends-league');
+      const friendsLeagueStr = localStorage.getItem('friends-league');
       
       console.log('📦 Migrating data:');
       console.log('   - Username:', username);
-      console.log('   - Friends League:', friendsLeague);
+      console.log('   - Friends League raw:', friendsLeagueStr);
       
       if (!username) {
         console.warn('⚠️ No username found, performing redirect without migration data');
@@ -84,13 +84,32 @@ class MigrationService {
         return;
       }
       
-      // Prepara parametri migrazione
+      // Estrai solo gli username dalla friends-league
+      let friendsUsernames: string[] = [];
+      if (friendsLeagueStr) {
+        try {
+          const friendsArray = JSON.parse(friendsLeagueStr);
+          if (Array.isArray(friendsArray)) {
+            friendsUsernames = friendsArray
+              .map((friend: any) => friend.username)
+              .filter((username: string) => username && username.trim().length > 0);
+            console.log('📦 Extracted friends usernames:', friendsUsernames);
+          }
+        } catch (error) {
+          console.warn('⚠️ Failed to parse friends-league:', error);
+        }
+      }
+      
+      // Prepara parametri migrazione - SOLO USERNAME
       const migrationParams = new URLSearchParams();
       migrationParams.set('migrate', 'true');
       migrationParams.set('username', encodeURIComponent(username));
       
-      if (friendsLeague) {
-        migrationParams.set('league', encodeURIComponent(friendsLeague));
+      // Per gli amici, salviamo la lista in sessionStorage
+      if (friendsUsernames.length > 0) {
+        sessionStorage.setItem('migration-friends', JSON.stringify(friendsUsernames));
+        migrationParams.set('hasFriends', 'true');
+        console.log('📦 Friends usernames saved to sessionStorage:', friendsUsernames.length);
       }
       
       migrationParams.set('t', Date.now().toString());
@@ -98,7 +117,8 @@ class MigrationService {
       const redirectUrl = `${this.NEW_DOMAIN}?${migrationParams.toString()}`;
       
       console.log('🔄 Redirecting with migration data...');
-      console.log('🔄 Redirect URL:', redirectUrl);
+      console.log('🔄 Redirect URL (username only):', redirectUrl);
+      console.log('🔄 Friends will be restored from sessionStorage');
       
       // Marca migrazione completata e redirect
       localStorage.setItem(this.MIGRATION_KEY, 'true');
@@ -114,7 +134,7 @@ class MigrationService {
   }
 
   /**
-   * Importa i dati migrati dai parametri URL
+   * Importa i dati migrati dai parametri URL e ricostruisce la friends-league
    */
   static importMigratedData(): boolean {
     console.log('📥 === CHECKING FOR MIGRATION DATA ===');
@@ -123,12 +143,12 @@ class MigrationService {
     const urlParams = new URLSearchParams(window.location.search);
     const isMigration = urlParams.get('migrate') === 'true';
     const username = urlParams.get('username');
-    const league = urlParams.get('league');
+    const hasFriends = urlParams.get('hasFriends') === 'true';
     
     console.log('📥 Migration parameters:');
     console.log('   - Is migration:', isMigration);
     console.log('   - Username:', username);
-    console.log('   - League:', league);
+    console.log('   - Has friends to restore:', hasFriends);
     
     if (!isMigration || !username) {
       console.log('📥 No migration data found');
@@ -142,20 +162,46 @@ class MigrationService {
       localStorage.setItem('isru-username', decodeURIComponent(username));
       console.log('✅ Username imported:', decodeURIComponent(username));
       
-      // Importa league se presente
-      if (league) {
-        localStorage.setItem('friends-league', decodeURIComponent(league));
-        console.log('✅ Friends league imported:', decodeURIComponent(league));
+      // Ricostruisci friends-league se necessario
+      if (hasFriends) {
+        const friendsUsernames = sessionStorage.getItem('migration-friends');
+        if (friendsUsernames) {
+          try {
+            const usernames: string[] = JSON.parse(friendsUsernames);
+            console.log('📥 Restoring friends usernames:', usernames);
+            
+            // Ricostruisci la struttura friends-league
+            const friendsArray = usernames.map(friendUsername => ({
+              username: friendUsername,
+              profileData: null,
+              loading: false
+            }));
+            
+            localStorage.setItem('friends-league', JSON.stringify(friendsArray));
+            console.log('✅ Friends league reconstructed with', friendsArray.length, 'friends');
+            
+            // Pulisci sessionStorage
+            sessionStorage.removeItem('migration-friends');
+            
+          } catch (parseError) {
+            console.error('❌ Failed to parse friends from sessionStorage:', parseError);
+          }
+        } else {
+          console.warn('⚠️ hasFriends=true but no migration-friends in sessionStorage');
+        }
       }
       
       // Salva metadati migrazione
+      const migrationFriendsForMeta = hasFriends ? 
+        (sessionStorage.getItem('migration-friends') ? JSON.parse(sessionStorage.getItem('migration-friends')!).length : 0) : 0;
+        
       localStorage.setItem('migration-completed', JSON.stringify({
         timestamp: new Date().toISOString(),
         fromDomain: 'migration-via-url-params',
         version: '4.0',
         importedData: {
           username: decodeURIComponent(username),
-          league: league ? decodeURIComponent(league) : null
+          friendsCount: migrationFriendsForMeta
         }
       }));
       
@@ -164,6 +210,8 @@ class MigrationService {
       window.history.replaceState({}, document.title, cleanUrl);
       
       console.log('✅ Migration import completed successfully!');
+      console.log('✅ User can now use the app with migrated username and friends');
+      
       return true;
       
     } catch (error) {
@@ -205,9 +253,29 @@ class MigrationService {
     console.log('🔧 Current URL:', window.location.href);
     
     const hasUsername = localStorage.getItem('isru-username') !== null;
+    const friendsLeagueStr = localStorage.getItem('friends-league');
+    
     console.log('🔧 Has username:', hasUsername);
     console.log('🔧 Username value:', localStorage.getItem('isru-username'));
-    console.log('🔧 Friends league:', localStorage.getItem('friends-league'));
+    console.log('🔧 Friends league raw:', friendsLeagueStr);
+    
+    // Analizza friends-league
+    let friendsCount = 0;
+    let friendsUsernames: string[] = [];
+    if (friendsLeagueStr) {
+      try {
+        const friendsArray = JSON.parse(friendsLeagueStr);
+        if (Array.isArray(friendsArray)) {
+          friendsCount = friendsArray.length;
+          friendsUsernames = friendsArray.map((f: any) => f.username).filter(Boolean);
+        }
+      } catch (e) {
+        console.log('🔧 Failed to parse friends-league');
+      }
+    }
+    
+    console.log('🔧 Friends count:', friendsCount);
+    console.log('🔧 Friends usernames:', friendsUsernames);
     console.log('🔧 Should migrate:', this.shouldMigrate());
     
     // Controlla parametri URL
@@ -215,7 +283,20 @@ class MigrationService {
     console.log('🔧 URL migration params:');
     console.log('   - migrate:', urlParams.get('migrate'));
     console.log('   - username:', urlParams.get('username'));
-    console.log('   - league:', urlParams.get('league'));
+    console.log('   - hasFriends:', urlParams.get('hasFriends'));
+    
+    // Controlla sessionStorage
+    const migrationFriends = sessionStorage.getItem('migration-friends');
+    console.log('🔧 SessionStorage migration-friends:', migrationFriends ? 'PRESENT' : 'NOT FOUND');
+    if (migrationFriends) {
+      try {
+        const sessionFriends = JSON.parse(migrationFriends);
+        console.log('🔧 SessionStorage friends count:', sessionFriends.length);
+        console.log('🔧 SessionStorage friends:', sessionFriends);
+      } catch (e) {
+        console.log('🔧 Failed to parse sessionStorage friends');
+      }
+    }
     
     console.log('🔧 === END DEBUG STATUS ===');
   }
