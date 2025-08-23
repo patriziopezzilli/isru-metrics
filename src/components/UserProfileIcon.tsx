@@ -5,12 +5,19 @@ import { Person, PersonAdd } from '@material-ui/icons';
 interface UserProfileIconProps {
   hasProfile: boolean;
   onClick: () => void;
+  isMobile?: boolean;
 }
 
 export const UserProfileIcon: React.FC<UserProfileIconProps> = ({
   hasProfile,
   onClick,
+  isMobile = false,
 }) => {
+  // Su mobile, se c'è il profilo, non mostrare l'icona (usa il tab invece)
+  if (isMobile && hasProfile) {
+    return null;
+  }
+
   return (
     <Tooltip title={hasProfile ? "View Profile" : "Create Profile"}>
       <IconButton

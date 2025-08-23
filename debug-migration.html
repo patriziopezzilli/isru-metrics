@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migration Debug</title>
+</head>
+<body>
+    <h1>Migration Debug</h1>
+    <div>
+        <h2>Current State</h2>
+        <button onclick="showCurrentState()">Show Current State</button>
+        <div id="current-state"></div>
+    </div>
+    
+    <div>
+        <h2>Reset for Testing</h2>
+        <button onclick="resetForTesting()">Reset for Testing</button>
+        <div id="reset-result"></div>
+    </div>
+    
+    <div>
+        <h2>Force Migration Check</h2>
+        <button onclick="forceMigrationCheck()">Check Should Migrate</button>
+        <div id="migration-check"></div>
+    </div>
+
+    <script>
+        function showCurrentState() {
+            const state = {
+                hostname: window.location.hostname,
+                isruUsername: localStorage.getItem('isru-username'),
+                friendsLeague: localStorage.getItem('friends-league'),
+                testMigrationFlow: localStorage.getItem('test-migration-flow'),
+                autoMigrationCompleted: localStorage.getItem('auto-migration-completed'),
+                migrationCompleted: localStorage.getItem('migration-completed'),
+                allKeys: Object.keys(localStorage)
+            };
+            
+            document.getElementById('current-state').innerHTML = `
+                <div><strong>Current State:</strong></div>
+                <div>Hostname: ${state.hostname}</div>
+                <div>isru-username: ${state.isruUsername || 'NOT FOUND'}</div>
+                <div>friends-league: ${state.friendsLeague ? 'FOUND' : 'NOT FOUND'}</div>
+                <div>test-migration-flow: ${state.testMigrationFlow || 'NOT SET'}</div>
+                <div>auto-migration-completed: ${state.autoMigrationCompleted || 'NOT SET'}</div>
+                <div>migration-completed: ${state.migrationCompleted ? 'YES' : 'NO'}</div>
+                <div>All localStorage keys: ${state.allKeys.join(', ')}</div>
+            `;
+            
+            console.log('🔍 Current State:', state);
+        }
+        
+        function resetForTesting() {
+            // Setup test data
+            localStorage.setItem('isru-username', 'test-user-debug');
+            localStorage.setItem('friends-league', JSON.stringify({
+                leagueName: 'Debug League',
+                members: ['user1', 'user2']
+            }));
+            localStorage.setItem('test-migration-flow', 'true');
+            
+            // Remove migration flags to allow fresh test
+            localStorage.removeItem('auto-migration-completed');
+            localStorage.removeItem('migration-completed');
+            
+            document.getElementById('reset-result').innerHTML = `
+                <div style="color: green;">✅ Reset complete!</div>
+                <div>Test data setup and migration flags cleared</div>
+            `;
+            
+            console.log('✅ Reset for testing complete');
+        }
+        
+        function forceMigrationCheck() {
+            console.log('🔍 === MIGRATION CHECK START ===');
+            console.log('🔍 Current hostname:', window.location.hostname);
+            
+            // Check if local environment
+            const hostname = window.location.hostname;
+            const isLocal = hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+            console.log('🔍 Is local environment:', isLocal);
+            
+            if (isLocal) {
+                const forceTestMigration = localStorage.getItem('test-migration-flow') === 'true';
+                const hasUsername = localStorage.getItem('isru-username') !== null;
+                const notCompleted = localStorage.getItem('auto-migration-completed') !== 'true';
+                
+                console.log('🔍 Local migration conditions:');
+                console.log('   - Force test migration flag:', forceTestMigration);
+                console.log('   - Has username:', hasUsername);
+                console.log('   - Migration not completed:', notCompleted);
+                console.log('   - Migration key value:', localStorage.getItem('auto-migration-completed'));
+                
+                const shouldMigrate = forceTestMigration && hasUsername && notCompleted;
+                console.log('🔍 Should migrate result:', shouldMigrate);
+                
+                document.getElementById('migration-check').innerHTML = `
+                    <div><strong>Migration Check Results:</strong></div>
+                    <div>Is Local: ${isLocal}</div>
+                    <div>Force Test Migration: ${forceTestMigration}</div>
+                    <div>Has Username: ${hasUsername}</div>
+                    <div>Not Completed: ${notCompleted}</div>
+                    <div style="color: ${shouldMigrate ? 'green' : 'red'}; font-weight: bold;">
+                        Should Migrate: ${shouldMigrate}
+                    </div>
+                `;
+            } else {
+                const currentDomain = hostname;
+                const isOldDomain = !currentDomain.includes('isru-league.com');
+                const migrationCompleted = localStorage.getItem('auto-migration-completed') === 'true';
+                const shouldMigrate = isOldDomain && !migrationCompleted;
+                
+                console.log('🔍 Production migration conditions:');
+                console.log('   - Current domain:', currentDomain);
+                console.log('   - Is old domain:', isOldDomain);
+                console.log('   - Migration completed:', migrationCompleted);
+                console.log('🔍 Should migrate result:', shouldMigrate);
+                
+                document.getElementById('migration-check').innerHTML = `
+                    <div><strong>Migration Check Results (Production):</strong></div>
+                    <div>Current Domain: ${currentDomain}</div>
+                    <div>Is Old Domain: ${isOldDomain}</div>
+                    <div>Migration Completed: ${migrationCompleted}</div>
+                    <div style="color: ${shouldMigrate ? 'green' : 'red'}; font-weight: bold;">
+                        Should Migrate: ${shouldMigrate}
+                    </div>
+                `;
+            }
+            
+            console.log('🔍 === MIGRATION CHECK END ===');
+        }
+    </script>
+</body>
+</html>

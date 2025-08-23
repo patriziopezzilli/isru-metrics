@@ -1,0 +1,360 @@
+class MigrationService {
+  private static readonly NEW_DOMAIN = 'https://www.isru-league.com';
+  private static readonly MIGRATION_KEY = 'auto-migration-completed';
+  
+  /**
+   * Verifica se il nuovo dominio è raggiungibile e sicuro
+   */
+  sta      console.log('📦 Migrating critical data:');
+      console.log('   - Username:', username);
+      console.log('   - Friends League:', friendsLeague);
+      
+      if (!username) {
+        console.warn('⚠️ No username found, performing redirect without migration data');
+        window.location.assign(this.NEW_DOMAIN);
+        return;
+      }
+      
+      // Prepara i parametri per la migrazione
+      const migrationParams = new URLSearchParams();
+      migrationParams.set('migrate', 'true');
+      migrationParams.set('username', encodeURIComponent(username));
+      
+      if (friendsLeague) {
+        migrationParams.set('league', encodeURIComponent(friendsLeague));
+      }
+      
+      // Aggiungi timestamp per evitare cache
+      migrationParams.set('t', Date.now().toString());
+      
+      const redirectUrl = `${this.NEW_DOMAIN}?${migrationParams.toString()}`;
+      
+      console.log('🔄 Redirecting with migration data...');
+      console.log('🔄 Redirect URL:', redirectUrl); verifyNewDomain(): Promise<boolean> {
+    try {
+      const response = await fetch(this.NEW_DOMAIN, { 
+        method: 'HEAD',
+        mode: 'no-cors' // Evita problemi CORS per la verifica
+      });
+      return true;
+    } catch (error) {
+      console.warn('❌ New domain verification failed:', error);
+      return false;
+    }
+  }
+  
+  /**
+   * Forza la migrazione rimuovendo i flag di completamento (per debug/testing)
+   */
+  static forceMigration(): void {
+    console.log('🔧 === FORCING MIGRATION ===');
+    console.log('🔧 Current domain:', window.location.hostname);
+    
+    const hasUsername = localStorage.getItem('isru-username') !== null;
+    console.log('🔧 Current username in localStorage:', localStorage.getItem('isru-username'));
+    console.log('🔧 Has username (needed for migration):', hasUsername);
+    console.log('🔧 shouldMigrate() returns:', this.shouldMigrate());
+    
+    // Se dovrebbe migrare, avvia subito la migrazione
+    if (this.shouldMigrate()) {
+      console.log('🔧 Starting forced migration...');
+      this.performMigration();
+    } else {
+      console.log('🔧 Migration conditions not met - need username on old domain');
+    }
+  }
+
+  /**
+   * Reset completo per testing - rimuove TUTTI i dati e flag
+   */
+  static resetForTesting(): void {
+    console.log('🧪 === COMPLETE RESET FOR TESTING ===');
+    
+    // Rimuovi tutti i flag di migrazione
+    localStorage.removeItem(this.MIGRATION_KEY);
+    localStorage.removeItem('migration-completed');
+    
+    // Rimuovi dati di test se esistono
+    localStorage.removeItem('test-migration-flow');
+    
+    console.log('🧪 All migration flags and test data removed');
+    console.log('🧪 Current shouldMigrate():', this.shouldMigrate());
+  }
+
+  /**
+   * Controlla se siamo in ambiente locale
+   */
+  static isLocalEnvironment(): boolean {
+    const hostname = window.location.hostname;
+    return hostname === 'localhost' || hostname === '127.0.0.1' || hostname.startsWith('192.168.');
+  }
+
+  /**
+   * Controlla se siamo sul vecchio dominio e se la migrazione è necessaria
+   */
+  static shouldMigrate(): boolean {
+    console.log('🔍 === CHECKING IF SHOULD MIGRATE ===');
+    console.log('🔍 Current hostname:', window.location.hostname);
+    console.log('🔍 Current full URL:', window.location.href);
+    
+    // In locale, simula la migrazione solo se c'è un flag specifico per testing
+    if (this.isLocalEnvironment()) {
+      console.log('🏠 Local environment detected');
+      const forceTestMigration = localStorage.getItem('test-migration-flow') === 'true';
+      const hasUsername = localStorage.getItem('isru-username') !== null;
+      
+      console.log('🔍 Local migration conditions:');
+      console.log('   - Force test migration flag:', forceTestMigration);
+      console.log('   - Has username:', hasUsername);
+      
+      const shouldMigrateLocal = forceTestMigration && hasUsername;
+      console.log('🔍 Local shouldMigrate result:', shouldMigrateLocal);
+      return shouldMigrateLocal;
+    }
+    
+    // Controlla se siamo sul dominio vecchio (non www.isru-league.com)
+    const currentDomain = window.location.hostname;
+    const isNewDomain = currentDomain === 'www.isru-league.com' || currentDomain === 'isru-league.com';
+    const isOldDomain = !isNewDomain;
+    
+    // LOGICA SEMPLIFICATA: migra solo se:
+    // 1. Siamo sul vecchio dominio
+    // 2. NON abbiamo già un username nel localStorage (non è già migrato)
+    const hasUsername = localStorage.getItem('isru-username') !== null;
+    
+    console.log('🔍 Production migration conditions:');
+    console.log('   - Current domain:', currentDomain);
+    console.log('   - Is new domain (isru-league.com):', isNewDomain);
+    console.log('   - Is old domain (needs migration):', isOldDomain);
+    console.log('   - Has username (already migrated):', hasUsername);
+    
+    // Migra solo se siamo sul vecchio dominio E abbiamo dati da migrare
+    const shouldMigrateProduction = isOldDomain;
+    console.log('🔍 Production shouldMigrate result:', shouldMigrateProduction);
+    
+    return shouldMigrateProduction;
+  }
+
+  /**
+   * Controlla se ci sono dati utente da migrare
+   */
+  private static hasUserDataToMigrate(): boolean {
+    const importantKeys = [
+      'isru-username',
+      'friends-league',
+      'user-goals',
+      'isru-offline-data',
+      'online-sessions',
+      'isru-goals'
+    ];
+    
+    // In locale, per testing, considera che ci sono dati se c'è almeno un username
+    if (this.isLocalEnvironment()) {
+      return localStorage.getItem('isru-username') !== null;
+    }
+    
+    return importantKeys.some(key => localStorage.getItem(key) !== null);
+  }
+
+  /**
+   * Raccoglie tutti i dati utente per la migrazione - COPIA TUTTO IL LOCALSTORAGE
+   */
+  static gatherUserData(): Record<string, any> {
+    const userData: Record<string, any> = {};
+    
+    console.log('🔍 === STARTING MIGRATION DATA GATHERING ===');
+    console.log('🔍 Total localStorage keys found:', localStorage.length);
+    
+    // Prima mostra tutte le chiavi che esistono
+    console.log('🔍 All current localStorage keys:');
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        const value = localStorage.getItem(key);
+        console.log(`   📋 Key: "${key}" -> Value: "${value?.substring(0, 50)}${value && value.length > 50 ? '...' : ''}"`);
+      }
+    }
+
+    // Copia TUTTE le chiavi del localStorage senza filtri
+    for (let i = 0; i < localStorage.length; i++) {
+      const key = localStorage.key(i);
+      if (key) {
+        const value = localStorage.getItem(key);
+        if (value !== null) {
+          userData[key] = value; // Mantieni come stringa per evitare problemi di parsing
+          console.log(`✅ COPIED: ${key} = ${value.substring(0, 100)}${value.length > 100 ? '...' : ''}`);
+        }
+      }
+    }
+
+    // Controlli specifici per i dati critici
+    console.log('🔍 === CRITICAL DATA CHECK ===');
+    console.log('🔍 isru-username:', localStorage.getItem('isru-username'));
+    console.log('🔍 friends-league:', localStorage.getItem('friends-league'));
+    console.log('🔍 Username in userData:', userData['isru-username']);
+    console.log('🔍 Friends-league in userData:', userData['friends-league']);
+
+    // Aggiungi metadati sulla migrazione
+    userData._migrationMeta = JSON.stringify({
+      timestamp: new Date().toISOString(),
+      fromDomain: window.location.hostname,
+      userAgent: navigator.userAgent,
+      version: '3.0',
+      totalKeys: Object.keys(userData).length - 1 // -1 per escludere _migrationMeta
+    });
+
+    console.log('📋 === FINAL MIGRATION DATA ===');
+    console.log('📋 Total data copied:', Object.keys(userData).length - 1, 'keys');
+    console.log('📋 All keys to migrate:', Object.keys(userData).filter(k => k !== '_migrationMeta'));
+    console.log('📋 Complete userData object:', userData);
+    
+    return userData;
+  }
+
+  /**
+   * Simula la migrazione in ambiente locale (per testing)
+   */
+  static async simulateLocalMigration(): Promise<void> {
+    // Raccoglie i dati utente
+    const userData = this.gatherUserData();
+    
+    // Simula l'encoding/decoding che avverrebbe nella migrazione reale
+    const encodedData = btoa(JSON.stringify(userData));
+    console.log('🧪 Local simulation: Migration data encoded');
+    
+    // Simula un delay come se stessimo migrando
+    await new Promise(resolve => setTimeout(resolve, 2000));
+    
+    // Simula l'import dei dati
+    const decodedData = JSON.parse(atob(encodedData));
+    console.log('🧪 Local simulation: Migration data decoded and verified');
+    
+    // Marca la migrazione come completata per il test
+    localStorage.setItem(this.MIGRATION_KEY, 'true');
+    localStorage.setItem('migration-completed', JSON.stringify({
+      timestamp: new Date().toISOString(),
+      fromDomain: 'localhost-simulation',
+      userAgent: navigator.userAgent,
+      version: '3.0',
+      isSimulation: true
+    }));
+    
+    console.log('✅ Local migration simulation completed successfully!');
+  }
+
+  /**
+   * Esegue la migrazione automatica verso il nuovo dominio - REDIRECT SEMPLICE
+   */
+  static async performMigration(): Promise<void> {
+    console.log('🚀 === STARTING PERFORM MIGRATION (SIMPLE REDIRECT) ===');
+    console.log('🚀 Current URL:', window.location.href);
+    console.log('🚀 Current domain:', window.location.hostname);
+    
+    try {
+      // Se siamo in locale, simula la migrazione senza redirect
+      if (this.isLocalEnvironment()) {
+        console.log('🏠 Local environment detected - simulating migration');
+        await this.simulateLocalMigration();
+        return;
+      }
+
+      // Verifica che il nuovo dominio sia raggiungibile
+      console.log('🔍 Verifying new domain accessibility...');
+      const isDomainAccessible = await this.verifyNewDomain();
+      
+      if (!isDomainAccessible) {
+        console.warn('⚠️ New domain not accessible, postponing migration');
+        return;
+      }
+
+      // Mostra i dati che verranno migrati
+      console.log('📦 Current user data that will be available on new domain:');
+      const username = localStorage.getItem('isru-username');
+      const friendsLeague = localStorage.getItem('friends-league');
+      console.log('   - Username:', username);
+      console.log('   - Friends League:', friendsLeague);
+      
+      console.log('� Performing simple redirect to new domain...');
+      console.log('🔄 User will need to set up profile again on new domain');
+      
+      // Piccolo delay per assicurarsi che tutto sia salvato
+      await new Promise(resolve => setTimeout(resolve, 100));
+      
+      console.log('🔄 Redirecting now...');
+      window.location.assign(this.NEW_DOMAIN);
+      
+    } catch (error) {
+      console.error('Migration failed:', error);
+      // Fallback: reindirizza senza dati ma in modo sicuro
+      console.log('🔄 Falling back to basic redirect...');
+      window.location.assign(this.NEW_DOMAIN);
+    }
+  }
+
+  /**
+   * IMPORTAZIONE ELIMINATA - Non serve più
+   * Sul nuovo dominio l'utente ripartirà con localStorage vuoto
+   */
+  static importMigratedData(): boolean {
+    console.log('� === MIGRATION IMPORT NOT NEEDED ===');
+    console.log('� Users will start fresh on new domain');
+    console.log('🔍 URL params:', window.location.search);
+    
+    // Sul nuovo dominio, nessuna importazione necessaria
+    // L'utente ripartirà con localStorage vuoto
+    return false;
+  }
+
+  /**
+   * Mostra una notifica di migrazione completata
+   */
+  static showMigrationSuccess(): void {
+    const migrationMeta = localStorage.getItem('migration-completed');
+    if (migrationMeta) {
+      try {
+        const meta = JSON.parse(migrationMeta);
+        console.log(`🎉 Welcome to the new domain! Data migrated from ${meta.fromDomain} on ${new Date(meta.timestamp).toLocaleString()}`);
+        
+        // Rimuovi i metadati dopo aver mostrato il messaggio
+        setTimeout(() => {
+          localStorage.removeItem('migration-completed');
+        }, 5000);
+      } catch (error) {
+        console.error('Error reading migration metadata:', error);
+      }
+    }
+  }
+
+  /**
+   * Mostra lo stato attuale della migrazione (per debug)
+   */
+  static debugMigrationStatus(): void {
+    console.log('🔧 === MIGRATION DEBUG STATUS ===');
+    console.log('🔧 Current domain:', window.location.hostname);
+    console.log('🔧 Current URL:', window.location.href);
+    console.log('🔧 Is local environment:', this.isLocalEnvironment());
+    
+    const currentDomain = window.location.hostname;
+    const isNewDomain = currentDomain === 'www.isru-league.com' || currentDomain === 'isru-league.com';
+    const isOldDomain = !isNewDomain;
+    const hasUsername = localStorage.getItem('isru-username') !== null;
+    
+    console.log('🔧 Domain analysis:');
+    console.log('   - Is new domain:', isNewDomain);
+    console.log('   - Is old domain:', isOldDomain);
+    console.log('   - Has username:', hasUsername);
+    console.log('   - Username value:', localStorage.getItem('isru-username'));
+    
+    console.log('🔧 Should migrate:', this.shouldMigrate());
+    console.log('🔧 All localStorage keys:', Object.keys(localStorage));
+    console.log('🔧 === END DEBUG STATUS ===');
+  }
+}
+
+// Esponi il MigrationService globalmente per debugging in produzione
+if (typeof window !== 'undefined') {
+  (window as any).MigrationService = MigrationService;
+  console.log('🔧 MigrationService exposed globally for debugging');
+}
+
+export default MigrationService;

@@ -2,6 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, CircularProgress, LinearProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import MigrationService from '../services/migrationService';
+import { fetchScoreDistribution } from '../apiService';
+import OfflineService from '../services/offlineService';
 
 const useStyles = makeStyles((theme) => ({
   loaderContainer: {
@@ -21,12 +23,13 @@ const useStyles = makeStyles((theme) => ({
     filter: 'brightness(1)',
   },
   title: {
-    fontFamily: '"Courier New", monospace',
-    fontSize: '1.5rem',
+    fontFamily: '"Rocket Sharpie Bold", "Courier New", monospace !important',
+    fontSize: '1.8rem',
     fontWeight: 'bold',
     marginBottom: theme.spacing(2),
     textAlign: 'center',
     color: '#8b7355', // Colore primario dell'app
+    letterSpacing: '0.1em', // Aggiunge un po' di spaziatura tra le lettere
   },
   subtitle: {
     fontFamily: '"Courier New", monospace',
@@ -76,7 +79,7 @@ const useStyles = makeStyles((theme) => ({
 }));
 
 interface AppLoaderProps {
-  onLoadComplete: () => void;
+  onLoadComplete: (data: any, username: string) => void;
 }
 
 const AppLoader: React.FC<AppLoaderProps> = ({ onLoadComplete }) => {
@@ -158,7 +161,37 @@ const AppLoader: React.FC<AppLoaderProps> = ({ onLoadComplete }) => {
         setProgress(60);
         await new Promise(resolve => setTimeout(resolve, 1000));
 
-        // Stage 3: Finalizing
+        // Stage 3: Load application data
+        setLoadingStage('loading-data');
+        setStatusMessage('Loading I.S.R.U League data...');
+        setProgress(70);
+        
+        let scoreDistribution = null;
+        let username = '';
+        
+        try {
+          // Carica i dati dell'app
+          scoreDistribution = await fetchScoreDistribution();
+          
+          // Carica username salvato
+          username = localStorage.getItem('isru-username') || '';
+          
+          // Salva offline data
+          OfflineService.saveOfflineData(scoreDistribution, undefined);
+          
+          setProgress(85);
+          await new Promise(resolve => setTimeout(resolve, 500));
+          
+        } catch (error) {
+          console.error('Error loading data:', error);
+          // Prova a caricare i dati offline
+          const offlineData = OfflineService.loadOfflineData();
+          if (offlineData) {
+            scoreDistribution = offlineData.scoreDistribution;
+          }
+        }
+
+        // Stage 4: Finalizing
         setLoadingStage('finalizing');
         setStatusMessage('Preparing user interface...');
         setProgress(90);
@@ -168,15 +201,15 @@ const AppLoader: React.FC<AppLoaderProps> = ({ onLoadComplete }) => {
         setProgress(100);
         await new Promise(resolve => setTimeout(resolve, 500));
 
-        // Completa il caricamento
-        onLoadComplete();
+        // Completa il caricamento con i dati
+        onLoadComplete(scoreDistribution, username);
 
       } catch (error) {
         console.error('Startup sequence failed:', error);
-        // In caso di errore, continua comunque
+        // In caso di errore, continua comunque con dati vuoti
         setStatusMessage('Loading complete');
         setProgress(100);
-        setTimeout(onLoadComplete, 1000);
+        setTimeout(() => onLoadComplete(null, ''), 1000);
       }
     };
 
@@ -193,7 +226,12 @@ const AppLoader: React.FC<AppLoaderProps> = ({ onLoadComplete }) => {
         className={classes.logo}
       />
       
-      <Typography className={classes.title}>
+      <Typography 
+        className={classes.title}
+        style={{
+          fontFamily: '"Rocket Sharpie Bold", "Courier New", monospace !important'
+        }}
+      >
         I.S.R.U LEAGUE
       </Typography>
       

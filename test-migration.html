@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Migration Test</title>
+</head>
+<body>
+    <h1>Migration Test</h1>
+    <div>
+        <h2>Step 1: Setup Test Data</h2>
+        <button onclick="setupTestData()">Setup Test Data</button>
+        <div id="setup-result"></div>
+    </div>
+    
+    <div>
+        <h2>Step 2: Test Migration Data Gathering</h2>
+        <button onclick="testGatherData()">Test Gather Data</button>
+        <div id="gather-result"></div>
+    </div>
+    
+    <div>
+        <h2>Step 3: Test SessionStorage Transfer</h2>
+        <button onclick="testSessionTransfer()">Test Session Transfer</button>
+        <div id="session-result"></div>
+    </div>
+    
+    <div>
+        <h2>Step 4: Test Data Import</h2>
+        <button onclick="testImportData()">Test Import Data</button>
+        <div id="import-result"></div>
+    </div>
+
+    <script>
+        function setupTestData() {
+            // Simula i dati che dovrebbero esserci prima della migrazione
+            localStorage.setItem('isru-username', 'test-user-123');
+            localStorage.setItem('friends-league', JSON.stringify({
+                leagueName: 'Test League',
+                members: ['user1', 'user2'],
+                stats: { games: 10, wins: 5 }
+            }));
+            localStorage.setItem('user-goals', JSON.stringify([
+                { id: 1, title: 'Goal 1', completed: false },
+                { id: 2, title: 'Goal 2', completed: true }
+            ]));
+            localStorage.setItem('isru-offline-data', JSON.stringify({
+                lastSync: new Date().toISOString(),
+                pendingData: []
+            }));
+            localStorage.setItem('test-migration-flow', 'true');
+            
+            document.getElementById('setup-result').innerHTML = 
+                '<div style="color: green;">✅ Test data setup complete!</div>' +
+                '<div>localStorage now has: ' + localStorage.length + ' keys</div>' +
+                '<div>Keys: ' + Object.keys(localStorage).join(', ') + '</div>';
+            
+            console.log('🧪 Test data setup complete');
+            console.log('🧪 isru-username:', localStorage.getItem('isru-username'));
+            console.log('🧪 friends-league:', localStorage.getItem('friends-league'));
+        }
+
+        function testGatherData() {
+            // Simula la funzione gatherUserData
+            const userData = {};
+            
+            console.log('🧪 === TESTING DATA GATHERING ===');
+            console.log('🧪 Total localStorage keys:', localStorage.length);
+            
+            // Copia tutte le chiavi
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key) {
+                    const value = localStorage.getItem(key);
+                    if (value !== null) {
+                        userData[key] = value;
+                        console.log(`🧪 Copied: ${key} = ${value.substring(0, 50)}`);
+                    }
+                }
+            }
+            
+            userData._migrationMeta = JSON.stringify({
+                timestamp: new Date().toISOString(),
+                fromDomain: 'test-domain',
+                totalKeys: Object.keys(userData).length - 1
+            });
+            
+            console.log('🧪 Final userData:', userData);
+            
+            document.getElementById('gather-result').innerHTML = 
+                '<div style="color: green;">✅ Data gathering test complete!</div>' +
+                '<div>Gathered: ' + (Object.keys(userData).length - 1) + ' keys</div>' +
+                '<div>Username found: ' + (userData['isru-username'] ? 'YES' : 'NO') + '</div>' +
+                '<div>Friends-league found: ' + (userData['friends-league'] ? 'YES' : 'NO') + '</div>';
+        }
+
+        function testSessionTransfer() {
+            // Simula il trasferimento via sessionStorage
+            const userData = {};
+            
+            for (let i = 0; i < localStorage.length; i++) {
+                const key = localStorage.key(i);
+                if (key) {
+                    const value = localStorage.getItem(key);
+                    if (value !== null) {
+                        userData[key] = value;
+                    }
+                }
+            }
+            
+            userData._migrationMeta = JSON.stringify({
+                timestamp: new Date().toISOString(),
+                fromDomain: 'test-domain',
+                totalKeys: Object.keys(userData).length - 1
+            });
+            
+            // Salva nel sessionStorage
+            sessionStorage.setItem('migration-data-full', JSON.stringify(userData));
+            
+            console.log('🧪 === TESTING SESSION TRANSFER ===');
+            console.log('🧪 Data saved to sessionStorage');
+            console.log('🧪 SessionStorage item length:', sessionStorage.getItem('migration-data-full')?.length);
+            
+            document.getElementById('session-result').innerHTML = 
+                '<div style="color: green;">✅ Session transfer test complete!</div>' +
+                '<div>SessionStorage data size: ' + (sessionStorage.getItem('migration-data-full')?.length || 0) + ' chars</div>';
+        }
+
+        function testImportData() {
+            console.log('🧪 === TESTING DATA IMPORT ===');
+            
+            // Leggi dal sessionStorage
+            const sessionData = sessionStorage.getItem('migration-data-full');
+            
+            if (!sessionData) {
+                document.getElementById('import-result').innerHTML = 
+                    '<div style="color: red;">❌ No session data found!</div>';
+                return;
+            }
+            
+            const userData = JSON.parse(sessionData);
+            console.log('🧪 Loaded from sessionStorage:', Object.keys(userData));
+            
+            // Pulisci localStorage
+            console.log('🧪 Clearing localStorage...');
+            localStorage.clear();
+            
+            // Ripristina i dati
+            let importedCount = 0;
+            Object.entries(userData).forEach(([key, value]) => {
+                if (key !== '_migrationMeta') {
+                    localStorage.setItem(key, value);
+                    importedCount++;
+                    console.log(`🧪 Restored: ${key}`);
+                }
+            });
+            
+            // Verifica
+            console.log('🧪 === POST-IMPORT VERIFICATION ===');
+            console.log('🧪 isru-username after import:', localStorage.getItem('isru-username'));
+            console.log('🧪 friends-league after import:', localStorage.getItem('friends-league'));
+            
+            document.getElementById('import-result').innerHTML = 
+                '<div style="color: green;">✅ Import test complete!</div>' +
+                '<div>Imported: ' + importedCount + ' keys</div>' +
+                '<div>Username restored: ' + (localStorage.getItem('isru-username') ? 'YES' : 'NO') + '</div>' +
+                '<div>Friends-league restored: ' + (localStorage.getItem('friends-league') ? 'YES' : 'NO') + '</div>';
+            
+            // Pulisci sessionStorage
+            sessionStorage.removeItem('migration-data-full');
+        }
+    </script>
+</body>
+</html>

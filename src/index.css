@@ -1,3 +1,12 @@
+/* Custom Fonts */
+@font-face {
+  font-family: 'Rocket Sharpie Bold';
+  src: url('./assets/fonts/Rocket.Sharpie.Bold.ttf') format('truetype');
+  font-weight: bold;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* CSS Reset e base */
 * {
   margin: 0;
@@ -9,15 +18,25 @@ body {
   font-family: 'Courier New', 'Courier', monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+  /* Prevent horizontal scroll on mobile */
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Prevent horizontal scroll globally */
+html, body {
+  overflow-x: hidden;
+  max-width: 100vw;
+}
+
+/* Root container */
+#root {
+  overflow-x: hidden;
+  max-width: 100vw;
 }
 
 code {
   font-family: 'Courier New', 'Courier', monospace;
-}
-
-/* Applica font monospace a tutti gli elementi */
-* {
-  font-family: 'Courier New', 'Courier', monospace !important;
 }
 
 /* Specifici per Material-UI */
@@ -29,4 +48,43 @@ code {
 .MuiListItem-root,
 .MuiMenuItem-root {
   font-family: 'Courier New', 'Courier', monospace !important;
+}
+
+/* Global responsive utilities */
+* {
+  max-width: 100%;
+}
+
+/* Ensure all containers are responsive */
+.MuiContainer-root {
+  max-width: 100vw !important;
+  overflow-x: hidden;
+}
+
+/* Prevent any grid items from overflowing */
+.MuiGrid-container {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.MuiGrid-item {
+  max-width: 100%;
+  min-width: 0; /* Allow flex items to shrink */
+}
+
+/* Ensure cards are responsive */
+.MuiCard-root {
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+/* Responsive tables and long content */
+.MuiTable-root {
+  overflow-x: auto;
+}
+
+/* Ensure long text doesn't cause horizontal scroll */
+.MuiTypography-root {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
 }

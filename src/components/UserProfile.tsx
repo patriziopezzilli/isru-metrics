@@ -96,6 +96,7 @@ interface UserProfileProps {
   onClose: () => void;
   username?: string;
   onUsernameSet: (username: string) => void;
+  inline?: boolean; // Add inline mode for mobile
 }
 
 export const UserProfile: React.FC<UserProfileProps> = ({
@@ -103,7 +104,15 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   onClose,
   username,
   onUsernameSet,
+  inline = false,
 }) => {
+  console.log('🚀 UserProfile render:', { 
+    open, 
+    username, 
+    inline, 
+    timestamp: new Date().toISOString() 
+  });
+  
   const classes = useStyles();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -126,6 +135,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const closeNotification = () => {
     setNotification(prev => ({ ...prev, open: false }));
   };
+
+  // Update isFirstTime when username changes
+  useEffect(() => {
+    setIsFirstTime(!username);
+  }, [username]);
 
   // Export handlers
   const handleExportProfile = async () => {
@@ -167,8 +181,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   };
 
   useEffect(() => {
+    console.log('🔍 UserProfile useEffect triggered:', { username, open, inline, isFirstTime });
     if (username && open) {
+      console.log('✅ Fetching profile for:', username);
       fetchUserProfile(username);
+    } else {
+      console.log('❌ Skipping fetch - conditions not met:', { username: !!username, open });
     }
   }, [username, open]);
 
@@ -220,7 +238,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const handleSaveUsername = () => {
     if (inputUsername.trim()) {
       const trimmedUsername = inputUsername.trim();
+      console.log('🔄 UserProfile: Saving username to localStorage:', trimmedUsername);
       localStorage.setItem('isru-username', trimmedUsername);
+      console.log('✅ UserProfile: localStorage after save:', localStorage.getItem('isru-username'));
       onUsernameSet(trimmedUsername);
       setIsFirstTime(false);
       fetchUserProfile(trimmedUsername);
@@ -231,6 +251,12 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     setIsFirstTime(true);
     setProfileData(null);
     setError(null);
+    // In modalità inline, resetta anche l'username per mostrare il form di cambio
+    if (inline) {
+      setInputUsername('');
+      // Notifica al parent component che l'username è stato resettato
+      onUsernameSet('');
+    }
   };
 
   const handleDeleteProfile = () => {
@@ -239,7 +265,10 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     setProfileData(null);
     setInputUsername('');
     setIsFirstTime(true);
-    onClose();
+    // In modalità inline non chiudiamo, solo resettiamo lo stato
+    if (!inline) {
+      onClose();
+    }
   };
 
   const renderFirstTimeSetup = () => (
@@ -262,9 +291,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         />
       </DialogContent>
       <DialogActions>
-        <Button onClick={onClose} className={classes.secondaryButton}>
-          Cancel
-        </Button>
+        {!inline && (
+          <Button onClick={onClose} className={classes.secondaryButton}>
+            Cancel
+          </Button>
+        )}
         <Button
           onClick={handleSaveUsername}
           disabled={!inputUsername.trim()}
@@ -511,36 +542,28 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         )}
       </DialogContent>
       <DialogActions>
-        <Button onClick={handleDeleteProfile} style={{ color: '#d32f2f' }}>
-          Delete Profile
-        </Button>
         <Button onClick={handleChangeUsername} className={classes.secondaryButton}>
           Change Username
         </Button>
-        <Button onClick={onClose} className={classes.button}>
-          Close
-        </Button>
+        {!inline && (
+          <>
+            <Button onClick={handleDeleteProfile} style={{ color: '#d32f2f' }}>
+              Delete Profile
+            </Button>
+            <Button onClick={onClose} className={classes.button}>
+              Close
+            </Button>
+          </>
+        )}
       </DialogActions>
     </>
   );
 
-  return (
-    <Dialog
-      open={open}
-      onClose={onClose}
-      maxWidth="md"
-      fullWidth
-      fullScreen={isMobile} // Full screen su mobile
-      className={classes.dialog}
-      PaperProps={{
-        style: {
-          maxHeight: isMobile ? '100vh' : '75vh', // Full height su mobile, limitata su desktop
-          overflow: 'auto',
-          margin: isMobile ? 0 : undefined, // Rimuove margini su mobile
-        }
-      }}
-    >
-      {isFirstTime ? renderFirstTimeSetup() : renderProfileView()}
+  const content = (
+    <>
+      {console.log('🎭 Rendering content:', { isFirstTime, loading, error: !!error, profileData: !!profileData, inline })}
+      {/* In modalità inline con username, salta il renderProfileView e vai direttamente al layout inline */}
+      {(inline && username) ? null : (isFirstTime ? renderFirstTimeSetup() : renderProfileView())}
       
       {/* Notification Snackbar */}
       <Snackbar
@@ -562,6 +585,352 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           {notification.message}
         </div>
       </Snackbar>
+    </>
+  );
+
+  // Modalità inline per mobile (come pagina)
+  if (inline) {
+    return (
+      <Box style={{ 
+        backgroundColor: '#f5f1eb', 
+        minHeight: '100vh', 
+        padding: '0'
+      }}>
+        <Box style={{
+          maxWidth: '100%',
+          margin: '0 auto',
+          backgroundColor: '#f5f1eb',
+        }}>
+          {/* Content per modalità inline - senza header separato */}
+          <Box style={{ padding: '24px' }}>
+            {/* In modalità inline, se abbiamo un username, mostra sempre il profilo completo */}
+            {(isFirstTime && !username) ? (
+              // First time setup inline - design migliorato
+              <Box style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'center',
+                minHeight: '60vh',
+                textAlign: 'center'
+              }}>
+                {/* Icon/Logo area */}
+                <Box style={{
+                  backgroundColor: '#8b7355',
+                  borderRadius: '50%',
+                  padding: '20px',
+                  marginBottom: '24px',
+                  boxShadow: '0 4px 20px rgba(139, 115, 85, 0.3)'
+                }}>
+                  <Typography variant="h3" style={{ 
+                    color: 'white',
+                    fontWeight: 'bold',
+                    margin: 0
+                  }}>
+                    🚀
+                  </Typography>
+                </Box>
+
+                <Typography variant="h5" style={{ 
+                  color: '#8b7355', 
+                  fontWeight: 'bold',
+                  marginBottom: '12px'
+                }}>
+                  Welcome to I.S.R.U League
+                </Typography>
+                
+                <Typography variant="body1" style={{ 
+                  color: '#8b7355', 
+                  marginBottom: '32px',
+                  maxWidth: '300px',
+                  lineHeight: 1.6
+                }}>
+                  Enter your ISRU username to get started and see your stats, activities, and league position
+                </Typography>
+                
+                <Box style={{ width: '100%', maxWidth: '280px' }}>
+                  <TextField
+                    label="ISRU Username"
+                    variant="outlined"
+                    fullWidth
+                    value={inputUsername}
+                    onChange={(e) => setInputUsername(e.target.value)}
+                    className={classes.textField}
+                    onKeyPress={(e) => e.key === 'Enter' && handleSaveUsername()}
+                    style={{ marginBottom: '24px' }}
+                  />
+                  <Button
+                    onClick={handleSaveUsername}
+                    disabled={!inputUsername.trim()}
+                    className={classes.button}
+                    size="large"
+                    fullWidth
+                    style={{
+                      padding: '12px 24px',
+                      borderRadius: '8px',
+                      fontWeight: 'bold'
+                    }}
+                  >
+                    Get Started
+                  </Button>
+                </Box>
+              </Box>
+            ) : (
+              // Profile view inline - usa il contenuto della card esistente ma senza Dialog wrapper
+              <>
+                {loading && (
+                  <Box display="flex" justifyContent="center" py={4}>
+                    <CircularProgress style={{ color: '#8b7355' }} />
+                  </Box>
+                )}
+
+                {error && (
+                  <Box
+                    p={2}
+                    mb={2}
+                    style={{
+                      backgroundColor: '#fff3cd',
+                      border: '1px solid #ffeaa7',
+                      borderRadius: '8px',
+                      color: '#856404'
+                    }}
+                  >
+                    <Typography variant="body2">
+                      {error}
+                    </Typography>
+                  </Box>
+                )}
+
+                {profileData && (
+                  // Contenuto diretto senza Card wrapper
+                  <Box
+                    id="user-profile-modal-content"
+                    style={{
+                      padding: 0, // Rimuovo padding extra
+                    }}
+                  >
+                    {/* Informazioni utente */}
+                    <Box display="flex" alignItems="center" mb={3}>
+                        <Avatar
+                          className={classes.avatar}
+                          src={profileData.user.profilePhotoUrl}
+                        >
+                          {profileData.user.firstName.charAt(0).toUpperCase()}
+                        </Avatar>
+                        <Box ml={2}>
+                          <Typography variant="h6" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+                            {profileData.user.firstName} {profileData.user.lastName}
+                          </Typography>
+                          <Typography variant="body2" style={{ color: '#8b7355' }}>
+                            @{profileData.user.username}
+                          </Typography>
+                          <Typography variant="caption" style={{ color: '#8b7355' }}>
+                            ID: {profileData.user.idNumber}
+                          </Typography>
+                          <br />
+                          <Typography variant="caption" style={{ color: '#8b7355' }}>
+                            Member since: {new Date(profileData.user.dateJoined).toLocaleDateString()}
+                          </Typography>
+                        </Box>
+                      </Box>
+
+                      <Divider style={{ backgroundColor: '#d4c4a8', margin: '16px 0' }} />
+                      
+                      {/* Statistics Section */}
+                      <Box mb={2}>
+                        <Typography variant="subtitle2" style={{ color: '#8b7355', fontWeight: 'bold', marginBottom: 8 }}>
+                          Statistics
+                        </Typography>
+                        <Box display="flex" flexWrap="wrap" style={{ gap: '8px' }}>
+                          <Chip
+                            label={`Total Points: ${profileData.user.totalPoints}`}
+                            className={classes.statChip}
+                            size="small"
+                          />
+                          <Chip
+                            label={`Excellence Awards: ${profileData.user.excellenceAwardsCount}`}
+                            className={classes.statChip}
+                            size="small"
+                          />
+                          {profileData.user.profileExcellenceRank && (
+                            <Chip
+                              label={`Excellence Rank: ${profileData.user.profileExcellenceRank}`}
+                              className={classes.statChip}
+                              size="small"
+                            />
+                          )}
+                        </Box>
+                      </Box>
+
+                      {/* Active Activities Section */}
+                      {profileData.activities && profileData.activities.length > 0 && (
+                        <>
+                          <Divider style={{ backgroundColor: '#d4c4a8', margin: '16px 0' }} />
+                          <Box mb={2}>
+                            <Typography variant="subtitle2" style={{ color: '#8b7355', fontWeight: 'bold', marginBottom: 8 }}>
+                              Active Activities ({profileData.activities.length})
+                            </Typography>
+                            {profileData.activities.map((activity) => (
+                              <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
+                                <Box display="flex" justifyContent="space-between" alignItems="center">
+                                  <Box>
+                                    <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+                                      Week {activity.activityWeek}: {activity.activityTitle}
+                                    </Typography>
+                                    <Typography variant="caption" style={{ color: '#8b7355' }}>
+                                      Level {activity.level} • Started: {new Date(activity.dateStarted).toLocaleDateString()}
+                                    </Typography>
+                                  </Box>
+                                  <Box display="flex" style={{ gap: '4px' }}>
+                                    {activity.hasSubmittedToday && (
+                                      <Chip
+                                        label="Today ✓"
+                                        size="small"
+                                        style={{ backgroundColor: '#6b7d5a', color: 'white', fontSize: '0.7rem' }}
+                                      />
+                                    )}
+                                    {activity.hasSubmittedYesterday && (
+                                      <Chip
+                                        label="Yesterday ✓"
+                                        size="small"
+                                        style={{ backgroundColor: '#8b7355', color: 'white', fontSize: '0.7rem' }}
+                                      />
+                                    )}
+                                  </Box>
+                                </Box>
+                              </Box>
+                            ))}
+                          </Box>
+                        </>
+                      )}
+
+                      {/* Completed Modules Section */}
+                      {profileData.completedModules && profileData.completedModules.length > 0 && (
+                        <>
+                          <Divider style={{ backgroundColor: '#d4c4a8', margin: '16px 0' }} />
+                          <Box mb={2}>
+                            <Typography variant="subtitle2" style={{ color: '#8b7355', fontWeight: 'bold', marginBottom: 8 }}>
+                              Completed Modules ({profileData.completedModules.length})
+                            </Typography>
+                            <Box display="flex" flexWrap="wrap" style={{ gap: '8px' }}>
+                              {profileData.completedModules.map((module) => (
+                                <Chip
+                                  key={module.id}
+                                  label={module.name}
+                                  className={classes.statChip}
+                                  size="small"
+                                  style={{ backgroundColor: '#6b7d5a', color: 'white' }}
+                                />
+                              ))}
+                            </Box>
+                          </Box>
+                        </>
+                      )}
+
+                      {/* Share/Export buttons inline */}
+                      {profileData && (
+                        <Box display="flex" alignItems="center" style={{ gap: '8px', marginBottom: '16px' }}>
+                          <Tooltip title="Share profile as image">
+                            <IconButton
+                              onClick={handleShareProfile}
+                              style={{
+                                backgroundColor: '#8b7355',
+                                color: 'white',
+                                padding: '8px',
+                              }}
+                              size="small"
+                            >
+                              <ShareIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Export profile as image">
+                            <IconButton
+                              onClick={handleExportProfile}
+                              style={{
+                                backgroundColor: '#6b7d5a',
+                                color: 'white',
+                                padding: '8px',
+                              }}
+                              size="small"
+                            >
+                              <GetAppIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                          <Tooltip title="Copy profile to clipboard">
+                            <IconButton
+                              onClick={handleCopyProfile}
+                              style={{
+                                backgroundColor: '#a0916c',
+                                color: 'white',
+                                padding: '8px',
+                              }}
+                              size="small"
+                            >
+                              <FileCopyIcon fontSize="small" />
+                            </IconButton>
+                          </Tooltip>
+                        </Box>
+                      )}
+                  </Box>
+                )}
+
+                {/* Action buttons per modalità inline */}
+                <Box style={{ textAlign: 'center', marginTop: '24px' }}>
+                  <Button 
+                    onClick={handleChangeUsername} 
+                    className={classes.secondaryButton}
+                    size="large"
+                  >
+                    Change Username
+                  </Button>
+                </Box>
+              </>
+            )}
+          </Box>
+        </Box>
+        
+        {/* Notification per modalità inline */}
+        <Snackbar
+          open={notification.open}
+          autoHideDuration={4000}
+          onClose={closeNotification}
+          anchorOrigin={{ vertical: 'bottom', horizontal: 'center' }}
+        >
+          <div
+            style={{
+              backgroundColor: notification.severity === 'success' ? '#4caf50' : '#f44336',
+              color: 'white',
+              padding: '12px 16px',
+              borderRadius: 8,
+              fontWeight: 500,
+              boxShadow: '0 4px 12px rgba(0,0,0,0.15)',
+            }}
+          >
+            {notification.message}
+          </div>
+        </Snackbar>
+      </Box>
+    );
+  }
+
+  // Modalità normale (Dialog)
+  return (
+    <Dialog
+      open={open}
+      onClose={onClose}
+      maxWidth="md"
+      fullWidth
+      fullScreen={isMobile} // Full screen su mobile
+      className={classes.dialog}
+      PaperProps={{
+        style: {
+          maxHeight: isMobile ? '100vh' : '75vh', // Full height su mobile, limitata su desktop
+          overflow: 'auto',
+          margin: isMobile ? 0 : undefined, // Rimuove margini su mobile
+        }
+      }}
+    >
+      {content}
     </Dialog>
   );
 };

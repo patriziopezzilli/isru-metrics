@@ -13,7 +13,9 @@ import {
   ListItemIcon,
   Divider,
   Collapse,
-  IconButton
+  IconButton,
+  useMediaQuery,
+  useTheme
 } from '@material-ui/core';
 import {
   Assessment as AssessmentIcon,
@@ -24,7 +26,7 @@ import {
 } from '@material-ui/icons';
 import { ScoreDistributionResponse } from '../types';
 import { calculateDashboardMetrics } from '../apiService';
-import { FriendsLeague } from './FriendsLeague';
+import FriendsLeague from './FriendsLeague';
 import { CurrentUserActivities } from './CurrentUserActivities';
 
 interface DashboardProps {
@@ -33,8 +35,17 @@ interface DashboardProps {
 }
 
 const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [topScoresExpanded, setTopScoresExpanded] = useState(false);
   const [distributionExpanded, setDistributionExpanded] = useState(false);
+  const [statisticsExpanded, setStatisticsExpanded] = useState(false);
+  
+  // Responsive padding
+  const cardPadding = isMobile ? '16px' : '24px 32px 16px 32px';
+  
+  // Responsive margin bottom to match FriendsLeague
+  const cardMarginBottom = isMobile ? 16 : 32;
   
   const metrics = useMemo(() => {
     return calculateDashboardMetrics(scoreDistribution);
@@ -54,86 +65,113 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
       <Card 
         elevation={0} 
         style={{ 
-          marginBottom: 32, 
+          marginBottom: cardMarginBottom, 
           background: 'linear-gradient(135deg, #fefdfb 0%, #f5f1eb 100%)',
           border: '1px solid #e6ddd4',
         }}
       >
-        <CardContent style={{ padding: 32 }}>
-          <Box display="flex" alignItems="center" style={{ marginBottom: 24 }}>
-            <Box 
-              style={{ 
-                backgroundColor: '#8b7355', 
-                borderRadius: 12, 
-                padding: 8, 
-                marginRight: 12,
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              <AssessmentIcon style={{ color: 'white', fontSize: 24 }} />
+        <CardContent style={{ padding: cardPadding }}>
+          <Box 
+            display="flex" 
+            alignItems="center" 
+            justifyContent="space-between"
+            style={{ marginBottom: statisticsExpanded ? 24 : 8, cursor: 'pointer' }}
+            onClick={() => setStatisticsExpanded(!statisticsExpanded)}
+          >
+            <Box display="flex" alignItems="center">
+              <Box 
+                style={{ 
+                  backgroundColor: '#8b7355', 
+                  borderRadius: 12, 
+                  padding: 8, 
+                  marginRight: 12,
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <AssessmentIcon style={{ color: 'white', fontSize: 24 }} />
+              </Box>
+              <Typography variant="h5" component="h2" style={{ fontWeight: 600, color: '#3c3530', fontSize: '1.25rem' }}>
+                Statistics
+              </Typography>
+              <Chip 
+                label="3 metrics" 
+                size="small" 
+                style={{ 
+                  marginLeft: 12,
+                  backgroundColor: 'rgba(139, 115, 85, 0.1)', 
+                  color: '#8b7355',
+                  fontSize: '0.7rem'
+                }}
+              />
             </Box>
-            <Typography variant="h5" style={{ color: '#8b7355', fontWeight: 'bold', fontSize: '1.25rem' }}>
-              Statistics
-            </Typography>
+            <IconButton 
+              style={{ color: '#8b7355' }}
+              size="small"
+            >
+              {statisticsExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
+            </IconButton>
           </Box>
-          <Grid container spacing={3}>
-            <Grid item xs={12} sm={4}>
-              <Box 
-                textAlign="center" 
-                style={{ 
-                  padding: 24, 
-                  backgroundColor: '#f5f1eb',
-                  borderRadius: 16,
-                  border: '1px solid #e6ddd4',
-                }}
-              >
-                <Typography variant="h3" style={{ fontWeight: 700, color: '#8b7355', marginBottom: 8 }}>
-                  {metrics.totalUsers.toLocaleString()}
-                </Typography>
-                <Typography variant="body1" color="textSecondary" style={{ fontWeight: 500 }}>
-                  Total Users
-                </Typography>
-              </Box>
+          
+          <Collapse in={statisticsExpanded} timeout={300}>
+            <Grid container spacing={3}>
+              <Grid item xs={12} sm={4}>
+                <Box 
+                  textAlign="center" 
+                  style={{ 
+                    padding: 24, 
+                    backgroundColor: '#f5f1eb',
+                    borderRadius: 16,
+                    border: '1px solid #e6ddd4',
+                  }}
+                >
+                  <Typography variant="h3" style={{ fontWeight: 700, color: '#8b7355', marginBottom: 8 }}>
+                    {metrics.totalUsers.toLocaleString()}
+                  </Typography>
+                  <Typography variant="body1" color="textSecondary" style={{ fontWeight: 500 }}>
+                    Total active users
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Box 
+                  textAlign="center" 
+                  style={{ 
+                    padding: 24, 
+                    backgroundColor: '#f5f1eb',
+                    borderRadius: 16,
+                    border: '1px solid #e6ddd4',
+                  }}
+                >
+                  <Typography variant="h3" style={{ fontWeight: 700, color: '#a0916c', marginBottom: 8 }}>
+                    {Math.round(metrics.averageScore)}
+                  </Typography>
+                  <Typography variant="body1" color="textSecondary" style={{ fontWeight: 500 }}>
+                    Average Score
+                  </Typography>
+                </Box>
+              </Grid>
+              <Grid item xs={12} sm={4}>
+                <Box 
+                  textAlign="center" 
+                  style={{ 
+                    padding: 24, 
+                    backgroundColor: '#f5f1eb',
+                    borderRadius: 16,
+                    border: '1px solid #e6ddd4',
+                  }}
+                >
+                  <Typography variant="h3" style={{ fontWeight: 700, color: '#6b7d5a', marginBottom: 8 }}>
+                    {metrics.topScores[0]?.score || 0}
+                  </Typography>
+                  <Typography variant="body1" color="textSecondary" style={{ fontWeight: 500 }}>
+                    Maximum Score
+                  </Typography>
+                </Box>
+              </Grid>
             </Grid>
-            <Grid item xs={12} sm={4}>
-              <Box 
-                textAlign="center" 
-                style={{ 
-                  padding: 24, 
-                  backgroundColor: '#f5f1eb',
-                  borderRadius: 16,
-                  border: '1px solid #e6ddd4',
-                }}
-              >
-                <Typography variant="h3" style={{ fontWeight: 700, color: '#a0916c', marginBottom: 8 }}>
-                  {Math.round(metrics.averageScore)}
-                </Typography>
-                <Typography variant="body1" color="textSecondary" style={{ fontWeight: 500 }}>
-                  Average Score
-                </Typography>
-              </Box>
-            </Grid>
-            <Grid item xs={12} sm={4}>
-              <Box 
-                textAlign="center" 
-                style={{ 
-                  padding: 24, 
-                  backgroundColor: '#f5f1eb',
-                  borderRadius: 16,
-                  border: '1px solid #e6ddd4',
-                }}
-              >
-                <Typography variant="h3" style={{ fontWeight: 700, color: '#6b7d5a', marginBottom: 8 }}>
-                  {metrics.topScores[0]?.score || 0}
-                </Typography>
-                <Typography variant="body1" color="textSecondary" style={{ fontWeight: 500 }}>
-                  Maximum Score
-                </Typography>
-              </Box>
-            </Grid>
-          </Grid>
+          </Collapse>
         </CardContent>
       </Card>
 
@@ -141,12 +179,12 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
       <Card 
         elevation={0} 
         style={{ 
-          marginBottom: 32,
+          marginBottom: cardMarginBottom,
           background: 'linear-gradient(135deg, #fefdfb 0%, #f5f1eb 100%)',
           border: '1px solid #e6ddd4',
         }}
       >
-        <CardContent style={{ padding: '24px 32px 16px 32px' }}>
+        <CardContent style={{ padding: cardPadding }}>
           <Box 
             display="flex" 
             alignItems="center" 
@@ -243,11 +281,12 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
       <Card 
         elevation={0}
         style={{
+          marginBottom: cardMarginBottom,
           background: 'linear-gradient(135deg, #fefdfb 0%, #f5f1eb 100%)',
           border: '1px solid #e6ddd4',
         }}
       >
-        <CardContent style={{ padding: '24px 32px 16px 32px' }}>
+        <CardContent style={{ padding: cardPadding }}>
           <Box 
             display="flex" 
             alignItems="center" 

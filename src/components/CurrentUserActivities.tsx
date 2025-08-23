@@ -17,28 +17,24 @@ import { fetchSneakerDBProfile } from '../apiService';
 
 const useStyles = makeStyles((theme) => ({
   card: {
-    backgroundColor: '#f9f8f6',
+    background: 'linear-gradient(135deg, #fefdfb 0%, #f5f1eb 100%)',
     border: '1px solid #e6ddd4',
     borderRadius: '16px',
-    marginBottom: '24px',
+    marginBottom: '32px',
     [theme.breakpoints.down('sm')]: {
       borderRadius: '12px',
       marginBottom: '16px',
     },
   },
   header: {
-    backgroundColor: '#8b7355',
-    color: '#ffffff',
-    padding: '16px 24px',
-    borderRadius: '16px 16px 0 0',
+    padding: '24px 32px 16px 32px',
     display: 'flex',
     alignItems: 'center',
     justifyContent: 'space-between',
     flexWrap: 'wrap',
     gap: theme.spacing(1),
     [theme.breakpoints.down('sm')]: {
-      padding: '12px 16px',
-      borderRadius: '12px 12px 0 0',
+      padding: '16px',
     },
   },
 }));
@@ -93,11 +89,23 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
   const totalActivities = profileData.activities.length;
 
   return (
-    <Card className={classes.card}>
+    <Card className={classes.card} elevation={0}>
       <Box className={classes.header}>
         <Box display="flex" alignItems="center" style={{ flex: 1 }}>
-          <PersonIcon style={{ marginRight: 8 }} />
-          <Typography variant="h6" style={{ fontWeight: 'bold' }}>
+          <Box 
+            style={{ 
+              backgroundColor: '#8b7355', 
+              borderRadius: 12, 
+              padding: 8, 
+              marginRight: 12,
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
+          >
+            <PersonIcon style={{ color: 'white', fontSize: 24 }} />
+          </Box>
+          <Typography variant="h5" component="h2" style={{ fontWeight: 600, color: '#8b7355', fontSize: '1.25rem' }}>
             Daily Progress
           </Typography>
         </Box>
@@ -106,9 +114,9 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
             label={`${completedActivities.length}/${totalActivities}`}
             size="small"
             style={{
-              backgroundColor: completedActivities.length === totalActivities ? '#6b7d5a' : 'rgba(255, 255, 255, 0.2)',
-              color: 'white',
-              fontSize: '0.75rem',
+              backgroundColor: completedActivities.length === totalActivities ? 'rgba(107, 125, 90, 0.15)' : 'rgba(139, 115, 85, 0.1)',
+              color: completedActivities.length === totalActivities ? '#6b7d5a' : '#8b7355',
+              fontSize: '0.7rem',
               fontWeight: 'bold',
             }}
           />
@@ -117,24 +125,24 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
               label={`${profileData.user.totalPoints} pts`}
               size="small"
               style={{
-                backgroundColor: 'rgba(255, 255, 255, 0.15)',
-                color: 'white',
-                fontSize: '0.75rem',
+                backgroundColor: 'rgba(139, 115, 85, 0.1)',
+                color: '#8b7355',
+                fontSize: '0.7rem',
                 fontWeight: 'bold',
-                border: '1px solid rgba(255, 255, 255, 0.2)',
               }}
             />
           )}
           {completedActivities.length === totalActivities && (
-            <Typography style={{ color: 'white', fontSize: '1.2rem' }}>🎉</Typography>
+            <Typography style={{ color: '#6b7d5a', fontSize: '1.2rem' }}>🎉</Typography>
           )}
         </Box>
       </Box>
 
-      <CardContent style={{ padding: isMobile ? '12px 16px' : '16px 24px' }}>
-        <Grid container spacing={1}>
-          {/* Compact Two-Column Layout */}
-          <Grid item xs={6}>
+      <CardContent style={{ padding: isMobile ? '12px 16px' : '16px 24px', textAlign: 'center' }}>
+        <Box display="inline-block" style={{ textAlign: 'left' }}>
+          <Box display="flex" style={{ gap: '16px', width: isMobile ? '280px' : '350px' }}>
+            {/* Done Column */}
+            <Box style={{ flex: 1 }}>
             <Box display="flex" alignItems="center" style={{ marginBottom: '8px' }}>
               <CheckIcon style={{ fontSize: '1rem', color: '#6b7d5a', marginRight: '4px' }} />
               <Typography variant="caption" style={{ color: '#6b7d5a', fontWeight: 'bold' }}>
@@ -167,9 +175,10 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
                 +{completedActivities.length - 3} more
               </Typography>
             )}
-          </Grid>
+            </Box>
 
-          <Grid item xs={6}>
+            {/* Todo Column */}
+            <Box style={{ flex: 1 }}>
             <Box display="flex" alignItems="center" style={{ marginBottom: '8px' }}>
               <PendingIcon style={{ fontSize: '1rem', color: '#d4c4a8', marginRight: '4px' }} />
               <Typography variant="caption" style={{ color: '#8b7355', fontWeight: 'bold' }}>
@@ -202,8 +211,9 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
                 +{pendingActivities.length - 3} more
               </Typography>
             )}
-          </Grid>
-        </Grid>
+            </Box>
+          </Box>
+        </Box>
       </CardContent>
     </Card>
   );

@@ -19,6 +19,7 @@ import {
 import RefreshIcon from '@material-ui/icons/Refresh';
 import DashboardIcon from '@material-ui/icons/Dashboard';
 import SearchIcon from '@material-ui/icons/Search';
+import PersonIcon from '@material-ui/icons/Person';
 import SportsSoccerIcon from '@material-ui/icons/SportsSoccer';
 import Dashboard from './components/Dashboard';
 import UserSearch from './components/UserSearch';
@@ -27,9 +28,8 @@ import { UserProfileIcon } from './components/UserProfileIcon';
 import { GoalTracker } from './components/GoalTracker';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MarsYardCountdown } from './components/MarsYardCountdown';
+import AppLoader from './components/AppLoader';
 import OnlineUserCounter from './components/OnlineUserCounter';
-import DomainMigrationWarning from './components/DomainMigrationWarning';
-import ChangelogNotification from './components/ChangelogNotification';
 import { fetchScoreDistribution, calculateUserStats } from './apiService';
 import { ScoreDistributionResponse, UserStats } from './types';
 import OfflineService from './services/offlineService';
@@ -102,8 +102,8 @@ const App = () => {
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
 
   useEffect(() => {
-    // Non caricare i dati qui, verranno caricati dal loader
-    // Il loader passerà i dati tramite onLoadComplete
+    // I dati vengono ora caricati direttamente da AppLoader
+    // Questo useEffect non è più necessario
   }, [appLoaded]);
 
   const loadData = async () => {
@@ -131,15 +131,14 @@ const App = () => {
   };
 
   const handleTabChange = (event: React.ChangeEvent<{}>, newValue: number) => {
-    setActiveTab(newValue as 0 | 1);
+    setActiveTab(newValue as 0 | 1 | 2);
   };
 
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
       {!appLoaded ? (
-        <DomainMigrationWarning 
-          showAsLoader={true}
+        <AppLoader 
           onLoadComplete={(data, loadedUsername) => {
             setData(data);
             setUsername(loadedUsername);
@@ -153,7 +152,7 @@ const App = () => {
             loading={loading}
             error={error}
             scoreDistribution={data}
-            activeTab={activeTab as 0 | 1}
+            activeTab={activeTab as 0 | 1 | 2}
             onTabChange={handleTabChange}
             onLoadData={loadData}
             username={username}
@@ -161,12 +160,16 @@ const App = () => {
             onProfileDialogOpen={() => setProfileDialogOpen(true)}
             onProfileDialogClose={() => setProfileDialogOpen(false)}
             onUsernameSet={(newUsername) => {
+              console.log('🔄 App: onUsernameSet called with:', newUsername);
               setUsername(newUsername);
               if (newUsername) {
+                console.log('💾 App: Saving to localStorage:', newUsername);
                 localStorage.setItem('isru-username', newUsername);
               } else {
+                console.log('🗑️ App: Removing from localStorage');
                 localStorage.removeItem('isru-username');
               }
+              console.log('✅ App: localStorage after operation:', localStorage.getItem('isru-username'));
             }}
           />
           <Analytics />
@@ -192,7 +195,7 @@ const AppContent = ({
   loading: boolean;
   error: string | null;
   scoreDistribution: ScoreDistributionResponse | null;
-  activeTab: 0 | 1;
+  activeTab: 0 | 1 | 2;
   onTabChange: (event: React.ChangeEvent<{}>, newValue: number) => void;
   onLoadData: () => void;
   username: string;
@@ -205,6 +208,12 @@ const AppContent = ({
   const isMobile = useMediaQuery(materialTheme.breakpoints.down('sm'));
   const [showGoalTracker, setShowGoalTracker] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
+
+  // Debug wrapper per tab change
+  const handleTabChangeWithDebug = (event: React.ChangeEvent<{}>, newValue: number) => {
+    console.log('🎯 Tab change:', { from: activeTab, to: newValue, isMobile, hasUsername: !!username });
+    onTabChange(event, newValue);
+  };
 
   // Load user stats when username changes
   useEffect(() => {
@@ -221,42 +230,7 @@ const AppContent = ({
     loadUserStats();
   }, [username, scoreDistribution]);
 
-  if (loading) {
-    return (
-      <>
-        <Box 
-          display="flex" 
-          flexDirection="column" 
-          alignItems="center" 
-          justifyContent="center" 
-          minHeight="100vh"
-          style={{ textAlign: 'center' }}
-        >
-          <Box 
-            style={{ 
-              backgroundColor: '#8b7355', 
-              borderRadius: '50%', 
-              padding: 24, 
-              marginBottom: 24,
-              boxShadow: '0 8px 32px rgba(139, 115, 85, 0.3)',
-            }}
-          >
-            <CircularProgress 
-              size={48} 
-              thickness={4}
-              style={{ color: 'white' }} 
-            />
-          </Box>
-          <Typography variant="h6" gutterBottom style={{ fontWeight: 600, color: '#3c3530' }}>
-            Loading I.S.R.U League...
-          </Typography>
-          <Typography variant="body2" color="textSecondary" style={{ fontSize: '0.875rem' }}>
-            Please wait while we fetch the latest league data
-          </Typography>
-        </Box>
-      </>
-    );
-  }
+  // Rimosso il loading screen separato perché ora AppLoader gestisce tutto il loading
 
   if (error || !scoreDistribution) {
     return (
@@ -346,13 +320,15 @@ const AppContent = ({
             </Box>
             <Tabs
               value={activeTab}
-              onChange={onTabChange}
+              onChange={handleTabChangeWithDebug}
               indicatorColor="primary"
+              variant="fullWidth"
               style={{
                 backgroundColor: 'rgba(0, 0, 0, 0.05)',
                 borderRadius: 12,
                 padding: isMobile ? '2px' : '4px',
-                maxWidth: isMobile ? 200 : 300,
+                maxWidth: isMobile ? 280 : 300,
+                minWidth: isMobile ? 280 : 300,
               }}
             >
               <Tab 
@@ -375,12 +351,28 @@ const AppContent = ({
                   color: '#333',
                 }}
               />
+              {isMobile && (
+                <Tab 
+                  icon={<PersonIcon />} 
+                  label={undefined}
+                  style={{ 
+                    borderRadius: 8, 
+                    minHeight: 40,
+                    fontSize: '0.8rem',
+                    color: '#333',
+                  }}
+                />
+              )}
             </Tabs>
             
-            <UserProfileIcon
-              hasProfile={!!username}
-              onClick={onProfileDialogOpen}
-            />
+            {/* UserProfileIcon solo su desktop, su mobile c'è sempre il tab Profile */}
+            {!isMobile && (
+              <UserProfileIcon
+                hasProfile={!!username}
+                onClick={onProfileDialogOpen}
+                isMobile={isMobile}
+              />
+            )}
           </Toolbar>
         </Box>
       </AppBar>
@@ -388,19 +380,34 @@ const AppContent = ({
       {/* Mars Yard 3.0 Countdown */}
       <MarsYardCountdown />
       
-      {/* Changelog Notification - New features announcement */}
-      <ChangelogNotification version="v2.1.0" />
-      
-      {/* Domain Migration Warning - only show on old domain or after migration */}
-      <DomainMigrationWarning />
-      
-      <Container maxWidth="lg" style={{ marginTop: 32, marginBottom: 32 }}>
+      <Container 
+        maxWidth="lg" 
+        style={{ 
+          marginTop: 32, 
+          marginBottom: 32,
+          paddingLeft: isMobile ? 16 : 24,
+          paddingRight: isMobile ? 16 : 24,
+          maxWidth: '100vw',
+          overflowX: 'hidden'
+        }}
+      >
+        {console.log('🎭 Rendering content for activeTab:', activeTab, { isMobile, hasUsername: !!username })}
         {activeTab === 0 && (
           <Dashboard scoreDistribution={scoreDistribution} currentUsername={username} />
         )}
         
         {activeTab === 1 && (
           <UserSearch scoreDistribution={scoreDistribution} />
+        )}
+        
+        {activeTab === 2 && isMobile && (
+          <UserProfile
+            open={true}
+            onClose={onProfileDialogClose}
+            username={username}
+            onUsernameSet={onUsernameSet}
+            inline={true}
+          />
         )}
       </Container>
 
