@@ -6,11 +6,48 @@ interface CacheEntry<T> {
   data: T;
   timestamp: number;
   expiry: number;
+  cacheDate?: string; // Data di creazione della cache (YYYY-MM-DD)
 }
 
 class CacheService {
   private static cache = new Map<string, CacheEntry<any>>();
   private static readonly CACHE_DURATION = 20000; // 20 secondi in millisecondi
+  private static readonly STREAK_CACHE_DURATION = 24 * 60 * 60 * 1000; // 24 ore per gli streak
+
+  // Funzione per ottenere la data corrente come stringa (YYYY-MM-DD)
+  private static getCurrentDateString(): string {
+    return new Date().toISOString().split('T')[0];
+  }
+
+  // Funzione speciale per cache degli streak che si azzera a mezzanotte
+  static setStreak<T>(key: string, data: T): void {
+    const now = Date.now();
+    const currentDate = this.getCurrentDateString();
+    
+    this.cache.set(key, {
+      data,
+      timestamp: now,
+      expiry: now + this.STREAK_CACHE_DURATION,
+      cacheDate: currentDate
+    });
+  }
+
+  // Funzione speciale per ottenere cache degli streak con controllo giornaliero
+  static getStreak<T>(key: string): T | null {
+    const entry = this.cache.get(key);
+    if (!entry) return null;
+
+    const now = Date.now();
+    const currentDate = this.getCurrentDateString();
+    
+    // Se è un nuovo giorno o la cache è scaduta, elimina e ritorna null
+    if (entry.cacheDate !== currentDate || now > entry.expiry) {
+      this.cache.delete(key);
+      return null;
+    }
+
+    return entry.data as T;
+  }
 
   static set<T>(key: string, data: T, customDuration?: number): void {
     const now = Date.now();
@@ -50,6 +87,23 @@ class CacheService {
     });
     
     keysToDelete.forEach(key => this.cache.delete(key));
+  }
+
+  // Funzione per pulire specificamente la cache degli streak (utile per debugging)
+  static clearStreakCache(): void {
+    const keysToDelete: string[] = [];
+    
+    this.cache.forEach((entry, key) => {
+      if (key.startsWith('activity_streak_')) {
+        keysToDelete.push(key);
+      }
+    });
+
+    keysToDelete.forEach(key => {
+      this.cache.delete(key);
+    });
+    
+    console.log(`🧹 Cleared ${keysToDelete.length} streak cache entries`);
   }
 }
 
@@ -641,14 +695,14 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
   throw new Error('All ISRU User Profile API attempts failed');
 };
 
-// Activity Streak API helper with extended caching (2-3 hours)
+// Activity Streak API helper with shared daily cache
 export const fetchActivityStreak = async (username: string, activityId: number): Promise<any> => {
   const cacheKey = `activity_streak_${username.toLowerCase()}_${activityId}`;
   
-  // Check cache first - extended cache for streak data (2-3 hours)
-  const cachedData = CacheService.get(cacheKey);
+  // Check shared streak cache first - cache condivisa che si azzera a mezzanotte
+  const cachedData = CacheService.getStreak(cacheKey);
   if (cachedData) {
-    console.log(`📦 Using cached activity streak for: ${username}, activity: ${activityId}`);
+    console.log(`📦 Using shared daily streak cache for: ${username}, activity: ${activityId}`);
     return cachedData;
   }
 
@@ -676,8 +730,8 @@ export const fetchActivityStreak = async (username: string, activityId: number):
       const data = await response.json();
       console.log('✅ Direct Activity Streak API call successful:', data);
       
-      // Cache the successful response for 2.5 hours (9000000 ms)
-      CacheService.set(cacheKey, data, 9000000);
+      // Cache nella cache condivisa degli streak (si azzera a mezzanotte)
+      CacheService.setStreak(cacheKey, data);
       return data;
     } else {
       console.log(`❌ Direct Activity Streak API returned status: ${response.status}`);
@@ -733,8 +787,8 @@ export const fetchActivityStreak = async (username: string, activityId: number):
             apiType: proxyData._proxy?.api || 'unknown'
           });
           
-          // Cache the successful response for 2.5 hours (9000000 ms)
-          CacheService.set(cacheKey, proxyData, 9000000);
+          // Cache nella cache condivisa degli streak (si azzera a mezzanotte)
+          CacheService.setStreak(cacheKey, proxyData);
           return proxyData;
         } else if (proxyUrl.includes('/api/activity-streak-proxy')) {
           // 🏆 Proxy proprietario - Risposta diretta e pulita
@@ -743,8 +797,8 @@ export const fetchActivityStreak = async (username: string, activityId: number):
             proxyVersion: proxyData._proxy?.version || 'unknown'
           });
           
-          // Cache the successful response for 2.5 hours
-          CacheService.set(cacheKey, proxyData, 9000000);
+          // Cache nella cache condivisa degli streak (si azzera a mezzanotte)
+          CacheService.setStreak(cacheKey, proxyData);
           return proxyData;
         } else if (proxyUrl.includes('allorigins.win')) {
           console.log('📦 Activity Streak AllOrigins response:', {
@@ -759,8 +813,8 @@ export const fetchActivityStreak = async (username: string, activityId: number):
                 : proxyData.contents;
                 
               console.log('✅ Activity Streak AllOrigins Data parsed successfully');
-              // Cache the successful response for 2.5 hours
-              CacheService.set(cacheKey, data, 9000000);
+              // Cache nella cache condivisa degli streak (si azzera a mezzanotte)
+              CacheService.setStreak(cacheKey, data);
               return data;
             } catch (parseError) {
               console.error('❌ Failed to parse Activity Streak AllOrigins contents:', parseError);
@@ -770,8 +824,8 @@ export const fetchActivityStreak = async (username: string, activityId: number):
           // Direct JSON response from these proxies
           if (proxyData && typeof proxyData === 'object') {
             console.log('✅ Activity Streak Direct Proxy Data parsed successfully');
-            // Cache the successful response for 2.5 hours
-            CacheService.set(cacheKey, proxyData, 9000000);
+            // Cache nella cache condivisa degli streak (si azzera a mezzanotte)
+            CacheService.setStreak(cacheKey, proxyData);
             return proxyData;
           }
         }
@@ -889,5 +943,7 @@ export const calculateUserRanking = (userScore: number, scoreDistribution: Score
     totalUsers
   };
 };
+
+export { CacheService };
 
 export default ApiService;

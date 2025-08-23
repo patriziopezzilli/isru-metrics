@@ -127,6 +127,7 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
       const streakPromises = activities.slice(0, 5).map(async (activity) => {
         try {
           const streak = await fetchActivityStreak(username, activity.activityId);
+          console.log(`[Daily Progress] Streak for activity ${activity.activityId}:`, streak);
           
           if (streak) {
             // Handle different possible response structures
@@ -147,6 +148,7 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
             if (processedStreak && typeof processedStreak === 'object') {
               // Handle the correct API structure: {participation: {currentStreak: 38}, submissions: [...]}
               if (processedStreak.participation && typeof processedStreak.participation.currentStreak === 'number') {
+                console.log(`[Daily Progress] Setting streak ${processedStreak.participation.currentStreak} for activity ${activity.activityId}`);
                 newStreakData.set(activity.activityId, processedStreak);
               } else {
                 console.warn('Unexpected streak data structure:', processedStreak);

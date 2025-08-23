@@ -24,10 +24,29 @@ import { makeStyles } from '@material-ui/core/styles';
 import ShareIcon from '@material-ui/icons/Share';
 import GetAppIcon from '@material-ui/icons/GetApp';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
+import ClearIcon from '@material-ui/icons/Clear';
 import { Whatshot as StreakIcon } from '@material-ui/icons';
 import { SneakerDBUserProfile, ActivityStreakResponse } from '../types';
-import { fetchSneakerDBProfile, fetchActivityStreak } from '../apiService';
+import { fetchSneakerDBProfile, fetchActivityStreak, CacheService } from '../apiService';
 import ProfileExportService from '../services/profileExportService';
+
+// Helper function to get the full badge image URL
+const getBadgeImageUrl = (badgeImage: string | null): string | null => {
+  if (!badgeImage) return null;
+  
+  // If it's already a full URL, return as is
+  if (badgeImage.startsWith('http')) {
+    return badgeImage;
+  }
+  
+  // If it starts with /, prepend the ISRU media host
+  if (badgeImage.startsWith('/')) {
+    return `https://media.isrucamp.com${badgeImage}`;
+  }
+  
+  // Otherwise, construct the full URL
+  return `https://media.isrucamp.com/badges/${badgeImage}`;
+};
 
 // Helper function to calculate streak progress
 const getStreakProgress = (currentStreak: number) => {
@@ -109,6 +128,35 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: '#d4c4a8',
     color: '#8b7355',
     fontWeight: 'bold',
+  },
+  activityBadge: {
+    width: 32,
+    height: 32,
+    marginRight: 12,
+    borderRadius: 8,
+    backgroundColor: '#f5f1eb',
+    padding: 4,
+    border: '1px solid #e6ddd4',
+    '& img': {
+      width: '100%',
+      height: '100%',
+      objectFit: 'contain',
+    },
+    [theme.breakpoints.down('sm')]: {
+      width: 28,
+      height: 28,
+      marginRight: 10,
+      borderRadius: 6,
+    },
+  },
+  activityCardContent: {
+    display: 'flex',
+    alignItems: 'flex-start',
+    width: '100%',
+  },
+  activityInfo: {
+    flex: 1,
+    minWidth: 0, // Prevents text overflow
   },
   button: {
     backgroundColor: '#8b7355',
@@ -240,6 +288,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       const streakPromises = activities.slice(0, 10).map(async (activity) => {
         try {
           const streak = await fetchActivityStreak(username, activity.activityId);
+          console.log(`[User Profile] Streak for activity ${activity.activityId}:`, streak);
           
           if (streak) {
             // Handle different possible response structures
@@ -260,6 +309,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             if (processedStreak && typeof processedStreak === 'object') {
               // Handle the correct API structure: {participation: {currentStreak: 38}, submissions: [...]}
               if (processedStreak.participation && typeof processedStreak.participation.currentStreak === 'number') {
+                console.log(`[User Profile] Setting streak ${processedStreak.participation.currentStreak} for activity ${activity.activityId}`);
                 newStreakData.set(activity.activityId, processedStreak);
               } else {
                 console.warn('UserProfile: Unexpected streak data structure:', processedStreak);
@@ -436,6 +486,24 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     }
   };
 
+  const handleClearCache = () => {
+    // Pulisci tutta la cache
+    CacheService.clear();
+    CacheService.clearStreakCache();
+    
+    // Forza il ricaricamento dei dati
+    setProfileData(null);
+    setStreakData(new Map());
+    setError(null);
+    
+    // Se abbiamo un username, ricarica i dati
+    if (username) {
+      fetchUserProfile(username);
+    }
+    
+    console.log('🧹 Cache cleared successfully');
+  };
+
   const handleDeleteProfile = () => {
     localStorage.removeItem('isru-username');
     onUsernameSet('');
@@ -595,42 +663,54 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                       return (
                         <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
                           <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                            <Box style={{ flex: 1 }}>
-                              <Box display="flex" alignItems="center" style={{ gap: '8px', marginBottom: '4px' }}>
-                                <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
-                                  Week {activity.activityWeek}: {activity.activityTitle}
-                                </Typography>
-                                {loadingStreaks && !streak ? (
-                                  <CircularProgress size={12} style={{ color: '#d4c4a8' }} />
-                                ) : (
-                                  <Box display="flex" alignItems="center" style={{ gap: '2px' }}>
-                                    <StreakIcon style={{ 
-                                      fontSize: '1rem', 
-                                      color: currentStreak > 0 ? '#ff7043' : '#d4c4a8'
-                                    }} />
-                                    <Typography 
-                                      variant="caption" 
-                                      style={{ 
-                                        color: currentStreak > 0 ? '#ff7043' : '#999', 
-                                        fontSize: '0.75rem', 
-                                        fontWeight: 'bold',
-                                        marginRight: '2px'
-                                      }}
-                                    >
-                                      {currentStreak}
-                                    </Typography>
-                                    <Typography 
-                                      variant="caption" 
-                                      style={{ 
-                                        color: currentStreak > 0 ? '#ff7043' : '#999', 
-                                        fontSize: '0.7rem'
-                                      }}
-                                    >
-                                      streak
-                                    </Typography>
-                                  </Box>
-                                )}
-                              </Box>
+                            <Box display="flex" alignItems="flex-start" style={{ flex: 1 }}>
+                              {activity.activityBadgeImage && (
+                                <div className={classes.activityBadge}>
+                                  <img 
+                                    src={getBadgeImageUrl(activity.activityBadgeImage) || ''} 
+                                    alt={`${activity.activityTitle} badge`}
+                                    onError={(e) => {
+                                      e.currentTarget.style.display = 'none';
+                                    }}
+                                  />
+                                </div>
+                              )}
+                              <Box style={{ flex: 1 }}>
+                                <Box display="flex" alignItems="center" style={{ gap: '8px', marginBottom: '4px' }}>
+                                  <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+                                    Week {activity.activityWeek}: {activity.activityTitle}
+                                  </Typography>
+                                  {loadingStreaks && !streak ? (
+                                    <CircularProgress size={12} style={{ color: '#d4c4a8' }} />
+                                  ) : (
+                                    <Box display="flex" alignItems="center" style={{ gap: '2px' }}>
+                                      <StreakIcon style={{ 
+                                        fontSize: '1rem', 
+                                        color: currentStreak > 0 ? '#ff7043' : '#d4c4a8'
+                                      }} />
+                                      <Typography 
+                                        variant="caption" 
+                                        style={{ 
+                                          color: currentStreak > 0 ? '#ff7043' : '#999', 
+                                          fontSize: '0.75rem', 
+                                          fontWeight: 'bold',
+                                          marginRight: '2px'
+                                        }}
+                                      >
+                                        {currentStreak}
+                                      </Typography>
+                                      <Typography 
+                                        variant="caption" 
+                                        style={{ 
+                                          color: currentStreak > 0 ? '#ff7043' : '#999', 
+                                          fontSize: '0.7rem'
+                                        }}
+                                      >
+                                        streak
+                                      </Typography>
+                                    </Box>
+                                  )}
+                                </Box>
                               
                               {/* Progress bar - only show if streak > 0 */}
                               {currentStreak > 0 && (
@@ -675,6 +755,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                                 Level {activity.level} • Started: {new Date(activity.dateStarted).toLocaleDateString()}
                               </Typography>
                             </Box>
+                          </Box>
                             <Box display="flex" style={{ gap: '4px' }}>
                               {activity.hasSubmittedToday && (
                                 <Chip
@@ -799,6 +880,13 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       <DialogActions>
         <Button onClick={handleChangeUsername} className={classes.secondaryButton}>
           Change Username
+        </Button>
+        <Button 
+          onClick={handleClearCache} 
+          className={classes.secondaryButton}
+          startIcon={<ClearIcon />}
+        >
+          Clear Cache
         </Button>
         {!inline && (
           <>
@@ -1033,42 +1121,54 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                               return (
                                 <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
                                   <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                                    <Box style={{ flex: 1 }}>
-                                      <Box display="flex" alignItems="center" style={{ gap: '6px', flexWrap: 'wrap', marginBottom: '4px' }}>
-                                        <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
-                                          Week {activity.activityWeek}: {activity.activityTitle}
-                                        </Typography>
-                                        {loadingStreaks && !streak ? (
-                                          <CircularProgress size={10} style={{ color: '#d4c4a8' }} />
-                                        ) : (
-                                          <Box display="flex" alignItems="center" style={{ gap: '2px' }}>
-                                            <StreakIcon style={{ 
-                                              fontSize: '0.9rem', 
-                                              color: currentStreak > 0 ? '#ff7043' : '#d4c4a8'
-                                            }} />
-                                            <Typography 
-                                              variant="caption" 
-                                              style={{ 
-                                                color: currentStreak > 0 ? '#ff7043' : '#999', 
-                                                fontSize: '0.7rem', 
-                                                fontWeight: 'bold',
-                                                marginRight: '2px'
-                                              }}
-                                            >
-                                              {currentStreak}
-                                            </Typography>
-                                            <Typography 
-                                              variant="caption" 
-                                              style={{ 
-                                                color: currentStreak > 0 ? '#ff7043' : '#999', 
-                                                fontSize: '0.65rem'
-                                              }}
-                                            >
-                                              streak
-                                            </Typography>
-                                          </Box>
-                                        )}
-                                      </Box>
+                                    <Box display="flex" alignItems="flex-start" style={{ flex: 1 }}>
+                                      {activity.activityBadgeImage && (
+                                        <div className={classes.activityBadge}>
+                                          <img 
+                                            src={getBadgeImageUrl(activity.activityBadgeImage) || ''} 
+                                            alt={`${activity.activityTitle} badge`}
+                                            onError={(e) => {
+                                              e.currentTarget.style.display = 'none';
+                                            }}
+                                          />
+                                        </div>
+                                      )}
+                                      <Box style={{ flex: 1 }}>
+                                        <Box display="flex" alignItems="center" style={{ gap: '6px', flexWrap: 'wrap', marginBottom: '4px' }}>
+                                          <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+                                            Week {activity.activityWeek}: {activity.activityTitle}
+                                          </Typography>
+                                          {loadingStreaks && !streak ? (
+                                            <CircularProgress size={10} style={{ color: '#d4c4a8' }} />
+                                          ) : (
+                                            <Box display="flex" alignItems="center" style={{ gap: '2px' }}>
+                                              <StreakIcon style={{ 
+                                                fontSize: '0.9rem', 
+                                                color: currentStreak > 0 ? '#ff7043' : '#d4c4a8'
+                                              }} />
+                                              <Typography 
+                                                variant="caption" 
+                                                style={{ 
+                                                  color: currentStreak > 0 ? '#ff7043' : '#999', 
+                                                  fontSize: '0.7rem', 
+                                                  fontWeight: 'bold',
+                                                  marginRight: '2px'
+                                                }}
+                                              >
+                                                {currentStreak}
+                                              </Typography>
+                                              <Typography 
+                                                variant="caption" 
+                                                style={{ 
+                                                  color: currentStreak > 0 ? '#ff7043' : '#999', 
+                                                  fontSize: '0.65rem'
+                                                }}
+                                              >
+                                                streak
+                                              </Typography>
+                                            </Box>
+                                          )}
+                                        </Box>
                                       
                                       {/* Progress bar - only show if streak > 0 */}
                                       {currentStreak > 0 && (
@@ -1112,6 +1212,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                                       <Typography variant="caption" style={{ color: '#8b7355' }}>
                                         Level {activity.level} • Started: {new Date(activity.dateStarted).toLocaleDateString()}
                                       </Typography>
+                                      </Box>
                                     </Box>
                                     <Box display="flex" style={{ gap: '4px' }}>
                                       {activity.hasSubmittedToday && (
@@ -1213,8 +1314,17 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     onClick={handleChangeUsername} 
                     className={classes.secondaryButton}
                     size="large"
+                    style={{ marginRight: '12px' }}
                   >
                     Change Username
+                  </Button>
+                  <Button 
+                    onClick={handleClearCache} 
+                    className={classes.secondaryButton}
+                    size="large"
+                    startIcon={<ClearIcon />}
+                  >
+                    Clear Cache
                   </Button>
                 </Box>
               </>
