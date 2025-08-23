@@ -8,12 +8,11 @@ import {
   useMediaQuery,
   useTheme,
   CircularProgress,
-  Grid,
   makeStyles
 } from '@material-ui/core';
-import { CheckCircle as CheckIcon, Schedule as PendingIcon, Person as PersonIcon } from '@material-ui/icons';
-import { SneakerDBUserProfile } from '../types';
-import { fetchSneakerDBProfile } from '../apiService';
+import { CheckCircle as CheckIcon, Schedule as PendingIcon, Person as PersonIcon, Whatshot as StreakIcon } from '@material-ui/icons';
+import { SneakerDBUserProfile, ActivityStreakResponse } from '../types';
+import { fetchSneakerDBProfile, fetchActivityStreak } from '../apiService';
 
 const useStyles = makeStyles((theme) => ({
   card: {
@@ -48,11 +47,59 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   const [profileData, setProfileData] = useState<SneakerDBUserProfile | null>(null);
+  const [streakData, setStreakData] = useState<Map<number, ActivityStreakResponse>>(new Map());
   const [loading, setLoading] = useState(false);
+  const [loadingStreaks, setLoadingStreaks] = useState(false);
+
+  // Function to load streak data for activities
+  const loadStreakData = async (activities: any[], username: string) => {
+    setLoadingStreaks(true);
+    const newStreakData = new Map<number, ActivityStreakResponse>();
+    
+    try {
+      // Load streak data for each activity (limit to first 5 for performance)
+      const streakPromises = activities.slice(0, 5).map(async (activity) => {
+        try {
+          const streak = await fetchActivityStreak(username, activity.activityId);
+          
+          if (streak) {
+            // Handle different possible response structures
+            let processedStreak = streak;
+            
+            // Check if the response is wrapped in a proxy container
+            if (streak.contents && typeof streak.contents === 'string') {
+              try {
+                processedStreak = JSON.parse(streak.contents);
+              } catch (e) {
+                console.warn('Could not parse streak contents as JSON');
+              }
+            } else if (streak.contents && typeof streak.contents === 'object') {
+              processedStreak = streak.contents;
+            }
+            
+            // Check if we have the expected structure
+            if (processedStreak && typeof processedStreak === 'object') {
+              newStreakData.set(activity.activityId, processedStreak);
+            }
+          }
+        } catch (error) {
+          console.log(`Could not load streak for activity ${activity.activityId}:`, error);
+        }
+      });
+
+      await Promise.all(streakPromises);
+      setStreakData(newStreakData);
+    } catch (error) {
+      console.error('Error loading streak data:', error);
+    } finally {
+      setLoadingStreaks(false);
+    }
+  };
 
   useEffect(() => {
     if (!username) {
       setProfileData(null);
+      setStreakData(new Map());
       return;
     }
 
@@ -61,6 +108,11 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
       try {
         const data = await fetchSneakerDBProfile(username);
         setProfileData(data);
+        
+        // Load streak data after profile is loaded
+        if (data?.activities) {
+          await loadStreakData(data.activities, username);
+        }
       } catch (error) {
         console.error('Error loading user profile for activities:', error);
         setProfileData(null);
@@ -154,21 +206,43 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
                 None yet
               </Typography>
             ) : (
-              completedActivities.slice(0, 3).map((activity, index) => (
-                <Typography 
-                  key={index} 
-                  variant="caption" 
-                  style={{ 
-                    display: 'block', 
-                    color: '#6b7d5a', 
-                    lineHeight: 1.3,
-                    marginBottom: '2px',
-                    fontSize: '0.75rem'
-                  }}
-                >
-                  • {activity.activityTitle}
-                </Typography>
-              ))
+              completedActivities.slice(0, 3).map((activity, index) => {
+                const streak = streakData.get(activity.activityId);
+                
+                return (
+                  <Box key={index} display="flex" alignItems="center" style={{ marginBottom: '4px' }}>
+                    <Typography 
+                      variant="caption" 
+                      style={{ 
+                        color: '#6b7d5a', 
+                        lineHeight: 1.3,
+                        fontSize: '0.75rem',
+                        flex: 1
+                      }}
+                    >
+                      • {activity.activityTitle}
+                    </Typography>
+                    {streak && streak.current_streak > 0 && (
+                      <Box display="flex" alignItems="center" style={{ marginLeft: '4px' }}>
+                        <StreakIcon style={{ fontSize: '0.7rem', color: '#ff7043', marginRight: '2px' }} />
+                        <Typography 
+                          variant="caption" 
+                          style={{ 
+                            color: '#ff7043', 
+                            fontSize: '0.65rem', 
+                            fontWeight: 'bold' 
+                          }}
+                        >
+                          {streak.current_streak}
+                        </Typography>
+                      </Box>
+                    )}
+                    {loadingStreaks && !streak && (
+                      <CircularProgress size={8} style={{ color: '#d4c4a8', marginLeft: '4px' }} />
+                    )}
+                  </Box>
+                );
+              })
             )}
             {completedActivities.length > 3 && (
               <Typography variant="caption" style={{ color: '#6b7d5a', fontStyle: 'italic' }}>
@@ -190,21 +264,43 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
                 All done! 🎉
               </Typography>
             ) : (
-              pendingActivities.slice(0, 3).map((activity, index) => (
-                <Typography 
-                  key={index} 
-                  variant="caption" 
-                  style={{ 
-                    display: 'block', 
-                    color: '#8b7355', 
-                    lineHeight: 1.3,
-                    marginBottom: '2px',
-                    fontSize: '0.75rem'
-                  }}
-                >
-                  • {activity.activityTitle}
-                </Typography>
-              ))
+              pendingActivities.slice(0, 3).map((activity, index) => {
+                const streak = streakData.get(activity.activityId);
+                
+                return (
+                  <Box key={index} display="flex" alignItems="center" style={{ marginBottom: '4px' }}>
+                    <Typography 
+                      variant="caption" 
+                      style={{ 
+                        color: '#8b7355', 
+                        lineHeight: 1.3,
+                        fontSize: '0.75rem',
+                        flex: 1
+                      }}
+                    >
+                      • {activity.activityTitle}
+                    </Typography>
+                    {streak && streak.current_streak > 0 && (
+                      <Box display="flex" alignItems="center" style={{ marginLeft: '4px' }}>
+                        <StreakIcon style={{ fontSize: '0.7rem', color: '#ff7043', marginRight: '2px' }} />
+                        <Typography 
+                          variant="caption" 
+                          style={{ 
+                            color: '#ff7043', 
+                            fontSize: '0.65rem', 
+                            fontWeight: 'bold' 
+                          }}
+                        >
+                          {streak.current_streak}
+                        </Typography>
+                      </Box>
+                    )}
+                    {loadingStreaks && !streak && (
+                      <CircularProgress size={8} style={{ color: '#d4c4a8', marginLeft: '4px' }} />
+                    )}
+                  </Box>
+                );
+              })
             )}
             {pendingActivities.length > 3 && (
               <Typography variant="caption" style={{ color: '#8b7355', fontStyle: 'italic' }}>

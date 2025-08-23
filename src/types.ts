@@ -9,6 +9,16 @@ export interface UserProfile {
   };
 }
 
+// Activity Streak Response type
+export interface ActivityStreakResponse {
+  current_streak: number;
+  longest_streak: number;
+  total_participations: number;
+  activity_id: number;
+  username: string;
+  last_participation_date?: string;
+}
+
 // Tipi per il profilo utente da SneakerDB
 export interface SneakerDBUserProfile {
   user: {
@@ -50,6 +60,7 @@ export interface SneakerDBUserProfile {
     level: number;
     hasSubmittedToday: boolean;
     hasSubmittedYesterday: boolean;
+    streak?: number; // Aggiunto per la nuova funzionalità
   }>;
   completedModules: Array<{
     id: string;

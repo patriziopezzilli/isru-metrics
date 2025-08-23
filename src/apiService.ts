@@ -1,4 +1,4 @@
-import { ScoreDistributionResponse, UserStats, DashboardMetrics } from './types';
+import { ScoreDistributionResponse, UserStats, DashboardMetrics, ActivityStreakResponse } from './types';
 import OfflineService from './services/offlineService';
 
 // Cache system for user-related API calls
@@ -518,6 +518,7 @@ class ApiService {
 }
 
 // Export static functions for easier import
+// Main API service - bindings
 export const fetchScoreDistribution = ApiService.fetchScoreDistribution.bind(ApiService);
 export const calculateUserStats = ApiService.calculateUserStats.bind(ApiService);
 export const calculateDashboardMetrics = ApiService.calculateDashboardMetrics.bind(ApiService);
@@ -528,23 +529,23 @@ setInterval(() => {
   CacheService.cleanExpired();
 }, 30000);
 
-// SneakerDB API helper with proxy support and caching
+// ISRU User Profile API helper with proxy support and caching
 export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
-  const cacheKey = `sneakerdb_profile_${username.toLowerCase()}`;
+  const cacheKey = `isru_user_profile_${username.toLowerCase()}`;
   
   // Check cache first
   const cachedData = CacheService.get(cacheKey);
   if (cachedData) {
-    console.log(`📦 Using cached SneakerDB profile for: ${username}`);
+    console.log(`📦 Using cached ISRU user profile for: ${username}`);
     return cachedData;
   }
 
-  const directUrl = `https://tools.sneakerdb.net/api/isrucamp-user-profile/${username}`;
+  const directUrl = `https://isrucamp.com/api/users/users/profile/${username}`;
   const proxyUrls = [
     // 🏆 Proxy universale proprietario - Massima velocità e affidabilità
-    `/api/universal-proxy?api=sneakerdb-profile&username=${encodeURIComponent(username)}`,
+    `/api/universal-proxy?api=isru-user-profile&username=${encodeURIComponent(username)}`,
     // Backup specifico
-    `/api/sneakerdb-proxy?username=${encodeURIComponent(username)}`,
+    `/api/isru-user-proxy?username=${encodeURIComponent(username)}`,
     // Backup proxy esterni (solo se necessario)
     `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`,
     `https://proxy.cors.sh/${directUrl}`,
@@ -553,16 +554,16 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
     `https://cors-anywhere.herokuapp.com/${directUrl}`
   ];
 
-  console.log('👤 Starting SneakerDB API call for:', username);
+  console.log('👤 Starting ISRU User Profile API call for:', username);
 
   // Use proxy APIs directly to avoid CORS issues
   for (let i = 0; i < proxyUrls.length; i++) {
     const proxyUrl = proxyUrls[i];
     let timeoutId: NodeJS.Timeout | undefined;
     try {
-      console.log(`🔄 Trying SneakerDB proxy ${i + 1}:`, proxyUrl);
+      console.log(`🔄 Trying ISRU User Profile proxy ${i + 1}:`, proxyUrl);
       
-      // Timeout ottimizzato per SneakerDB
+      // Timeout ottimizzato per profili utente
       const controller = new AbortController();
       timeoutId = setTimeout(() => controller.abort(), 6000); // 6 secondi per profili
       
@@ -577,12 +578,12 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
 
       if (response.ok) {
         const proxyData = await response.json();
-        console.log('🔍 SneakerDB Proxy response structure:', proxyData);
+        console.log('🔍 ISRU User Profile Proxy response structure:', proxyData);
 
         // Handle different proxy response formats
         if (proxyUrl.includes('/api/universal-proxy')) {
           // 🏆 Proxy universale proprietario - Risposta diretta e pulita
-          console.log('✅ SneakerDB Universal Proxy Data received:', {
+          console.log('✅ ISRU User Profile Universal Proxy Data received:', {
             hasData: !!proxyData,
             proxyVersion: proxyData._proxy?.version || 'unknown',
             apiType: proxyData._proxy?.api || 'unknown'
@@ -591,9 +592,9 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
           // Cache the successful response
           CacheService.set(cacheKey, proxyData);
           return proxyData;
-        } else if (proxyUrl.includes('/api/sneakerdb-proxy')) {
+        } else if (proxyUrl.includes('/api/isru-user-proxy')) {
           // 🏆 Proxy proprietario - Risposta diretta e pulita
-          console.log('✅ SneakerDB Proprietary Proxy Data received:', {
+          console.log('✅ ISRU User Profile Proprietary Proxy Data received:', {
             hasData: !!proxyData,
             proxyVersion: proxyData._proxy?.version || 'unknown'
           });
@@ -602,7 +603,7 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
           CacheService.set(cacheKey, proxyData);
           return proxyData;
         } else if (proxyUrl.includes('allorigins.win')) {
-          console.log('📦 SneakerDB AllOrigins response:', {
+          console.log('📦 ISRU User Profile AllOrigins response:', {
             hasContents: !!proxyData.contents,
             contentsType: typeof proxyData.contents
           });
@@ -613,18 +614,18 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
                 ? JSON.parse(proxyData.contents) 
                 : proxyData.contents;
                 
-              console.log('✅ SneakerDB AllOrigins Data parsed successfully');
+              console.log('✅ ISRU User Profile AllOrigins Data parsed successfully');
               // Cache the successful response
               CacheService.set(cacheKey, data);
               return data;
             } catch (parseError) {
-              console.error('❌ Failed to parse SneakerDB AllOrigins contents:', parseError);
+              console.error('❌ Failed to parse ISRU User Profile AllOrigins contents:', parseError);
             }
           }
         } else if (proxyUrl.includes('cors-anywhere') || proxyUrl.includes('thingproxy') || proxyUrl.includes('cors.sh') || proxyUrl.includes('codetabs')) {
           // Direct JSON response from these proxies
           if (proxyData && typeof proxyData === 'object') {
-            console.log('✅ SneakerDB Direct Proxy Data parsed successfully');
+            console.log('✅ ISRU User Profile Direct Proxy Data parsed successfully');
             // Cache the successful response
             CacheService.set(cacheKey, proxyData);
             return proxyData;
@@ -633,11 +634,158 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
       }
     } catch (error) {
       if (timeoutId) clearTimeout(timeoutId);
-      console.warn(`⚠️ SneakerDB Proxy ${i + 1} failed:`, error);
+      console.warn(`⚠️ ISRU User Profile Proxy ${i + 1} failed:`, error);
     }
   }
 
-  throw new Error('All SneakerDB API attempts failed');
+  throw new Error('All ISRU User Profile API attempts failed');
+};
+
+// Activity Streak API helper with extended caching (2-3 hours)
+export const fetchActivityStreak = async (username: string, activityId: number): Promise<any> => {
+  const cacheKey = `activity_streak_${username.toLowerCase()}_${activityId}`;
+  
+  // Check cache first - extended cache for streak data (2-3 hours)
+  const cachedData = CacheService.get(cacheKey);
+  if (cachedData) {
+    console.log(`📦 Using cached activity streak for: ${username}, activity: ${activityId}`);
+    return cachedData;
+  }
+
+  const directUrl = `https://isrucamp.com/api/activities/activity-participations/user_activity_participation/?username=${username}&activity_id=${activityId}`;
+  
+  console.log('🔥 Starting Activity Streak API call for:', username, 'activity:', activityId);
+
+  // Try direct API call first (most reliable for complex query params)
+  try {
+    console.log('🔄 Trying direct Activity Streak API call:', directUrl);
+    
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 secondi per chiamata diretta
+    
+    const response = await fetch(directUrl, {
+      method: 'GET',
+      mode: 'cors',
+      cache: 'no-cache',
+      signal: controller.signal
+    });
+    
+    clearTimeout(timeoutId);
+
+    if (response.ok) {
+      const data = await response.json();
+      console.log('✅ Direct Activity Streak API call successful:', data);
+      
+      // Cache the successful response for 2.5 hours (9000000 ms)
+      CacheService.set(cacheKey, data, 9000000);
+      return data;
+    } else {
+      console.log(`❌ Direct Activity Streak API returned status: ${response.status}`);
+    }
+  } catch (error) {
+    console.log('❌ Direct Activity Streak API failed:', error);
+  }
+
+  // If direct call fails, try proxy alternatives
+  const proxyUrls = [
+    // 🏆 Proxy universale proprietario - Massima velocità e affidabilità
+    `/api/universal-proxy?api=activity-streak&username=${encodeURIComponent(username)}&activity_id=${activityId}`,
+    // Backup specifico
+    `/api/activity-streak-proxy?username=${encodeURIComponent(username)}&activity_id=${activityId}`,
+    // Backup proxy esterni (solo se necessario) - questi potrebbero non gestire bene i query params
+    `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`,
+    `https://proxy.cors.sh/${directUrl}`,
+    `https://api.codetabs.com/v1/proxy?quest=${directUrl}`,
+    `https://thingproxy.freeboard.io/fetch/${directUrl}`,
+    `https://cors-anywhere.herokuapp.com/${directUrl}`
+  ];
+
+  // Use proxy APIs as fallback
+  for (let i = 0; i < proxyUrls.length; i++) {
+    const proxyUrl = proxyUrls[i];
+    let timeoutId: NodeJS.Timeout | undefined;
+    try {
+      console.log(`🔄 Trying Activity Streak proxy ${i + 1}:`, proxyUrl);
+      
+      // Timeout ottimizzato per dati streak
+      const controller = new AbortController();
+      timeoutId = setTimeout(() => controller.abort(), 8000); // 8 secondi per streak data
+      
+      const response = await fetch(proxyUrl, {
+        method: 'GET',
+        mode: 'cors',
+        cache: 'no-cache',
+        signal: controller.signal
+      });
+      
+      clearTimeout(timeoutId);
+
+      if (response.ok) {
+        const proxyData = await response.json();
+        console.log('🔍 Activity Streak Proxy response structure:', proxyData);
+
+        // Handle different proxy response formats
+        if (proxyUrl.includes('/api/universal-proxy')) {
+          // 🏆 Proxy universale proprietario - Risposta diretta e pulita
+          console.log('✅ Activity Streak Universal Proxy Data received:', {
+            hasData: !!proxyData,
+            proxyVersion: proxyData._proxy?.version || 'unknown',
+            apiType: proxyData._proxy?.api || 'unknown'
+          });
+          
+          // Cache the successful response for 2.5 hours (9000000 ms)
+          CacheService.set(cacheKey, proxyData, 9000000);
+          return proxyData;
+        } else if (proxyUrl.includes('/api/activity-streak-proxy')) {
+          // 🏆 Proxy proprietario - Risposta diretta e pulita
+          console.log('✅ Activity Streak Proprietary Proxy Data received:', {
+            hasData: !!proxyData,
+            proxyVersion: proxyData._proxy?.version || 'unknown'
+          });
+          
+          // Cache the successful response for 2.5 hours
+          CacheService.set(cacheKey, proxyData, 9000000);
+          return proxyData;
+        } else if (proxyUrl.includes('allorigins.win')) {
+          console.log('📦 Activity Streak AllOrigins response:', {
+            hasContents: !!proxyData.contents,
+            contentsType: typeof proxyData.contents
+          });
+
+          if (proxyData.contents) {
+            try {
+              const data = typeof proxyData.contents === 'string' 
+                ? JSON.parse(proxyData.contents) 
+                : proxyData.contents;
+                
+              console.log('✅ Activity Streak AllOrigins Data parsed successfully');
+              // Cache the successful response for 2.5 hours
+              CacheService.set(cacheKey, data, 9000000);
+              return data;
+            } catch (parseError) {
+              console.error('❌ Failed to parse Activity Streak AllOrigins contents:', parseError);
+            }
+          }
+        } else if (proxyUrl.includes('cors-anywhere') || proxyUrl.includes('thingproxy') || proxyUrl.includes('cors.sh') || proxyUrl.includes('codetabs')) {
+          // Direct JSON response from these proxies
+          if (proxyData && typeof proxyData === 'object') {
+            console.log('✅ Activity Streak Direct Proxy Data parsed successfully');
+            // Cache the successful response for 2.5 hours
+            CacheService.set(cacheKey, proxyData, 9000000);
+            return proxyData;
+          }
+        }
+      } else {
+        console.log(`❌ Activity Streak Proxy ${i + 1} returned status:`, response.status);
+      }
+    } catch (error) {
+      if (timeoutId) clearTimeout(timeoutId);
+      console.error(`❌ Activity Streak Proxy ${i + 1} failed:`, error);
+    }
+  }
+
+  console.error('❌ All Activity Streak proxies failed');
+  throw new Error('Unable to fetch activity streak data - all proxies failed');
 };
 
 // Test function to check API availability

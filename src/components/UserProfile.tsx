@@ -24,8 +24,9 @@ import { makeStyles } from '@material-ui/core/styles';
 import ShareIcon from '@material-ui/icons/Share';
 import GetAppIcon from '@material-ui/icons/GetApp';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
-import { SneakerDBUserProfile } from '../types';
-import { fetchSneakerDBProfile } from '../apiService';
+import { Whatshot as StreakIcon } from '@material-ui/icons';
+import { SneakerDBUserProfile, ActivityStreakResponse } from '../types';
+import { fetchSneakerDBProfile, fetchActivityStreak } from '../apiService';
 import ProfileExportService from '../services/profileExportService';
 
 const useStyles = makeStyles((theme) => ({
@@ -121,6 +122,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [isFirstTime, setIsFirstTime] = useState(!username);
+  const [streakData, setStreakData] = useState<Map<number, ActivityStreakResponse>>(new Map());
+  const [loadingStreaks, setLoadingStreaks] = useState(false);
   const [notification, setNotification] = useState<{
     open: boolean;
     message: string;
@@ -190,6 +193,51 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     }
   }, [username, open]);
 
+  // Function to load streak data for activities
+  const loadStreakData = async (activities: any[], username: string) => {
+    setLoadingStreaks(true);
+    const newStreakData = new Map<number, ActivityStreakResponse>();
+    
+    try {
+      // Load streak data for each activity (limit to first 10 for performance)
+      const streakPromises = activities.slice(0, 10).map(async (activity) => {
+        try {
+          const streak = await fetchActivityStreak(username, activity.activityId);
+          
+          if (streak) {
+            // Handle different possible response structures
+            let processedStreak = streak;
+            
+            // Check if the response is wrapped in a proxy container
+            if (streak.contents && typeof streak.contents === 'string') {
+              try {
+                processedStreak = JSON.parse(streak.contents);
+              } catch (e) {
+                console.warn('UserProfile: Could not parse streak contents as JSON');
+              }
+            } else if (streak.contents && typeof streak.contents === 'object') {
+              processedStreak = streak.contents;
+            }
+            
+            // Check if we have the expected structure
+            if (processedStreak && typeof processedStreak === 'object') {
+              newStreakData.set(activity.activityId, processedStreak);
+            }
+          }
+        } catch (error) {
+          console.log(`UserProfile: Could not load streak for activity ${activity.activityId}:`, error);
+        }
+      });
+
+      await Promise.all(streakPromises);
+      setStreakData(newStreakData);
+    } catch (error) {
+      console.error('UserProfile: Error loading streak data:', error);
+    } finally {
+      setLoadingStreaks(false);
+    }
+  };
+
   const fetchUserProfile = async (usernameToFetch: string) => {
     setLoading(true);
     setError(null);
@@ -205,6 +253,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       });
       
       setProfileData(data);
+      
+      // Load streak data after profile is loaded
+      if (data?.activities) {
+        await loadStreakData(data.activities, usernameToFetch);
+      }
     } catch (err) {
       const errorDetails = err instanceof Error ? {
         message: err.message,
@@ -410,36 +463,59 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     <Typography variant="subtitle2" style={{ color: '#8b7355', fontWeight: 'bold', marginBottom: 8 }}>
                       Active Activities ({profileData.activities.length})
                     </Typography>
-                    {profileData.activities.map((activity) => (
-                      <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
-                        <Box display="flex" justifyContent="space-between" alignItems="center">
-                          <Box>
-                            <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
-                              Week {activity.activityWeek}: {activity.activityTitle}
-                            </Typography>
-                            <Typography variant="caption" style={{ color: '#8b7355' }}>
-                              Level {activity.level} • Started: {new Date(activity.dateStarted).toLocaleDateString()}
-                            </Typography>
-                          </Box>
-                          <Box display="flex" style={{ gap: '4px' }}>
-                            {activity.hasSubmittedToday && (
-                              <Chip
-                                label="Today ✓"
-                                size="small"
-                                style={{ backgroundColor: '#6b7d5a', color: 'white', fontSize: '0.7rem' }}
-                              />
-                            )}
-                            {activity.hasSubmittedYesterday && (
-                              <Chip
-                                label="Yesterday ✓"
-                                size="small"
-                                style={{ backgroundColor: '#8b7355', color: 'white', fontSize: '0.7rem' }}
-                              />
-                            )}
+                    {profileData.activities.map((activity) => {
+                      const streak = streakData.get(activity.activityId);
+                      return (
+                        <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
+                          <Box display="flex" justifyContent="space-between" alignItems="center">
+                            <Box style={{ flex: 1 }}>
+                              <Box display="flex" alignItems="center" style={{ gap: '8px' }}>
+                                <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+                                  Week {activity.activityWeek}: {activity.activityTitle}
+                                </Typography>
+                                {streak && streak.current_streak > 0 && (
+                                  <Box display="flex" alignItems="center" style={{ gap: '2px' }}>
+                                    <StreakIcon style={{ fontSize: '1rem', color: '#ff7043' }} />
+                                    <Typography 
+                                      variant="caption" 
+                                      style={{ 
+                                        color: '#ff7043', 
+                                        fontSize: '0.75rem', 
+                                        fontWeight: 'bold' 
+                                      }}
+                                    >
+                                      {streak.current_streak}
+                                    </Typography>
+                                  </Box>
+                                )}
+                                {loadingStreaks && !streak && (
+                                  <CircularProgress size={12} style={{ color: '#d4c4a8' }} />
+                                )}
+                              </Box>
+                              <Typography variant="caption" style={{ color: '#8b7355' }}>
+                                Level {activity.level} • Started: {new Date(activity.dateStarted).toLocaleDateString()}
+                              </Typography>
+                            </Box>
+                            <Box display="flex" style={{ gap: '4px' }}>
+                              {activity.hasSubmittedToday && (
+                                <Chip
+                                  label="Today ✓"
+                                  size="small"
+                                  style={{ backgroundColor: '#6b7d5a', color: 'white', fontSize: '0.7rem' }}
+                                />
+                              )}
+                              {activity.hasSubmittedYesterday && (
+                                <Chip
+                                  label="Yesterday ✓"
+                                  size="small"
+                                  style={{ backgroundColor: '#8b7355', color: 'white', fontSize: '0.7rem' }}
+                                />
+                              )}
+                            </Box>
                           </Box>
                         </Box>
-                      </Box>
-                    ))}
+                      );
+                    })}
                   </Box>
                 </>
               )}
@@ -770,36 +846,59 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             <Typography variant="subtitle2" style={{ color: '#8b7355', fontWeight: 'bold', marginBottom: 8 }}>
                               Active Activities ({profileData.activities.length})
                             </Typography>
-                            {profileData.activities.map((activity) => (
-                              <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
-                                <Box display="flex" justifyContent="space-between" alignItems="center">
-                                  <Box>
-                                    <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
-                                      Week {activity.activityWeek}: {activity.activityTitle}
-                                    </Typography>
-                                    <Typography variant="caption" style={{ color: '#8b7355' }}>
-                                      Level {activity.level} • Started: {new Date(activity.dateStarted).toLocaleDateString()}
-                                    </Typography>
-                                  </Box>
-                                  <Box display="flex" style={{ gap: '4px' }}>
-                                    {activity.hasSubmittedToday && (
-                                      <Chip
-                                        label="Today ✓"
-                                        size="small"
-                                        style={{ backgroundColor: '#6b7d5a', color: 'white', fontSize: '0.7rem' }}
-                                      />
-                                    )}
-                                    {activity.hasSubmittedYesterday && (
-                                      <Chip
-                                        label="Yesterday ✓"
-                                        size="small"
-                                        style={{ backgroundColor: '#8b7355', color: 'white', fontSize: '0.7rem' }}
-                                      />
-                                    )}
+                            {profileData.activities.map((activity) => {
+                              const streak = streakData.get(activity.activityId);
+                              return (
+                                <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
+                                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                                    <Box style={{ flex: 1 }}>
+                                      <Box display="flex" alignItems="center" style={{ gap: '6px', flexWrap: 'wrap' }}>
+                                        <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+                                          Week {activity.activityWeek}: {activity.activityTitle}
+                                        </Typography>
+                                        {streak && streak.current_streak > 0 && (
+                                          <Box display="flex" alignItems="center" style={{ gap: '2px' }}>
+                                            <StreakIcon style={{ fontSize: '0.9rem', color: '#ff7043' }} />
+                                            <Typography 
+                                              variant="caption" 
+                                              style={{ 
+                                                color: '#ff7043', 
+                                                fontSize: '0.7rem', 
+                                                fontWeight: 'bold' 
+                                              }}
+                                            >
+                                              {streak.current_streak}
+                                            </Typography>
+                                          </Box>
+                                        )}
+                                        {loadingStreaks && !streak && (
+                                          <CircularProgress size={10} style={{ color: '#d4c4a8' }} />
+                                        )}
+                                      </Box>
+                                      <Typography variant="caption" style={{ color: '#8b7355' }}>
+                                        Level {activity.level} • Started: {new Date(activity.dateStarted).toLocaleDateString()}
+                                      </Typography>
+                                    </Box>
+                                    <Box display="flex" style={{ gap: '4px' }}>
+                                      {activity.hasSubmittedToday && (
+                                        <Chip
+                                          label="Today ✓"
+                                          size="small"
+                                          style={{ backgroundColor: '#6b7d5a', color: 'white', fontSize: '0.7rem' }}
+                                        />
+                                      )}
+                                      {activity.hasSubmittedYesterday && (
+                                        <Chip
+                                          label="Yesterday ✓"
+                                          size="small"
+                                          style={{ backgroundColor: '#8b7355', color: 'white', fontSize: '0.7rem' }}
+                                        />
+                                      )}
+                                    </Box>
                                   </Box>
                                 </Box>
-                              </Box>
-                            ))}
+                              );
+                            })}
                           </Box>
                         </>
                       )}
