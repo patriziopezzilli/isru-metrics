@@ -258,26 +258,73 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             
             // Check if we have the expected structure
             if (processedStreak && typeof processedStreak === 'object') {
-              newStreakData.set(activity.activityId, processedStreak);
+              // Handle the correct API structure: {participation: {currentStreak: 38}, submissions: [...]}
+              if (processedStreak.participation && typeof processedStreak.participation.currentStreak === 'number') {
+                newStreakData.set(activity.activityId, processedStreak);
+              } else {
+                console.warn('UserProfile: Unexpected streak data structure:', processedStreak);
+                // Set default streak 0 if data structure is invalid
+                const defaultStreak: ActivityStreakResponse = {
+                  participation: {
+                    id: 0,
+                    user: 0,
+                    userName: username,
+                    activity: activity.activityId,
+                    activityTitle: activity.activityTitle || 'Unknown',
+                    activityInitialSignupPoints: 0,
+                    badgeImage: '',
+                    setupProof: null,
+                    setupCaption: '',
+                    dateStarted: new Date().toISOString().split('T')[0],
+                    level: 1,
+                    currentStreak: 0,
+                    hasSubmittedToday: false
+                  },
+                  submissions: []
+                };
+                newStreakData.set(activity.activityId, defaultStreak);
+              }
             } else {
               // Set default streak 0 if data structure is invalid
               const defaultStreak: ActivityStreakResponse = {
-                current_streak: 0,
-                longest_streak: 0,
-                total_participations: 0,
-                activity_id: activity.activityId,
-                username: username
+                participation: {
+                  id: 0,
+                  user: 0,
+                  userName: username,
+                  activity: activity.activityId,
+                  activityTitle: activity.activityTitle || 'Unknown',
+                  activityInitialSignupPoints: 0,
+                  badgeImage: '',
+                  setupProof: null,
+                  setupCaption: '',
+                  dateStarted: new Date().toISOString().split('T')[0],
+                  level: 1,
+                  currentStreak: 0,
+                  hasSubmittedToday: false
+                },
+                submissions: []
               };
               newStreakData.set(activity.activityId, defaultStreak);
             }
           } else {
             // Set default streak 0 if no data received
             const defaultStreak: ActivityStreakResponse = {
-              current_streak: 0,
-              longest_streak: 0,
-              total_participations: 0,
-              activity_id: activity.activityId,
-              username: username
+              participation: {
+                id: 0,
+                user: 0,
+                userName: username,
+                activity: activity.activityId,
+                activityTitle: activity.activityTitle || 'Unknown',
+                activityInitialSignupPoints: 0,
+                badgeImage: '',
+                setupProof: null,
+                setupCaption: '',
+                dateStarted: new Date().toISOString().split('T')[0],
+                level: 1,
+                currentStreak: 0,
+                hasSubmittedToday: false
+              },
+              submissions: []
             };
             newStreakData.set(activity.activityId, defaultStreak);
           }
@@ -285,11 +332,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           console.log(`UserProfile: Could not load streak for activity ${activity.activityId}:`, error);
           // Set default streak 0 in case of error
           const defaultStreak: ActivityStreakResponse = {
-            current_streak: 0,
-            longest_streak: 0,
-            total_participations: 0,
-            activity_id: activity.activityId,
-            username: username
+            participation: {
+              id: 0,
+              user: 0,
+              userName: username,
+              activity: activity.activityId,
+              activityTitle: activity.activityTitle || 'Unknown',
+              activityInitialSignupPoints: 0,
+              badgeImage: '',
+              setupProof: null,
+              setupCaption: '',
+              dateStarted: new Date().toISOString().split('T')[0],
+              level: 1,
+              currentStreak: 0,
+              hasSubmittedToday: false
+            },
+            submissions: []
           };
           newStreakData.set(activity.activityId, defaultStreak);
         }
@@ -531,7 +589,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     </Typography>
                     {profileData.activities.map((activity) => {
                       const streak = streakData.get(activity.activityId);
-                      const currentStreak = streak?.current_streak ?? 0;
+                      const currentStreak = streak?.participation?.currentStreak ?? 0; // Use correct path to streak data
                       const streakProgress = getStreakProgress(currentStreak);
                       
                       return (
@@ -969,7 +1027,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             </Typography>
                             {profileData.activities.map((activity) => {
                               const streak = streakData.get(activity.activityId);
-                              const currentStreak = streak?.current_streak ?? 0;
+                              const currentStreak = streak?.participation?.currentStreak ?? 0; // Use correct path to streak data
                               const streakProgress = getStreakProgress(currentStreak);
                               
                               return (

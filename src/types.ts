@@ -9,14 +9,52 @@ export interface UserProfile {
   };
 }
 
-// Activity Streak Response type
+// Activity Streak Response type - basato sulla reale struttura dell'API
 export interface ActivityStreakResponse {
-  current_streak: number;
-  longest_streak: number;
-  total_participations: number;
-  activity_id: number;
-  username: string;
-  last_participation_date?: string;
+  participation: {
+    id: number;
+    user: number;
+    userName: string;
+    activity: number;
+    activityTitle: string;
+    activityInitialSignupPoints: number;
+    badgeImage: string;
+    setupProof: string | null;
+    setupCaption: string;
+    dateStarted: string;
+    level: number;
+    currentStreak: number;
+    hasSubmittedToday: boolean;
+  };
+  submissions: Array<{
+    id: number;
+    user: number;
+    userName: string;
+    userHandle: string;
+    activity: number;
+    activityTitle: string;
+    activityBadgeImage: string;
+    submissionDate: string;
+    mediaFile: string;
+    mediaFileThumbnail: string;
+    isPublic: boolean;
+    caption: string;
+    levelUpTo: number | null;
+    streakBonusLength: number | null;
+    achievedLevelUp: boolean;
+    achievedStreak: boolean;
+    submitterLocalDate: string;
+    isPreseason: boolean;
+    shareComposites: any;
+    excellenceRank: number | null;
+    excellenceScope: string | null;
+    excellenceCategory: string | null;
+    excellenceAwardedBy: string | null;
+    excellenceAwardedAt: string | null;
+    excellenceTotalAwards: number;
+    excellenceAllAwards: any;
+    isHiddenByBotFilter: boolean | null;
+  }>;
 }
 
 // Tipi per il profilo utente da SneakerDB

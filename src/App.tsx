@@ -28,6 +28,7 @@ import { UserProfileIcon } from './components/UserProfileIcon';
 import { GoalTracker } from './components/GoalTracker';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MarsYardCountdown } from './components/MarsYardCountdown';
+import { ChangelogDisclaimer } from './components/ChangelogDisclaimer';
 import AppLoader from './components/AppLoader';
 import OnlineUserCounter from './components/OnlineUserCounter';
 import { fetchScoreDistribution, calculateUserStats } from './apiService';
@@ -379,6 +380,11 @@ const AppContent = ({
       
       {/* Mars Yard 3.0 Countdown */}
       <MarsYardCountdown />
+      
+      {/* Changelog Disclaimer */}
+      <Container maxWidth="lg" style={{ paddingLeft: isMobile ? 16 : 24, paddingRight: isMobile ? 16 : 24 }}>
+        <ChangelogDisclaimer />
+      </Container>
       
       <Container 
         maxWidth="lg" 
