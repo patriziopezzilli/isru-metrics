@@ -29,6 +29,43 @@ import { SneakerDBUserProfile, ActivityStreakResponse } from '../types';
 import { fetchSneakerDBProfile, fetchActivityStreak } from '../apiService';
 import ProfileExportService from '../services/profileExportService';
 
+// Helper function to calculate streak progress
+const getStreakProgress = (currentStreak: number) => {
+  const levels = [7, 30, 90, 360];
+  
+  // Find the next level
+  let nextLevel = levels.find(level => currentStreak < level);
+  let previousLevel = 0;
+  
+  // If currentStreak is >= 360, they're at max level
+  if (!nextLevel) {
+    return {
+      progress: 100,
+      nextLevel: 360,
+      remaining: 0,
+      isMaxLevel: true
+    };
+  }
+  
+  // Find the previous level
+  for (let i = 0; i < levels.length; i++) {
+    if (levels[i] === nextLevel) {
+      previousLevel = i > 0 ? levels[i - 1] : 0;
+      break;
+    }
+  }
+  
+  const progress = ((currentStreak - previousLevel) / (nextLevel - previousLevel)) * 100;
+  const remaining = nextLevel - currentStreak;
+  
+  return {
+    progress: Math.max(0, Math.min(100, progress)),
+    nextLevel,
+    remaining,
+    isMaxLevel: false
+  };
+};
+
 const useStyles = makeStyles((theme) => ({
   dialog: {
     '& .MuiDialog-paper': {
@@ -222,10 +259,39 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             // Check if we have the expected structure
             if (processedStreak && typeof processedStreak === 'object') {
               newStreakData.set(activity.activityId, processedStreak);
+            } else {
+              // Set default streak 0 if data structure is invalid
+              const defaultStreak: ActivityStreakResponse = {
+                current_streak: 0,
+                longest_streak: 0,
+                total_participations: 0,
+                activity_id: activity.activityId,
+                username: username
+              };
+              newStreakData.set(activity.activityId, defaultStreak);
             }
+          } else {
+            // Set default streak 0 if no data received
+            const defaultStreak: ActivityStreakResponse = {
+              current_streak: 0,
+              longest_streak: 0,
+              total_participations: 0,
+              activity_id: activity.activityId,
+              username: username
+            };
+            newStreakData.set(activity.activityId, defaultStreak);
           }
         } catch (error) {
           console.log(`UserProfile: Could not load streak for activity ${activity.activityId}:`, error);
+          // Set default streak 0 in case of error
+          const defaultStreak: ActivityStreakResponse = {
+            current_streak: 0,
+            longest_streak: 0,
+            total_participations: 0,
+            activity_id: activity.activityId,
+            username: username
+          };
+          newStreakData.set(activity.activityId, defaultStreak);
         }
       });
 
@@ -465,33 +531,88 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     </Typography>
                     {profileData.activities.map((activity) => {
                       const streak = streakData.get(activity.activityId);
+                      const currentStreak = streak?.current_streak ?? 0;
+                      const streakProgress = getStreakProgress(currentStreak);
+                      
                       return (
                         <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
-                          <Box display="flex" justifyContent="space-between" alignItems="center">
+                          <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                             <Box style={{ flex: 1 }}>
-                              <Box display="flex" alignItems="center" style={{ gap: '8px' }}>
+                              <Box display="flex" alignItems="center" style={{ gap: '8px', marginBottom: '4px' }}>
                                 <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
                                   Week {activity.activityWeek}: {activity.activityTitle}
                                 </Typography>
-                                {streak && streak.current_streak > 0 && (
+                                {loadingStreaks && !streak ? (
+                                  <CircularProgress size={12} style={{ color: '#d4c4a8' }} />
+                                ) : (
                                   <Box display="flex" alignItems="center" style={{ gap: '2px' }}>
-                                    <StreakIcon style={{ fontSize: '1rem', color: '#ff7043' }} />
+                                    <StreakIcon style={{ 
+                                      fontSize: '1rem', 
+                                      color: currentStreak > 0 ? '#ff7043' : '#d4c4a8'
+                                    }} />
                                     <Typography 
                                       variant="caption" 
                                       style={{ 
-                                        color: '#ff7043', 
+                                        color: currentStreak > 0 ? '#ff7043' : '#999', 
                                         fontSize: '0.75rem', 
-                                        fontWeight: 'bold' 
+                                        fontWeight: 'bold',
+                                        marginRight: '2px'
                                       }}
                                     >
-                                      {streak.current_streak}
+                                      {currentStreak}
+                                    </Typography>
+                                    <Typography 
+                                      variant="caption" 
+                                      style={{ 
+                                        color: currentStreak > 0 ? '#ff7043' : '#999', 
+                                        fontSize: '0.7rem'
+                                      }}
+                                    >
+                                      streak
                                     </Typography>
                                   </Box>
                                 )}
-                                {loadingStreaks && !streak && (
-                                  <CircularProgress size={12} style={{ color: '#d4c4a8' }} />
-                                )}
                               </Box>
+                              
+                              {/* Progress bar - only show if streak > 0 */}
+                              {currentStreak > 0 && (
+                                <Box style={{ marginBottom: '4px', maxWidth: '200px' }}>
+                                  <Box 
+                                    style={{ 
+                                      width: '100%', 
+                                      height: '4px', 
+                                      backgroundColor: '#e0e0e0', 
+                                      borderRadius: '2px',
+                                      overflow: 'hidden'
+                                    }}
+                                  >
+                                    <Box 
+                                      style={{ 
+                                        height: '100%', 
+                                        width: `${streakProgress.progress}%`, 
+                                        backgroundColor: streakProgress.isMaxLevel ? '#4caf50' : '#ff7043',
+                                        borderRadius: '2px',
+                                        transition: 'width 0.3s ease'
+                                      }}
+                                    />
+                                  </Box>
+                                  <Typography 
+                                    variant="caption" 
+                                    style={{ 
+                                      color: '#999', 
+                                      fontSize: '0.65rem',
+                                      marginTop: '2px',
+                                      display: 'block'
+                                    }}
+                                  >
+                                    {streakProgress.isMaxLevel 
+                                      ? 'Max level reached! 🏆' 
+                                      : `${streakProgress.remaining} to level ${streakProgress.nextLevel}`
+                                    }
+                                  </Typography>
+                                </Box>
+                              )}
+                              
                               <Typography variant="caption" style={{ color: '#8b7355' }}>
                                 Level {activity.level} • Started: {new Date(activity.dateStarted).toLocaleDateString()}
                               </Typography>
@@ -848,33 +969,88 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                             </Typography>
                             {profileData.activities.map((activity) => {
                               const streak = streakData.get(activity.activityId);
+                              const currentStreak = streak?.current_streak ?? 0;
+                              const streakProgress = getStreakProgress(currentStreak);
+                              
                               return (
                                 <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
-                                  <Box display="flex" justifyContent="space-between" alignItems="center">
+                                  <Box display="flex" justifyContent="space-between" alignItems="flex-start">
                                     <Box style={{ flex: 1 }}>
-                                      <Box display="flex" alignItems="center" style={{ gap: '6px', flexWrap: 'wrap' }}>
+                                      <Box display="flex" alignItems="center" style={{ gap: '6px', flexWrap: 'wrap', marginBottom: '4px' }}>
                                         <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
                                           Week {activity.activityWeek}: {activity.activityTitle}
                                         </Typography>
-                                        {streak && streak.current_streak > 0 && (
+                                        {loadingStreaks && !streak ? (
+                                          <CircularProgress size={10} style={{ color: '#d4c4a8' }} />
+                                        ) : (
                                           <Box display="flex" alignItems="center" style={{ gap: '2px' }}>
-                                            <StreakIcon style={{ fontSize: '0.9rem', color: '#ff7043' }} />
+                                            <StreakIcon style={{ 
+                                              fontSize: '0.9rem', 
+                                              color: currentStreak > 0 ? '#ff7043' : '#d4c4a8'
+                                            }} />
                                             <Typography 
                                               variant="caption" 
                                               style={{ 
-                                                color: '#ff7043', 
+                                                color: currentStreak > 0 ? '#ff7043' : '#999', 
                                                 fontSize: '0.7rem', 
-                                                fontWeight: 'bold' 
+                                                fontWeight: 'bold',
+                                                marginRight: '2px'
                                               }}
                                             >
-                                              {streak.current_streak}
+                                              {currentStreak}
+                                            </Typography>
+                                            <Typography 
+                                              variant="caption" 
+                                              style={{ 
+                                                color: currentStreak > 0 ? '#ff7043' : '#999', 
+                                                fontSize: '0.65rem'
+                                              }}
+                                            >
+                                              streak
                                             </Typography>
                                           </Box>
                                         )}
-                                        {loadingStreaks && !streak && (
-                                          <CircularProgress size={10} style={{ color: '#d4c4a8' }} />
-                                        )}
                                       </Box>
+                                      
+                                      {/* Progress bar - only show if streak > 0 */}
+                                      {currentStreak > 0 && (
+                                        <Box style={{ marginBottom: '4px', maxWidth: '180px' }}>
+                                          <Box 
+                                            style={{ 
+                                              width: '100%', 
+                                              height: '3px', 
+                                              backgroundColor: '#e0e0e0', 
+                                              borderRadius: '2px',
+                                              overflow: 'hidden'
+                                            }}
+                                          >
+                                            <Box 
+                                              style={{ 
+                                                height: '100%', 
+                                                width: `${streakProgress.progress}%`, 
+                                                backgroundColor: streakProgress.isMaxLevel ? '#4caf50' : '#ff7043',
+                                                borderRadius: '2px',
+                                                transition: 'width 0.3s ease'
+                                              }}
+                                            />
+                                          </Box>
+                                          <Typography 
+                                            variant="caption" 
+                                            style={{ 
+                                              color: '#999', 
+                                              fontSize: '0.6rem',
+                                              marginTop: '2px',
+                                              display: 'block'
+                                            }}
+                                          >
+                                            {streakProgress.isMaxLevel 
+                                              ? 'Max level reached! 🏆' 
+                                              : `${streakProgress.remaining} to level ${streakProgress.nextLevel}`
+                                            }
+                                          </Typography>
+                                        </Box>
+                                      )}
+                                      
                                       <Typography variant="caption" style={{ color: '#8b7355' }}>
                                         Level {activity.level} • Started: {new Date(activity.dateStarted).toLocaleDateString()}
                                       </Typography>

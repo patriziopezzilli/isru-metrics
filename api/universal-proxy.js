@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   // Estrai parametri
-  const { api, username } = req.query;
+  const { api, username, activity_id } = req.query;
   
   let targetUrl = '';
   let timeoutMs = 10000; // Default 10 secondi
@@ -46,16 +46,34 @@ export default async function handler(req, res) {
       timeoutMs = 15000; // SneakerDB può essere più lento
       break;
       
+    case 'isru-user-profile':
+      if (!username) {
+        res.status(400).json({ error: 'Username parameter is required for ISRU user profile API' });
+        return;
+      }
+      targetUrl = `https://isrucamp.com/api/users/users/profile/${encodeURIComponent(username)}`;
+      timeoutMs = 8000; // Timeout ottimizzato per profili ISRU
+      break;
+      
+    case 'activity-streak':
+      if (!username || !activity_id) {
+        res.status(400).json({ error: 'Username and activity_id parameters are required for activity-streak API' });
+        return;
+      }
+      targetUrl = `https://isrucamp.com/api/activities/activity-participations/user_activity_participation/?username=${encodeURIComponent(username)}&activity_id=${activity_id}`;
+      timeoutMs = 8000; // Timeout più breve per streak
+      break;
+      
     default:
       res.status(400).json({ 
         error: 'Invalid API type',
-        supportedApis: ['isru-leaderboard', 'sneakerdb-profile'] 
+        supportedApis: ['isru-leaderboard', 'sneakerdb-profile', 'isru-user-profile', 'activity-streak'] 
       });
       return;
   }
 
   try {
-    console.log(`🔄 Universal Proxy: Fetching ${api}${username ? ` for ${username}` : ''}`);
+    console.log(`🔄 Universal Proxy: Fetching ${api}${username ? ` for ${username}` : ''}${activity_id ? ` (activity: ${activity_id})` : ''}`);
     
     const response = await fetch(targetUrl, {
       method: 'GET',
@@ -92,7 +110,19 @@ export default async function handler(req, res) {
       return;
     }
     
-    console.log(`✅ Universal Proxy: Successfully fetched ${api}${username ? ` for ${username}` : ''}`);
+    if (api === 'activity-streak' && typeof data !== 'object') {
+      console.error('❌ Invalid activity-streak data structure');
+      res.status(500).json({ error: 'Invalid activity-streak data structure' });
+      return;
+    }
+    
+    if (api === 'isru-user-profile' && (!data.user || typeof data.user !== 'object')) {
+      console.error('❌ Invalid ISRU user profile data structure');
+      res.status(500).json({ error: 'Invalid ISRU user profile data structure' });
+      return;
+    }
+    
+    console.log(`✅ Universal Proxy: Successfully fetched ${api}${username ? ` for ${username}` : ''}${activity_id ? ` (activity: ${activity_id})` : ''}`);
     
     // Aggiungi metadata del proxy
     const responseData = {
@@ -102,7 +132,8 @@ export default async function handler(req, res) {
         source: 'isru-league-universal-proxy',
         version: '1.0',
         api: api,
-        ...(username && { username })
+        ...(username && { username }),
+        ...(activity_id && { activity_id })
       }
     };
 
