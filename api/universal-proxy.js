@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   // Estrai parametri
-  const { api, username, activity_id } = req.query;
+  const { api, username, activity_id, page, limit } = req.query;
   
   let targetUrl = '';
   let timeoutMs = 10000; // Default 10 secondi
@@ -35,6 +35,13 @@ export default async function handler(req, res) {
     case 'isru-leaderboard':
       targetUrl = 'https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true';
       timeoutMs = 10000;
+      break;
+      
+    case 'isru-leaderboard-pages':
+      const pageNum = page ? parseInt(page) : 1;
+      const limitNum = limit ? parseInt(limit) : 100;
+      targetUrl = `https://isrucamp.com/api/users/leaderboard/?limit=${limitNum}&page=${pageNum}`;
+      timeoutMs = 12000; // Più tempo per le pagine
       break;
       
     case 'sneakerdb-profile':
@@ -67,7 +74,7 @@ export default async function handler(req, res) {
     default:
       res.status(400).json({ 
         error: 'Invalid API type',
-        supportedApis: ['isru-leaderboard', 'sneakerdb-profile', 'isru-user-profile', 'activity-streak'] 
+        supportedApis: ['isru-leaderboard', 'isru-leaderboard-pages', 'sneakerdb-profile', 'isru-user-profile', 'activity-streak'] 
       });
       return;
   }

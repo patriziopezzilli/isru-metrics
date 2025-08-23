@@ -9,7 +9,6 @@ import {
   Tabs, 
   Tab, 
   Container,
-  CircularProgress,
   Box,
   Button,
   Paper,
@@ -29,6 +28,7 @@ import { GoalTracker } from './components/GoalTracker';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MarsYardCountdown } from './components/MarsYardCountdown';
 import { ChangelogDisclaimer } from './components/ChangelogDisclaimer';
+import PositionFinder from './components/PositionFinder';
 import AppLoader from './components/AppLoader';
 import OnlineUserCounter from './components/OnlineUserCounter';
 import { fetchScoreDistribution, calculateUserStats } from './apiService';
@@ -399,7 +399,10 @@ const AppContent = ({
       >
         {console.log('🎭 Rendering content for activeTab:', activeTab, { isMobile, hasUsername: !!username })}
         {activeTab === 0 && (
-          <Dashboard scoreDistribution={scoreDistribution} currentUsername={username} />
+          <>
+            <PositionFinder currentUsername={username} />
+            <Dashboard scoreDistribution={scoreDistribution} currentUsername={username} />
+          </>
         )}
         
         {activeTab === 1 && (
