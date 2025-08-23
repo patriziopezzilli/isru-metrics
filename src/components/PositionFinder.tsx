@@ -28,25 +28,13 @@ const useStyles = makeStyles((theme) => ({
   positionCard: {
     background: 'linear-gradient(135deg, #e55a2b 0%, #d4751c 50%, #e67332 100%)',
     color: 'white',
-    borderRadius: 16,
-    overflow: 'hidden',
-    position: 'relative',
-    marginBottom: 24,
-    '&:before': {
-      content: '""',
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      bottom: 0,
-      background: 'linear-gradient(45deg, rgba(255,255,255,0.1) 0%, rgba(255,255,255,0.05) 100%)',
-      pointerEvents: 'none',
-    }
+    borderRadius: 8,
+    marginBottom: 16,
+    border: 'none',
+    boxShadow: 'none',
   },
   cardContent: {
     padding: '16px !important',
-    position: 'relative',
-    zIndex: 1,
   },
   headerBox: {
     display: 'flex',
@@ -83,6 +71,7 @@ const useStyles = makeStyles((theme) => ({
     flex: 1,
     '& .MuiOutlinedInput-root': {
       backgroundColor: 'rgba(255, 255, 255, 0.15)',
+      borderRadius: 6,
       '& fieldset': {
         borderColor: 'rgba(255, 255, 255, 0.3)',
       },
@@ -108,7 +97,7 @@ const useStyles = makeStyles((theme) => ({
     color: 'white',
     fontWeight: 'bold',
     padding: '12px 24px',
-    borderRadius: 8,
+    borderRadius: 6,
     border: '1px solid rgba(255, 255, 255, 0.3)',
     '&:hover': {
       backgroundColor: 'rgba(255, 255, 255, 0.3)',
@@ -125,7 +114,7 @@ const useStyles = makeStyles((theme) => ({
     marginTop: 16,
     padding: 16,
     backgroundColor: 'rgba(255, 255, 255, 0.1)',
-    borderRadius: 8,
+    borderRadius: 6,
     border: '1px solid rgba(255, 255, 255, 0.2)',
   },
   progressText: {
@@ -141,13 +130,14 @@ const useStyles = makeStyles((theme) => ({
     backgroundColor: 'rgba(255, 255, 255, 0.2)',
     '& .MuiLinearProgress-bar': {
       backgroundColor: '#4caf50',
+      borderRadius: 3,
     },
   },
   resultContainer: {
     marginTop: 16,
     padding: 20,
     backgroundColor: 'rgba(255, 255, 255, 0.15)',
-    borderRadius: 12,
+    borderRadius: 6,
     border: '1px solid rgba(255, 255, 255, 0.3)',
     textAlign: 'center',
   },
@@ -155,10 +145,7 @@ const useStyles = makeStyles((theme) => ({
     fontSize: '2.5rem',
     fontWeight: 'bold',
     marginBottom: 8,
-    background: 'linear-gradient(45deg, #ffd700, #ffed4e)',
-    WebkitBackgroundClip: 'text',
-    WebkitTextFillColor: 'transparent',
-    backgroundClip: 'text',
+    color: '#ffd700',
   },
   rankText: {
     fontSize: '1.1rem',
@@ -338,7 +325,7 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
   };
 
   return (
-    <Card className={classes.positionCard} elevation={8}>
+    <Card className={classes.positionCard}>
       <CardContent className={classes.cardContent}>
         <Box className={classes.headerBox}>
           <Typography variant="h6" className={classes.title}>
