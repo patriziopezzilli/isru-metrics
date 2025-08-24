@@ -177,31 +177,85 @@ const useStyles = makeStyles((theme) => ({
     marginBottom: theme.spacing(2),
     textAlign: 'center',
   },
+  searchContainer: {
+    marginBottom: theme.spacing(2),
+    display: 'flex',
+    gap: theme.spacing(1),
+    alignItems: 'center',
+  },
+  searchField: {
+    flex: 1,
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: '#ffffff',
+      borderRadius: '8px',
+      height: '40px',
+      '& fieldset': {
+        borderColor: '#d4c4a8',
+      },
+      '&:hover fieldset': {
+        borderColor: '#8b7355',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#8b7355',
+      },
+    },
+  },
+  paginationContainer: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: theme.spacing(2),
+    padding: theme.spacing(1),
+    backgroundColor: '#f8f6f3',
+    borderRadius: '8px',
+  },
   userCard: {
-    background: 'linear-gradient(135deg, #ffffff 0%, #faf9f7 100%)',
-    borderRadius: '12px',
-    padding: theme.spacing(2),
-    marginBottom: theme.spacing(1.5),
-    border: '1px solid rgba(139, 115, 85, 0.1)',
-    boxShadow: '0 4px 12px rgba(139, 115, 85, 0.08)',
+    background: '#ffffff',
+    borderRadius: '16px',
+    padding: theme.spacing(2.5),
+    marginBottom: theme.spacing(2),
+    border: '2px solid transparent',
+    boxShadow: '0 6px 20px rgba(139, 115, 85, 0.12)',
+    transition: 'all 0.3s ease',
+    position: 'relative',
+    overflow: 'hidden',
+    '&:hover': {
+      transform: 'translateY(-4px)',
+      boxShadow: '0 12px 30px rgba(139, 115, 85, 0.2)',
+      borderColor: 'rgba(139, 115, 85, 0.3)',
+    },
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      height: '4px',
+      background: 'linear-gradient(90deg, #8b7355 0%, #c4a07a 100%)',
+    },
   },
   userCardHeader: {
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: theme.spacing(1),
+    alignItems: 'flex-start',
+    marginBottom: theme.spacing(2),
   },
   userCardBody: {
     display: 'flex',
     justifyContent: 'space-around',
     alignItems: 'center',
-    gap: theme.spacing(2),
-    marginBottom: theme.spacing(1.5),
+    gap: theme.spacing(3),
+    marginBottom: theme.spacing(2),
+    padding: theme.spacing(1.5),
+    backgroundColor: '#f8f6f3',
+    borderRadius: '12px',
   },
   userCardFooter: {
     display: 'flex',
     justifyContent: 'space-between',
     alignItems: 'center',
+    paddingTop: theme.spacing(1),
+    borderTop: '1px solid rgba(139, 115, 85, 0.1)',
   },
   tableContainer: {
     borderRadius: '12px',
@@ -231,19 +285,38 @@ const useStyles = makeStyles((theme) => ({
   usernameText: {
     fontWeight: 'bold',
     color: '#8b7355',
-    fontSize: '1rem',
+    fontSize: '1.1rem',
+    fontFamily: '"Courier New", monospace',
+    display: 'flex',
+    alignItems: 'center',
+    gap: theme.spacing(1),
+  },
+  userInfoSection: {
+    textAlign: 'center',
+    minWidth: '80px',
   },
   userInfoLabel: {
-    fontSize: '0.7rem',
-    color: '#666',
+    fontSize: '0.65rem',
+    color: '#8b7355',
     fontWeight: 'bold',
     textTransform: 'uppercase',
     letterSpacing: '0.5px',
+    marginBottom: theme.spacing(0.5),
+    fontFamily: '"Courier New", monospace',
   },
   userInfoValue: {
     fontSize: '0.8rem',
     color: '#333',
     fontFamily: '"Courier New", monospace',
+  },
+  lastSeenText: {
+    fontSize: '0.75rem',
+    color: '#666',
+    fontFamily: '"Courier New", monospace',
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-end',
+    textAlign: 'right',
   },
   actionButton: {
     backgroundColor: '#c4a07a',
@@ -391,6 +464,18 @@ const AdminDashboard: React.FC = () => {
   const [error, setError] = useState('');
   const [selectedUser, setSelectedUser] = useState<UserAuditSummary | null>(null);
   const [userDataModalOpen, setUserDataModalOpen] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [currentPage, setCurrentPage] = useState(1);
+  const [usersPerPage] = useState(10);
+
+  // Filter and pagination logic
+  const filteredUsers = userSummaries.filter(user =>
+    user.username.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  const totalPages = Math.ceil(filteredUsers.length / usersPerPage);
+  const startIndex = (currentPage - 1) * usersPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, startIndex + usersPerPage);
 
   const handleLogin = () => {
     if (username === 'admin' && password === 'admin') {
@@ -407,11 +492,13 @@ const AdminDashboard: React.FC = () => {
     setError('');
 
     try {
-      console.log('🔄 Loading audit data from multiple days...');
+      console.log('🔄 Loading ALL audit data (no date limits)...');
 
-      // Fetch audit files from the last 7 days for better coverage
+      // Fetch ALL audit files without date restrictions
       const allAuditFiles: any[] = [];
-      const daysToLoad = 7; // Load last 7 days
+
+      // Try to get audit files from the last 30 days to ensure we get everyone
+      const daysToLoad = 30; // Load last 30 days to catch all users
 
       for (let i = 0; i < daysToLoad; i++) {
         const date = new Date();
@@ -434,8 +521,8 @@ const AdminDashboard: React.FC = () => {
       console.log(`📊 Total audit files found: ${allAuditFiles.length}`);
       const allAuditData: AuditData[] = [];
 
-      // Process up to 300 files for much better coverage
-      const filesToProcess = allAuditFiles.slice(0, 300);
+      // Process ALL files - no limits to get everyone
+      const filesToProcess = allAuditFiles;
 
       for (const file of filesToProcess) {
         try {
@@ -705,32 +792,58 @@ const AdminDashboard: React.FC = () => {
             {/* Users Cards - Mobile Optimized */}
             <Paper className={classes.usersTable}>
               <Typography className={classes.tableTitle}>
-                🧑‍🚀 Mars Colonists ({userSummaries.length})
+                🧑‍🚀 Mars Colonists ({filteredUsers.length} of {userSummaries.length})
               </Typography>
 
-              {userSummaries.map((user, index) => (
+              {/* Search Bar */}
+              <Box className={classes.searchContainer}>
+                <TextField
+                  className={classes.searchField}
+                  placeholder="🔍 Search users..."
+                  value={searchTerm}
+                  onChange={(e) => {
+                    setSearchTerm(e.target.value);
+                    setCurrentPage(1); // Reset to first page when searching
+                  }}
+                  variant="outlined"
+                  size="small"
+                />
+                <Typography variant="caption" style={{ color: '#666', minWidth: '60px', textAlign: 'right' }}>
+                  Page {currentPage}/{totalPages}
+                </Typography>
+              </Box>
+
+              {paginatedUsers.map((user, index) => (
                 <Box key={index} className={classes.userCard}>
-                  {/* Header with username */}
+                  {/* Header with username and last seen */}
                   <Box className={classes.userCardHeader}>
                     <Typography className={classes.usernameText}>
-                      👤 {user.username}
+                      {user.username.includes('anonymous') ? '👻' : '👤'} {user.username}
                     </Typography>
-                    <Typography variant="caption" style={{ color: '#666', fontSize: '0.7rem' }}>
-                      {new Date(user.lastSeen).toLocaleDateString('it-IT')}
-                    </Typography>
+                    <Box className={classes.lastSeenText}>
+                      <Typography variant="caption" style={{ fontSize: '0.65rem', color: '#8b7355', fontWeight: 'bold' }}>
+                        LAST SEEN
+                      </Typography>
+                      <Typography variant="caption" style={{ fontSize: '0.7rem', color: '#666' }}>
+                        {new Date(user.lastSeen).toLocaleDateString('it-IT')}
+                      </Typography>
+                      <Typography variant="caption" style={{ fontSize: '0.65rem', color: '#999' }}>
+                        {new Date(user.lastSeen).toLocaleTimeString('it-IT', { hour: '2-digit', minute: '2-digit' })}
+                      </Typography>
+                    </Box>
                   </Box>
 
                   {/* Body with key info */}
                   <Box className={classes.userCardBody}>
-                    <Box>
+                    <Box className={classes.userInfoSection}>
                       <Typography className={classes.userInfoLabel}>🔑 ISRU ID</Typography>
                       {user.hasIsruUsername ? (
-                        <Chip label="✓ Yes" size="small" className={`${classes.chip} ${classes.primaryChip}`} />
+                        <Chip label="✓ Present" size="small" className={`${classes.chip} ${classes.primaryChip}`} />
                       ) : (
-                        <Chip label="✗ No" size="small" className={`${classes.chip} ${classes.defaultChip}`} />
+                        <Chip label="✗ Missing" size="small" className={`${classes.chip} ${classes.defaultChip}`} />
                       )}
                     </Box>
-                    <Box>
+                    <Box className={classes.userInfoSection}>
                       <Typography className={classes.userInfoLabel}>👥 League</Typography>
                       {user.hasFriendsLeague ? (
                         <Chip label="✓ Active" size="small" className={`${classes.chip} ${classes.primaryChip}`} />
@@ -742,8 +855,8 @@ const AdminDashboard: React.FC = () => {
 
                   {/* Footer with action button */}
                   <Box className={classes.userCardFooter}>
-                    <Typography variant="caption" style={{ color: '#666', fontSize: '0.7rem' }}>
-                      {new Date(user.lastSeen).toLocaleTimeString('it-IT')}
+                    <Typography variant="caption" style={{ color: '#8b7355', fontSize: '0.7rem', fontWeight: 'bold' }}>
+                      Mars Colonist #{startIndex + index + 1}
                     </Typography>
                     <Button
                       size="small"
@@ -754,11 +867,38 @@ const AdminDashboard: React.FC = () => {
                         setUserDataModalOpen(true);
                       }}
                     >
-                      🔍 View
+                      🔍 View Data
                     </Button>
                   </Box>
                 </Box>
               ))}
+
+              {/* Pagination */}
+              {totalPages > 1 && (
+                <Box className={classes.paginationContainer}>
+                  <Button
+                    size="small"
+                    onClick={() => setCurrentPage(Math.max(1, currentPage - 1))}
+                    disabled={currentPage === 1}
+                    className={classes.actionButton}
+                  >
+                    ← Prev
+                  </Button>
+
+                  <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+                    {currentPage} of {totalPages}
+                  </Typography>
+
+                  <Button
+                    size="small"
+                    onClick={() => setCurrentPage(Math.min(totalPages, currentPage + 1))}
+                    disabled={currentPage === totalPages}
+                    className={classes.actionButton}
+                  >
+                    Next →
+                  </Button>
+                </Box>
+              )}
             </Paper>
             <Box mt={4} display="flex" justifyContent="center">
               <Button
