@@ -246,7 +246,6 @@ const useStyles = makeStyles((theme) => ({
   defaultChip: {
     backgroundColor: '#e0e0e0',
     color: '#666',
-<<<<<<< HEAD
   },
   userDataModal: {
     '& .MuiDialog-paper': {
@@ -302,8 +301,6 @@ const useStyles = makeStyles((theme) => ({
     overflow: 'auto',
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
-=======
->>>>>>> 42c80c5c9eef9a672ca01fccaedc2d90728e31d3
   },
 }));
 
@@ -360,7 +357,6 @@ const AdminDashboard: React.FC = () => {
     setError('');
 
     try {
-<<<<<<< HEAD
       console.log('🔄 Loading audit data from multiple days...');
 
       // Fetch audit files from the last 7 days for better coverage
@@ -390,26 +386,6 @@ const AdminDashboard: React.FC = () => {
 
       // Process up to 300 files for much better coverage
       const filesToProcess = allAuditFiles.slice(0, 300);
-=======
-      console.log('🔄 Loading audit data...');
-
-      // Fetch list of audit files for today
-      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
-      const listResponse = await fetch(`/api/audit-list?date=${today}`);
-
-      if (!listResponse.ok) {
-        throw new Error(`Failed to fetch audit list: ${listResponse.status}`);
-      }
-
-      const auditFilesResponse = await listResponse.json();
-      console.log('📁 Found audit files:', auditFilesResponse);
-
-      const auditFiles = Array.isArray(auditFilesResponse.audits) ? auditFilesResponse.audits : [];
-      const allAuditData: AuditData[] = [];
-
-      // Process up to 100 files for better coverage
-      const filesToProcess = auditFiles.slice(0, 100);
->>>>>>> 42c80c5c9eef9a672ca01fccaedc2d90728e31d3
 
       for (const file of filesToProcess) {
         try {
@@ -748,14 +724,8 @@ const AdminDashboard: React.FC = () => {
                             variant="contained"
                             className={classes.actionButton}
                             onClick={() => {
-<<<<<<< HEAD
                               setSelectedUser(user);
                               setUserDataModalOpen(true);
-=======
-                              // Show detailed localStorage data
-                              console.log(`📋 LocalStorage for ${user.username}:`, user.localStorageData);
-                              alert(`🔍 LocalStorage data for ${user.username} logged to console!\n\nCheck browser console (F12) for detailed data.`);
->>>>>>> 42c80c5c9eef9a672ca01fccaedc2d90728e31d3
                             }}
                           >
                             🔍 View Data
@@ -780,7 +750,6 @@ const AdminDashboard: React.FC = () => {
             </Box>
           </>
         )}
-<<<<<<< HEAD
 
         {/* User Data Modal */}
         <Dialog
@@ -879,8 +848,6 @@ const AdminDashboard: React.FC = () => {
             </Button>
           </DialogActions>
         </Dialog>
-=======
->>>>>>> 42c80c5c9eef9a672ca01fccaedc2d90728e31d3
       </Container>
     </Box>
   );

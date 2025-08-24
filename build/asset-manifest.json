@@ -1,7 +1,6 @@
 {
   "files": {
     "main.css": "/static/css/main.520532b9.css",
-<<<<<<< HEAD
     "main.js": "/static/js/main.278af696.js",
     "static/media/Rocket.Sharpie.Bold.ttf": "/static/media/Rocket.Sharpie.Bold.cc54487e18a7b763b2b2.ttf",
     "index.html": "/index.html",
@@ -11,16 +10,5 @@
   "entrypoints": [
     "static/css/main.520532b9.css",
     "static/js/main.278af696.js"
-=======
-    "main.js": "/static/js/main.aa521d27.js",
-    "static/media/Rocket.Sharpie.Bold.ttf": "/static/media/Rocket.Sharpie.Bold.cc54487e18a7b763b2b2.ttf",
-    "index.html": "/index.html",
-    "main.520532b9.css.map": "/static/css/main.520532b9.css.map",
-    "main.aa521d27.js.map": "/static/js/main.aa521d27.js.map"
-  },
-  "entrypoints": [
-    "static/css/main.520532b9.css",
-    "static/js/main.aa521d27.js"
->>>>>>> 42c80c5c9eef9a672ca01fccaedc2d90728e31d3
   ]
 }
