@@ -536,7 +536,7 @@ export const FriendsLeague: React.FC = () => {
     });
 
     try {
-      const profile = await fetchSneakerDBProfile(username);
+      const profile = await fetchSneakerDBProfile(username.toLowerCase());
       
       // Cache the result
       profileCache.set(username, { data: profile, timestamp: Date.now() });
@@ -567,7 +567,7 @@ export const FriendsLeague: React.FC = () => {
     setSelectedFriendProfile(null);
 
     try {
-      const profile = await fetchSneakerDBProfile(username);
+      const profile = await fetchSneakerDBProfile(username.toLowerCase());
       setSelectedFriendProfile(profile);
     } catch (error: any) {
       setFriendProfileError(error.message || 'Failed to load friend profile');

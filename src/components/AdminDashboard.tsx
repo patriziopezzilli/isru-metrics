@@ -27,82 +27,246 @@ import {
   Storage as StorageIcon,
   People as PeopleIcon,
   Timeline as TimelineIcon,
-  Security as SecurityIcon
+  Security as SecurityIcon,
+  Refresh as RefreshIcon
 } from '@material-ui/icons';
 
 const useStyles = makeStyles((theme) => ({
   container: {
-    marginTop: theme.spacing(4),
-    marginBottom: theme.spacing(4),
+    minHeight: '100vh',
+    background: 'linear-gradient(135deg, #8b7355 0%, #c4a07a 50%, #d4c4a8 100%)',
+    padding: 0,
   },
-  loginPaper: {
-    padding: theme.spacing(4),
-    maxWidth: 400,
+  contentWrapper: {
+    backgroundColor: '#fefdfb',
+    minHeight: '100vh',
+    padding: theme.spacing(3),
+  },
+  loginCard: {
+    maxWidth: 450,
     margin: '0 auto',
     marginTop: theme.spacing(8),
+    padding: theme.spacing(4),
+    backgroundColor: '#ffffff',
+    borderRadius: '20px',
+    boxShadow: '0 20px 40px rgba(139, 115, 85, 0.15)',
+    border: '1px solid rgba(139, 115, 85, 0.1)',
   },
-  dashboardPaper: {
-    padding: theme.spacing(3),
-    marginBottom: theme.spacing(2),
+  loginTitle: {
+    fontFamily: '"Rocket Sharpie Bold", "Courier New", monospace !important',
+    color: '#8b7355',
+    textAlign: 'center',
+    marginBottom: theme.spacing(3),
+    fontSize: '2rem',
+    letterSpacing: '0.05em',
+  },
+  textField: {
+    '& .MuiOutlinedInput-root': {
+      backgroundColor: '#ffffff',
+      borderRadius: '12px',
+      '& fieldset': {
+        borderColor: '#d4c4a8',
+      },
+      '&:hover fieldset': {
+        borderColor: '#8b7355',
+      },
+      '&.Mui-focused fieldset': {
+        borderColor: '#8b7355',
+      },
+    },
+  },
+  loginButton: {
+    backgroundColor: '#8b7355',
+    color: '#ffffff',
+    borderRadius: '12px',
+    padding: theme.spacing(1.5),
+    fontSize: '1.1rem',
+    fontWeight: 'bold',
+    '&:hover': {
+      backgroundColor: '#6d5a42',
+      transform: 'translateY(-2px)',
+      boxShadow: '0 8px 25px rgba(139, 115, 85, 0.3)',
+    },
+    transition: 'all 0.3s ease',
+  },
+  dashboardHeader: {
+    background: 'linear-gradient(135deg, #8b7355 0%, #c4a07a 100%)',
+    color: 'white',
+    borderRadius: '20px',
+    padding: theme.spacing(4),
+    marginBottom: theme.spacing(4),
+    boxShadow: '0 15px 35px rgba(139, 115, 85, 0.2)',
+    position: 'relative',
+    overflow: 'hidden',
+    '&::before': {
+      content: '""',
+      position: 'absolute',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      background: 'url("data:image/svg+xml,%3Csvg width="60" height="60" viewBox="0 0 60 60" xmlns="http://www.w3.org/2000/svg"%3E%3Cg fill="none" fill-rule="evenodd"%3E%3Cg fill="%23ffffff" fill-opacity="0.05"%3E%3Ccircle cx="30" cy="30" r="4"/%3E%3C/g%3E%3C/g%3E%3C/svg%3E")',
+    },
+  },
+  headerTitle: {
+    fontFamily: '"Rocket Sharpie Bold", "Courier New", monospace !important',
+    fontSize: '2.5rem',
+    fontWeight: 'bold',
+    marginBottom: theme.spacing(1),
+    position: 'relative',
+    zIndex: 1,
+  },
+  headerSubtitle: {
+    fontSize: '1.2rem',
+    opacity: 0.9,
+    position: 'relative',
+    zIndex: 1,
+  },
+  statsGrid: {
+    marginBottom: theme.spacing(4),
   },
   statCard: {
+    background: 'linear-gradient(135deg, #ffffff 0%, #f8f6f3 100%)',
+    borderRadius: '16px',
+    padding: theme.spacing(3),
     textAlign: 'center',
-    height: '100%',
-    background: 'linear-gradient(135deg, #667eea 0%, #764ba2 100%)',
-    color: 'white',
+    border: '1px solid rgba(139, 115, 85, 0.1)',
+    boxShadow: '0 8px 25px rgba(139, 115, 85, 0.08)',
+    transition: 'all 0.3s ease',
+    '&:hover': {
+      transform: 'translateY(-5px)',
+      boxShadow: '0 15px 35px rgba(139, 115, 85, 0.15)',
+    },
   },
   statIcon: {
     fontSize: 48,
     marginBottom: theme.spacing(1),
+    color: '#8b7355',
   },
   statValue: {
-    fontSize: '2rem',
+    fontSize: '2.2rem',
     fontWeight: 'bold',
-    marginBottom: theme.spacing(1),
+    color: '#8b7355',
+    fontFamily: '"Courier New", monospace',
   },
-  tableContainer: {
-    maxHeight: 400,
+  statLabel: {
+    color: '#666',
+    fontSize: '0.95rem',
+    marginTop: theme.spacing(0.5),
   },
-  auditEntry: {
-    marginBottom: theme.spacing(1),
-    padding: theme.spacing(1),
-    backgroundColor: theme.palette.grey[50],
-    borderRadius: 4,
+  usersTable: {
+    background: 'linear-gradient(135deg, #ffffff 0%, #f8f6f3 100%)',
+    borderRadius: '20px',
+    padding: theme.spacing(3),
+    border: '1px solid rgba(139, 115, 85, 0.1)',
+    boxShadow: '0 15px 35px rgba(139, 115, 85, 0.1)',
   },
-  header: {
+  tableTitle: {
+    fontFamily: '"Rocket Sharpie Bold", "Courier New", monospace !important',
+    color: '#8b7355',
+    fontSize: '1.8rem',
+    marginBottom: theme.spacing(3),
     display: 'flex',
     alignItems: 'center',
-    marginBottom: theme.spacing(3),
+    gap: theme.spacing(1),
   },
-  headerIcon: {
-    marginRight: theme.spacing(1),
-    fontSize: '2rem',
+  tableContainer: {
+    borderRadius: '12px',
+    overflow: 'hidden',
+    border: '1px solid rgba(139, 115, 85, 0.1)',
+  },
+  tableHeader: {
+    backgroundColor: '#8b7355',
+    '& .MuiTableCell-head': {
+      color: 'white',
+      fontWeight: 'bold',
+      fontSize: '1rem',
+      fontFamily: '"Courier New", monospace',
+    },
+  },
+  tableRow: {
+    '&:nth-of-type(odd)': {
+      backgroundColor: '#faf9f7',
+    },
+    '&:hover': {
+      backgroundColor: '#f0ede6',
+      transform: 'scale(1.01)',
+      boxShadow: '0 4px 15px rgba(139, 115, 85, 0.1)',
+    },
+    transition: 'all 0.2s ease',
+  },
+  usernameCell: {
+    fontWeight: 'bold',
+    color: '#8b7355',
+    fontSize: '1.1rem',
+  },
+  actionButton: {
+    backgroundColor: '#c4a07a',
+    color: 'white',
+    borderRadius: '8px',
+    fontSize: '0.85rem',
+    padding: theme.spacing(0.5, 1.5),
+    '&:hover': {
+      backgroundColor: '#b8956d',
+      transform: 'translateY(-1px)',
+      boxShadow: '0 4px 12px rgba(196, 160, 122, 0.3)',
+    },
+    transition: 'all 0.2s ease',
+  },
+  refreshButton: {
+    background: 'linear-gradient(135deg, #8b7355 0%, #c4a07a 100%)',
+    color: 'white',
+    borderRadius: '12px',
+    padding: theme.spacing(1.5, 3),
+    fontSize: '1.1rem',
+    fontWeight: 'bold',
+    '&:hover': {
+      transform: 'translateY(-2px)',
+      boxShadow: '0 8px 25px rgba(139, 115, 85, 0.3)',
+    },
+    transition: 'all 0.3s ease',
+  },
+  chip: {
+    fontFamily: '"Courier New", monospace',
+    fontWeight: 'bold',
+  },
+  successChip: {
+    backgroundColor: '#4caf50',
+    color: 'white',
+  },
+  primaryChip: {
+    backgroundColor: '#8b7355',
+    color: 'white',
+  },
+  defaultChip: {
+    backgroundColor: '#e0e0e0',
+    color: '#666',
   },
 }));
 
 interface AuditData {
-  id: string;
+  audit_id: string;
+  username: string;
   timestamp: string;
-  userAgent: string;
+  server_timestamp: string;
+  localStorage_data: Record<string, any>;
+  localStorage_size: number;
   url: string;
-  localStorageSize: number;
-  localStorageKeys: string[];
-  sessionStorageSize: number;
-  cookiesCount: number;
-  viewportSize: string;
-  language: string;
-  timezone: string;
+  userAgent: string;
+  client_ip: string;
+  app_version?: string;
 }
 
-interface AuditStats {
-  totalEntries: number;
-  uniqueUsers: number;
-  avgLocalStorageSize: number;
-  topUserAgents: Array<{ userAgent: string; count: number }>;
-  topPages: Array<{ url: string; count: number }>;
-  dailyStats: Array<{ date: string; count: number }>;
-  languageDistribution: Array<{ language: string; count: number }>;
-  avgSessionTime: number;
+interface UserAuditSummary {
+  username: string;
+  auditCount: number;
+  lastSeen: string;
+  firstSeen: string;
+  avgStorageSize: number;
+  localStorageData: Record<string, any>;
+  hasIsruUsername: boolean;
+  hasFriendsLeague: boolean;
+  recentAudits: AuditData[];
 }
 
 const AdminDashboard: React.FC = () => {
@@ -112,7 +276,7 @@ const AdminDashboard: React.FC = () => {
   const [password, setPassword] = useState('');
   const [loginError, setLoginError] = useState('');
   const [auditData, setAuditData] = useState<AuditData[]>([]);
-  const [stats, setStats] = useState<AuditStats | null>(null);
+  const [userSummaries, setUserSummaries] = useState<UserAuditSummary[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
 
@@ -129,52 +293,59 @@ const AdminDashboard: React.FC = () => {
   const loadAuditData = async () => {
     setLoading(true);
     setError('');
-    
+
     try {
       console.log('🔄 Loading audit data...');
-      
-      // Fetch list of audit files
-      const listResponse = await fetch('/api/audit-list');
+
+      // Fetch list of audit files for today
+      const today = new Date().toISOString().slice(0, 10); // YYYY-MM-DD
+      const listResponse = await fetch(`/api/audit-list?date=${today}`);
+
       if (!listResponse.ok) {
         throw new Error(`Failed to fetch audit list: ${listResponse.status}`);
       }
-      
-      const auditFiles = await listResponse.json();
-      console.log('📁 Found audit files:', auditFiles);
-      
-      // Fetch details for each file (limit to last 50 for performance)
+
+      const auditFilesResponse = await listResponse.json();
+      console.log('📁 Found audit files:', auditFilesResponse);
+
+      const auditFiles = Array.isArray(auditFilesResponse.audits) ? auditFilesResponse.audits : [];
       const allAuditData: AuditData[] = [];
-      const filesToProcess = auditFiles.slice(0, 50);
-      
+
+      // Process up to 100 files for better coverage
+      const filesToProcess = auditFiles.slice(0, 100);
+
       for (const file of filesToProcess) {
         try {
-          const detailsResponse = await fetch(`/api/audit-details?filename=${encodeURIComponent(file.name)}`);
+          const detailsResponse = await fetch(`/api/audit-details?url=${encodeURIComponent(file.url)}`);
           if (detailsResponse.ok) {
             const details = await detailsResponse.json();
-            if (details.data) {
+
+            if (details && typeof details === 'object' && details.username) {
               allAuditData.push({
-                id: file.name,
-                timestamp: details.data.timestamp || new Date().toISOString(),
-                userAgent: details.data.userAgent || 'Unknown',
-                url: details.data.url || 'Unknown',
-                localStorageSize: details.data.localStorageSize || 0,
-                localStorageKeys: details.data.localStorageKeys || [],
-                sessionStorageSize: details.data.sessionStorageSize || 0,
-                cookiesCount: details.data.cookiesCount || 0,
-                viewportSize: details.data.viewportSize || 'Unknown',
-                language: details.data.language || 'Unknown',
-                timezone: details.data.timezone || 'Unknown',
+                audit_id: details.audit_id || file.pathname,
+                username: details.username,
+                timestamp: details.timestamp || new Date().toISOString(),
+                server_timestamp: details.server_timestamp || details.timestamp,
+                localStorage_data: details.localStorage_data || {},
+                localStorage_size: details.localStorage_size || 0,
+                url: details.url || 'Unknown',
+                userAgent: details.user_agent || details.userAgent || 'Unknown',
+                client_ip: details.client_ip || 'Unknown',
+                app_version: details.app_version
               });
             }
           }
         } catch (err) {
-          console.warn('Failed to load details for file:', file.name, err);
+          console.warn('Failed to load details for file:', file.pathname, err);
         }
       }
-      
+
       setAuditData(allAuditData);
-      generateStats(allAuditData);
-      
+      console.log('📊 Loaded audit data:', allAuditData.length, 'entries');
+
+      // Generate user summaries
+      generateUserSummaries(allAuditData);
+
     } catch (err) {
       console.error('Error loading audit data:', err);
       setError('Errore durante il caricamento dei dati di audit');
@@ -183,382 +354,332 @@ const AdminDashboard: React.FC = () => {
     }
   };
 
-  const generateStats = (data: AuditData[]): void => {
+  const generateUserSummaries = (data: AuditData[]): void => {
     if (data.length === 0) {
-      setStats(null);
+      setUserSummaries([]);
       return;
     }
 
-    // Calculate statistics
-    const userAgentCounts = new Map<string, number>();
-    const urlCounts = new Map<string, number>();
-    const languageCounts = new Map<string, number>();
-    const dailyCounts = new Map<string, number>();
-    
-    let totalLocalStorageSize = 0;
-    const uniqueUserAgents = new Set<string>();
+    // Group data by username
+    const userGroups = new Map<string, AuditData[]>();
 
     data.forEach(entry => {
-      // User agents
-      const shortUserAgent = entry.userAgent.split(' ')[0] || 'Unknown';
-      userAgentCounts.set(shortUserAgent, (userAgentCounts.get(shortUserAgent) || 0) + 1);
-      uniqueUserAgents.add(entry.userAgent);
-      
-      // URLs
-      urlCounts.set(entry.url, (urlCounts.get(entry.url) || 0) + 1);
-      
-      // Languages
-      languageCounts.set(entry.language, (languageCounts.get(entry.language) || 0) + 1);
-      
-      // Daily counts
-      const date = entry.timestamp.split('T')[0];
-      dailyCounts.set(date, (dailyCounts.get(date) || 0) + 1);
-      
-      // Storage size
-      totalLocalStorageSize += entry.localStorageSize;
+      if (!userGroups.has(entry.username)) {
+        userGroups.set(entry.username, []);
+      }
+      userGroups.get(entry.username)!.push(entry);
     });
 
-    const stats: AuditStats = {
-      totalEntries: data.length,
-      uniqueUsers: uniqueUserAgents.size,
-      avgLocalStorageSize: Math.round(totalLocalStorageSize / data.length),
-      topUserAgents: Array.from(userAgentCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([userAgent, count]) => ({ userAgent, count })),
-      topPages: Array.from(urlCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .slice(0, 5)
-        .map(([url, count]) => ({ url, count })),
-      dailyStats: Array.from(dailyCounts.entries())
-        .sort((a, b) => a[0].localeCompare(b[0]))
-        .map(([date, count]) => ({ date, count })),
-      languageDistribution: Array.from(languageCounts.entries())
-        .sort((a, b) => b[1] - a[1])
-        .map(([language, count]) => ({ language, count })),
-      avgSessionTime: 0, // Placeholder for now
-    };
+    // Generate summaries for each user
+    const summaries: UserAuditSummary[] = Array.from(userGroups.entries()).map(([username, userAudits]) => {
+      // Sort by timestamp (most recent first)
+      userAudits.sort((a, b) => new Date(b.server_timestamp).getTime() - new Date(a.server_timestamp).getTime());
 
-    setStats(stats);
+      const mostRecentAudit = userAudits[0];
+      const oldestAudit = userAudits[userAudits.length - 1];
+
+      // Calculate average storage size
+      const avgStorageSize = userAudits.reduce((sum, audit) => sum + audit.localStorage_size, 0) / userAudits.length;
+
+      // Check for specific localStorage keys
+      const hasIsruUsername = !!mostRecentAudit.localStorage_data['isru-username'];
+      const hasFriendsLeague = !!mostRecentAudit.localStorage_data['friends-league'];
+
+      return {
+        username,
+        auditCount: userAudits.length,
+        lastSeen: mostRecentAudit.server_timestamp,
+        firstSeen: oldestAudit.server_timestamp,
+        avgStorageSize: Math.round(avgStorageSize),
+        localStorageData: mostRecentAudit.localStorage_data,
+        hasIsruUsername,
+        hasFriendsLeague,
+        recentAudits: userAudits.slice(0, 5) // Keep only 5 most recent
+      };
+    });
+
+    // Sort by last seen (most recent first)
+    summaries.sort((a, b) => new Date(b.lastSeen).getTime() - new Date(a.lastSeen).getTime());
+
+    setUserSummaries(summaries);
+    console.log('👥 Generated user summaries:', summaries.length, 'users');
   };
 
   if (!isAuthenticated) {
     return (
-      <Container maxWidth="sm">
-        <Paper className={classes.loginPaper}>
-          <Box textAlign="center" mb={3}>
-            <SecurityIcon className={classes.headerIcon} color="primary" />
-            <Typography variant="h4" component="h1">
-              Admin Dashboard
-            </Typography>
-            <Typography variant="body2" color="textSecondary">
-              Accesso riservato agli amministratori
-            </Typography>
-          </Box>
-          
-          <Box component="form" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
-            <TextField
-              fullWidth
-              label="Username"
-              value={username}
-              onChange={(e) => setUsername(e.target.value)}
-              margin="normal"
-              variant="outlined"
-            />
-            <TextField
-              fullWidth
-              label="Password"
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              margin="normal"
-              variant="outlined"
-            />
-            
-            {loginError && (
-              <Alert severity="error" style={{ marginTop: 16 }}>
-                {loginError}
-              </Alert>
-            )}
-            
-            <Button
-              fullWidth
-              variant="contained"
-              color="primary"
-              type="submit"
-              style={{ marginTop: 24 }}
-              size="large"
-            >
-              Accedi
-            </Button>
-          </Box>
-          
-          <Box mt={2} textAlign="center">
-            <Typography variant="caption" color="textSecondary">
-              Utilizza: admin / admin
-            </Typography>
-          </Box>
-        </Paper>
-      </Container>
+      <Box className={classes.container}>
+        <Container maxWidth="sm" className={classes.contentWrapper}>
+          <Paper className={classes.loginCard}>
+            <Box textAlign="center" mb={3}>
+              <SecurityIcon style={{ fontSize: '3rem', color: '#8b7355', marginBottom: '16px' }} />
+              <Typography className={classes.loginTitle}>
+                🚀 I.S.R.U ADMIN
+              </Typography>
+              <Typography variant="body1" style={{ color: '#666', marginBottom: '24px' }}>
+                Mars Resource Utilization Control Center
+              </Typography>
+            </Box>
+
+            <Box component="form" onSubmit={(e) => { e.preventDefault(); handleLogin(); }}>
+              <TextField
+                fullWidth
+                label="Admin Username"
+                value={username}
+                onChange={(e) => setUsername(e.target.value)}
+                margin="normal"
+                variant="outlined"
+                className={classes.textField}
+                placeholder="Enter admin username..."
+              />
+              <TextField
+                fullWidth
+                label="Access Code"
+                type="password"
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                margin="normal"
+                variant="outlined"
+                className={classes.textField}
+                placeholder="Enter admin access code..."
+              />
+
+              {loginError && (
+                <Alert
+                  severity="error"
+                  style={{
+                    marginTop: 16,
+                    borderRadius: '12px',
+                    backgroundColor: '#ffebee',
+                    border: '1px solid #f44336'
+                  }}
+                >
+                  {loginError}
+                </Alert>
+              )}
+
+              <Button
+                fullWidth
+                variant="contained"
+                type="submit"
+                className={classes.loginButton}
+                style={{ marginTop: 24 }}
+                size="large"
+              >
+                🔓 Access Control Center
+              </Button>
+            </Box>
+
+            <Box mt={2} textAlign="center">
+              <Typography variant="caption" style={{ color: '#8b7355', fontWeight: 'bold' }}>
+                🔑 Default: admin / admin
+              </Typography>
+            </Box>
+          </Paper>
+        </Container>
+      </Box>
     );
   }
 
   return (
-    <Container maxWidth="lg" className={classes.container}>
-      <Box className={classes.header}>
-        <DashboardIcon className={classes.headerIcon} color="primary" />
-        <Typography variant="h4" component="h1">
-          Admin Dashboard - Audit Analytics
-        </Typography>
-      </Box>
+    <Box className={classes.container}>
+      <Container maxWidth="lg" className={classes.contentWrapper}>
+        {/* Header */}
+        <Box className={classes.dashboardHeader}>
+          <Typography className={classes.headerTitle}>
+            🚀 I.S.R.U ADMIN CENTER
+          </Typography>
+          <Typography className={classes.headerSubtitle}>
+            Mars Resource Utilization - Audit Analytics & User Management
+          </Typography>
+        </Box>
 
-      {loading && (
-        <Paper className={classes.dashboardPaper}>
-          <Box display="flex" alignItems="center" justifyContent="center" p={4}>
-            <CircularProgress />
-            <Typography variant="body1" style={{ marginLeft: 16 }}>
-              Caricamento dati di audit...
+        {loading && (
+          <Box
+            display="flex"
+            alignItems="center"
+            justifyContent="center"
+            p={6}
+            style={{
+              background: 'linear-gradient(135deg, #ffffff 0%, #f8f6f3 100%)',
+              borderRadius: '20px',
+              border: '1px solid rgba(139, 115, 85, 0.1)',
+              boxShadow: '0 15px 35px rgba(139, 115, 85, 0.1)',
+            }}
+          >
+            <CircularProgress style={{ color: '#8b7355' }} />
+            <Typography variant="h6" style={{ marginLeft: 24, color: '#8b7355', fontFamily: '"Courier New", monospace' }}>
+              🔄 Loading audit data from Mars servers...
             </Typography>
           </Box>
-        </Paper>
-      )}
+        )}
 
-      {error && (
-        <Alert severity="error" style={{ marginBottom: 16 }}>
-          {error}
-        </Alert>
-      )}
+        {error && (
+          <Alert
+            severity="error"
+            style={{
+              marginBottom: 24,
+              borderRadius: '12px',
+              backgroundColor: '#ffebee',
+              border: '1px solid #f44336'
+            }}
+          >
+            {error}
+          </Alert>
+        )}
 
-      {stats && (
-        <>
-          {/* Statistics Cards */}
-          <Grid container spacing={3} style={{ marginBottom: 24 }}>
-            <Grid item xs={12} sm={6} md={3}>
-              <Card className={classes.statCard}>
-                <CardContent>
-                  <StorageIcon className={classes.statIcon} />
-                  <Typography className={classes.statValue}>
-                    {stats.totalEntries}
-                  </Typography>
-                  <Typography variant="h6">
-                    Audit Totali
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Card className={classes.statCard}>
-                <CardContent>
-                  <PeopleIcon className={classes.statIcon} />
-                  <Typography className={classes.statValue}>
-                    {stats.uniqueUsers}
-                  </Typography>
-                  <Typography variant="h6">
-                    Utenti Unici
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Card className={classes.statCard}>
-                <CardContent>
-                  <TimelineIcon className={classes.statIcon} />
-                  <Typography className={classes.statValue}>
-                    {Math.round(stats.avgLocalStorageSize / 1024)}KB
-                  </Typography>
-                  <Typography variant="h6">
-                    Storage Medio
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-            
-            <Grid item xs={12} sm={6} md={3}>
-              <Card className={classes.statCard}>
-                <CardContent>
-                  <DashboardIcon className={classes.statIcon} />
-                  <Typography className={classes.statValue}>
-                    {stats.dailyStats.length}
-                  </Typography>
-                  <Typography variant="h6">
-                    Giorni Attivi
-                  </Typography>
-                </CardContent>
-              </Card>
-            </Grid>
-          </Grid>
+        {userSummaries.length > 0 && (
+          <>
+            {/* Summary Cards */}
+            <Grid container spacing={3} className={classes.statsGrid}>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card className={classes.statCard}>
+                  <CardContent>
+                    <PeopleIcon className={classes.statIcon} />
+                    <Typography className={classes.statValue}>
+                      {userSummaries.length}
+                    </Typography>
+                    <Typography className={classes.statLabel}>
+                      🧑‍🚀 Active Users
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
 
-          {/* Detailed Tables */}
-          <Grid container spacing={3}>
-            {/* Top User Agents */}
-            <Grid item xs={12} md={6}>
-              <Paper className={classes.dashboardPaper}>
-                <Typography variant="h6" gutterBottom>
-                  Browser più utilizzati
-                </Typography>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Browser</TableCell>
-                        <TableCell align="right">Utilizzi</TableCell>
-                        <TableCell align="right">%</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {stats.topUserAgents.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.userAgent}</TableCell>
-                          <TableCell align="right">{item.count}</TableCell>
-                          <TableCell align="right">
-                            {Math.round((item.count / stats.totalEntries) * 100)}%
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
+              <Grid item xs={12} sm={6} md={3}>
+                <Card className={classes.statCard}>
+                  <CardContent>
+                    <StorageIcon className={classes.statIcon} />
+                    <Typography className={classes.statValue}>
+                      {auditData.length}
+                    </Typography>
+                    <Typography className={classes.statLabel}>
+                      📊 Total Audits
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Card className={classes.statCard}>
+                  <CardContent>
+                    <TimelineIcon className={classes.statIcon} />
+                    <Typography className={classes.statValue}>
+                      {userSummaries.filter(u => u.hasIsruUsername).length}
+                    </Typography>
+                    <Typography className={classes.statLabel}>
+                      🔑 With ISRU ID
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
+
+              <Grid item xs={12} sm={6} md={3}>
+                <Card className={classes.statCard}>
+                  <CardContent>
+                    <DashboardIcon className={classes.statIcon} />
+                    <Typography className={classes.statValue}>
+                      {userSummaries.filter(u => u.hasFriendsLeague).length}
+                    </Typography>
+                    <Typography className={classes.statLabel}>
+                      👥 In League
+                    </Typography>
+                  </CardContent>
+                </Card>
+              </Grid>
             </Grid>
 
-            {/* Top Pages */}
-            <Grid item xs={12} md={6}>
-              <Paper className={classes.dashboardPaper}>
-                <Typography variant="h6" gutterBottom>
-                  Pagine più visitate
-                </Typography>
-                <TableContainer>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>URL</TableCell>
-                        <TableCell align="right">Visite</TableCell>
-                        <TableCell align="right">%</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {stats.topPages.map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell style={{ maxWidth: 200, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                            {item.url}
-                          </TableCell>
-                          <TableCell align="right">{item.count}</TableCell>
-                          <TableCell align="right">
-                            {Math.round((item.count / stats.totalEntries) * 100)}%
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
-            </Grid>
-
-            {/* Language Distribution */}
-            <Grid item xs={12} md={6}>
-              <Paper className={classes.dashboardPaper}>
-                <Typography variant="h6" gutterBottom>
-                  Distribuzione linguistica
-                </Typography>
-                {stats.languageDistribution.map((item, index) => (
-                  <Box key={index} mb={1}>
-                    <Box display="flex" justifyContent="space-between" alignItems="center">
-                      <Typography variant="body2">{item.language}</Typography>
-                      <Chip 
-                        label={`${item.count} (${Math.round((item.count / stats.totalEntries) * 100)}%)`}
-                        size="small"
-                        color="primary"
-                      />
-                    </Box>
-                    <LinearProgress 
-                      variant="determinate" 
-                      value={(item.count / stats.totalEntries) * 100}
-                      style={{ marginTop: 4 }}
-                    />
-                  </Box>
-                ))}
-              </Paper>
-            </Grid>
-
-            {/* Daily Activity */}
-            <Grid item xs={12} md={6}>
-              <Paper className={classes.dashboardPaper}>
-                <Typography variant="h6" gutterBottom>
-                  Attività giornaliera
-                </Typography>
-                <TableContainer className={classes.tableContainer}>
-                  <Table size="small">
-                    <TableHead>
-                      <TableRow>
-                        <TableCell>Data</TableCell>
-                        <TableCell align="right">Audit</TableCell>
-                      </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {stats.dailyStats.slice(-10).map((item, index) => (
-                        <TableRow key={index}>
-                          <TableCell>{item.date}</TableCell>
-                          <TableCell align="right">
-                            <Chip label={item.count} size="small" />
-                          </TableCell>
-                        </TableRow>
-                      ))}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </Paper>
-            </Grid>
-          </Grid>
-
-          {/* Raw Data Table */}
-          <Paper className={classes.dashboardPaper} style={{ marginTop: 24 }}>
-            <Typography variant="h6" gutterBottom>
-              Dati grezzi (ultimi 20)
-            </Typography>
-            <TableContainer className={classes.tableContainer}>
-              <Table size="small">
-                <TableHead>
-                  <TableRow>
-                    <TableCell>Timestamp</TableCell>
-                    <TableCell>URL</TableCell>
-                    <TableCell>Storage (KB)</TableCell>
-                    <TableCell>Viewport</TableCell>
-                    <TableCell>Lingua</TableCell>
-                  </TableRow>
-                </TableHead>
-                <TableBody>
-                  {auditData.slice(0, 20).map((item, index) => (
-                    <TableRow key={index}>
-                      <TableCell>
-                        {new Date(item.timestamp).toLocaleString('it-IT')}
-                      </TableCell>
-                      <TableCell style={{ maxWidth: 300, overflow: 'hidden', textOverflow: 'ellipsis' }}>
-                        {item.url}
-                      </TableCell>
-                      <TableCell>{Math.round(item.localStorageSize / 1024)}</TableCell>
-                      <TableCell>{item.viewportSize}</TableCell>
-                      <TableCell>{item.language}</TableCell>
+            {/* Users Table */}
+            <Paper className={classes.usersTable}>
+              <Typography className={classes.tableTitle}>
+                🧑‍🚀 Mars Colonist Audit Registry
+              </Typography>
+              <TableContainer className={classes.tableContainer}>
+                <Table>
+                  <TableHead className={classes.tableHeader}>
+                    <TableRow>
+                      <TableCell>👤 Username</TableCell>
+                      <TableCell align="center">📊 Audits</TableCell>
+                      <TableCell align="center">🕒 Last Seen</TableCell>
+                      <TableCell align="center">💾 Storage</TableCell>
+                      <TableCell align="center">🔑 ISRU ID</TableCell>
+                      <TableCell align="center">👥 League</TableCell>
+                      <TableCell align="center">⚙️ Actions</TableCell>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </TableContainer>
-          </Paper>
-
-          <Box mt={3} textAlign="center">
-            <Button 
-              variant="outlined" 
-              onClick={loadAuditData}
-              disabled={loading}
-            >
-              Aggiorna Dati
-            </Button>
-          </Box>
-        </>
-      )}
-    </Container>
+                  </TableHead>
+                  <TableBody>
+                    {userSummaries.map((user, index) => (
+                      <TableRow key={index} className={classes.tableRow}>
+                        <TableCell>
+                          <Typography className={classes.usernameCell}>
+                            {user.username}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Chip
+                            label={user.auditCount}
+                            size="small"
+                            className={`${classes.chip} ${classes.primaryChip}`}
+                          />
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="caption" style={{ fontFamily: '"Courier New", monospace' }}>
+                            {new Date(user.lastSeen).toLocaleString('it-IT')}
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          <Typography variant="body2" style={{ fontFamily: '"Courier New", monospace', fontWeight: 'bold' }}>
+                            {Math.round(user.avgStorageSize / 1024)}KB
+                          </Typography>
+                        </TableCell>
+                        <TableCell align="center">
+                          {user.hasIsruUsername ? (
+                            <Chip label="✓" size="small" className={`${classes.chip} ${classes.primaryChip}`} />
+                          ) : (
+                            <Chip label="✗" size="small" className={`${classes.chip} ${classes.defaultChip}`} />
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          {user.hasFriendsLeague ? (
+                            <Chip label="✓" size="small" className={`${classes.chip} ${classes.primaryChip}`} />
+                          ) : (
+                            <Chip label="✗" size="small" className={`${classes.chip} ${classes.defaultChip}`} />
+                          )}
+                        </TableCell>
+                        <TableCell align="center">
+                          <Button
+                            size="small"
+                            variant="contained"
+                            className={classes.actionButton}
+                            onClick={() => {
+                              // Show detailed localStorage data
+                              console.log(`📋 LocalStorage for ${user.username}:`, user.localStorageData);
+                              alert(`🔍 LocalStorage data for ${user.username} logged to console!\n\nCheck browser console (F12) for detailed data.`);
+                            }}
+                          >
+                            🔍 View Data
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+              </TableContainer>
+            </Paper>
+            <Box mt={4} display="flex" justifyContent="center">
+              <Button
+                variant="contained"
+                onClick={loadAuditData}
+                disabled={loading}
+                className={classes.refreshButton}
+                startIcon={<RefreshIcon />}
+              >
+                🔄 Refresh Mars Data
+              </Button>
+            </Box>
+          </>
+        )}
+      </Container>
+    </Box>
   );
 };
 
