@@ -215,6 +215,24 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     severity: 'success' | 'error';
   }>({ open: false, message: '', severity: 'success' });
 
+  // Debug states for streak troubleshooting
+  const [streakDebugInfo, setStreakDebugInfo] = useState<Map<number, {
+    activityId: number;
+    activityTitle: string;
+    attempts: Array<{
+      attempt: number;
+      method: string;
+      url: string;
+      timestamp: string;
+      success: boolean;
+      error?: string;
+      response?: any;
+      statusCode?: number;
+    }>;
+    finalResult: 'success' | 'failed' | 'zero_streak';
+    retryCount: number;
+  }>>(new Map());
+
   // Notification handlers
   const showNotification = (message: string, severity: 'success' | 'error' = 'success') => {
     setNotification({ open: true, message, severity });
@@ -310,16 +328,61 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     }
   };
 
+  // Helper function to add debug info for streak attempts
+  const addStreakDebugInfo = (activityId: number, activityTitle: string, attempt: {
+    attempt: number;
+    method: string;
+    url: string;
+    timestamp: string;
+    success: boolean;
+    error?: string;
+    response?: any;
+    statusCode?: number;
+  }) => {
+    setStreakDebugInfo(prev => {
+      const newMap = new Map(prev);
+      const existing = newMap.get(activityId) || {
+        activityId,
+        activityTitle,
+        attempts: [],
+        finalResult: 'failed' as const,
+        retryCount: 0
+      };
+      
+      existing.attempts.push(attempt);
+      newMap.set(activityId, existing);
+      return newMap;
+    });
+  };
+
+  // Helper function to finalize debug info
+  const finalizeStreakDebugInfo = (activityId: number, result: 'success' | 'failed' | 'zero_streak', retryCount: number = 0) => {
+    setStreakDebugInfo(prev => {
+      const newMap = new Map(prev);
+      const existing = newMap.get(activityId);
+      if (existing) {
+        existing.finalResult = result;
+        existing.retryCount = retryCount;
+        newMap.set(activityId, existing);
+      }
+      return newMap;
+    });
+  };
+
   // Function to load streak data for activities
   const loadStreakData = async (activities: any[], username: string) => {
     setLoadingStreaks(true);
     const newStreakData = new Map<number, ActivityStreakResponse>();
+    
+    // Clear previous debug info
+    setStreakDebugInfo(new Map());
     
     try {
       // Load streak data for each activity (limit to first 10 for performance)
       const streakPromises = activities.slice(0, 10).map(async (activity) => {
         // Prova activityId prima, poi id come fallback (definito fuori dal try/catch)
         const activityIdentifier = activity.activityId || activity.id;
+        const activityTitle = activity.activityTitle || activity.title || `Activity ${activityIdentifier}`;
         
         try {
           // Debug: Verifica la struttura dell'activity
@@ -336,24 +399,125 @@ export const UserProfile: React.FC<UserProfileProps> = ({
           // Verifica che activityId esista
           if (!activityIdentifier) {
             console.warn('UserProfile: Activity missing activityId/id:', activity);
+            addStreakDebugInfo(0, activityTitle, {
+              attempt: 1,
+              method: 'validation',
+              url: 'N/A',
+              timestamp: new Date().toISOString(),
+              success: false,
+              error: 'Missing activityId/id in activity object',
+              response: { rawActivity: activity, availableKeys: Object.keys(activity) }
+            });
+            return null;
+          }
+
+          // Verifica che sia un numero valido
+          const numericActivityId = Number(activityIdentifier);
+          if (isNaN(numericActivityId) || numericActivityId <= 0) {
+            console.warn('UserProfile: Invalid activityId (not a positive number):', activityIdentifier);
+            addStreakDebugInfo(activityIdentifier, activityTitle, {
+              attempt: 1,
+              method: 'validation',
+              url: 'N/A',
+              timestamp: new Date().toISOString(),
+              success: false,
+              error: `Invalid activityId: "${activityIdentifier}" is not a positive number`,
+              response: { originalValue: activityIdentifier, numericValue: numericActivityId, type: typeof activityIdentifier }
+            });
             return null;
           }
           
-          const streak = await fetchActivityStreak(username, activityIdentifier);
+          // Track the API call attempt
+          const startTime = new Date().toISOString();
+          addStreakDebugInfo(activityIdentifier, activityTitle, {
+            attempt: 1,
+            method: 'fetchActivityStreak',
+            url: `Starting streak fetch for activity ${activityIdentifier} (numeric: ${numericActivityId})`,
+            timestamp: startTime,
+            success: false,
+            error: 'In progress...',
+            response: { 
+              username: username, 
+              activityId: activityIdentifier,
+              numericActivityId: numericActivityId,
+              activityTitle: activityTitle,
+              willCallApiWith: { username, activityId: numericActivityId }
+            }
+          });
+          
+          const streak = await fetchActivityStreak(username, numericActivityId);
+          
+          // Update debug info with result
+          addStreakDebugInfo(activityIdentifier, activityTitle, {
+            attempt: 2,
+            method: 'fetchActivityStreak_result',
+            url: 'API call completed',
+            timestamp: new Date().toISOString(),
+            success: !!streak,
+            response: streak ? {
+              fullResponse: streak, // Include the full response
+              hasData: !!streak,
+              isObject: typeof streak === 'object',
+              hasParticipation: !!(streak as any)?.participation,
+              currentStreak: (streak as any)?.participation?.currentStreak,
+              keys: streak ? Object.keys(streak) : [],
+              responseSize: JSON.stringify(streak).length
+            } : null,
+            error: !streak ? 'No data returned from API' : undefined
+          });
           
           if (streak) {
             // Handle different possible response structures
             let processedStreak = streak;
             
+            // Track response processing
+            addStreakDebugInfo(activityIdentifier, activityTitle, {
+              attempt: 3,
+              method: 'response_processing',
+              url: 'Processing API response',
+              timestamp: new Date().toISOString(),
+              success: true,
+              response: {
+                originalType: typeof streak,
+                hasContents: !!(streak as any).contents,
+                contentsType: typeof (streak as any).contents,
+                directParticipation: !!(streak as any).participation
+              }
+            });
+            
             // Check if the response is wrapped in a proxy container
             if (streak.contents && typeof streak.contents === 'string') {
               try {
                 processedStreak = JSON.parse(streak.contents);
+                addStreakDebugInfo(activityIdentifier, activityTitle, {
+                  attempt: 4,
+                  method: 'json_parse_string',
+                  url: 'Parsed string contents',
+                  timestamp: new Date().toISOString(),
+                  success: true,
+                  response: { parsedSuccessfully: true }
+                });
               } catch (e) {
                 console.warn('UserProfile: Could not parse streak contents as JSON');
+                addStreakDebugInfo(activityIdentifier, activityTitle, {
+                  attempt: 4,
+                  method: 'json_parse_string',
+                  url: 'Failed to parse string contents',
+                  timestamp: new Date().toISOString(),
+                  success: false,
+                  error: `JSON parse error: ${e}`
+                });
               }
             } else if (streak.contents && typeof streak.contents === 'object') {
               processedStreak = streak.contents;
+              addStreakDebugInfo(activityIdentifier, activityTitle, {
+                attempt: 4,
+                method: 'extract_object_contents',
+                url: 'Extracted object contents',
+                timestamp: new Date().toISOString(),
+                success: true,
+                response: { extractedSuccessfully: true }
+              });
             }
             
             // Check if we have the expected structure
@@ -361,8 +525,40 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               // Handle the correct API structure: {participation: {currentStreak: 38}, submissions: [...]}
               if (processedStreak.participation && typeof processedStreak.participation.currentStreak === 'number') {
                 newStreakData.set(activityIdentifier, processedStreak);
+                const streakValue = processedStreak.participation.currentStreak;
+                
+                addStreakDebugInfo(activityIdentifier, activityTitle, {
+                  attempt: 5,
+                  method: 'data_validation_success',
+                  url: 'Valid streak data found',
+                  timestamp: new Date().toISOString(),
+                  success: true,
+                  response: { 
+                    streakValue,
+                    hasParticipation: true,
+                    dataStructureValid: true
+                  }
+                });
+                
+                finalizeStreakDebugInfo(activityIdentifier, streakValue > 0 ? 'success' : 'zero_streak');
               } else {
                 console.warn('UserProfile: Unexpected streak data structure:', processedStreak);
+                
+                addStreakDebugInfo(activityIdentifier, activityTitle, {
+                  attempt: 5,
+                  method: 'data_validation_failed',
+                  url: 'Invalid streak data structure',
+                  timestamp: new Date().toISOString(),
+                  success: false,
+                  error: 'Missing or invalid participation.currentStreak',
+                  response: {
+                    hasParticipation: !!processedStreak.participation,
+                    participationType: typeof processedStreak.participation,
+                    currentStreakType: typeof processedStreak.participation?.currentStreak,
+                    dataKeys: Object.keys(processedStreak)
+                  }
+                });
+                
                 // Set default streak 0 if data structure is invalid
                 const defaultStreak: ActivityStreakResponse = {
                   participation: {
@@ -383,8 +579,23 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   submissions: []
                 };
                 newStreakData.set(activityIdentifier, defaultStreak);
+                finalizeStreakDebugInfo(activityIdentifier, 'zero_streak');
               }
             } else {
+              addStreakDebugInfo(activityIdentifier, activityTitle, {
+                attempt: 5,
+                method: 'data_validation_null',
+                url: 'No valid object in response',
+                timestamp: new Date().toISOString(),
+                success: false,
+                error: 'processedStreak is null or not an object',
+                response: {
+                  processedStreakType: typeof processedStreak,
+                  isNull: processedStreak === null,
+                  isUndefined: processedStreak === undefined
+                }
+              });
+              
               // Set default streak 0 if data structure is invalid
               const defaultStreak: ActivityStreakResponse = {
                 participation: {
@@ -405,8 +616,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 submissions: []
               };
               newStreakData.set(activityIdentifier, defaultStreak);
+              finalizeStreakDebugInfo(activityIdentifier, 'zero_streak');
             }
           } else {
+            addStreakDebugInfo(activityIdentifier, activityTitle, {
+              attempt: 3,
+              method: 'no_data_received',
+              url: 'API returned null/undefined',
+              timestamp: new Date().toISOString(),
+              success: false,
+              error: 'No data received from fetchActivityStreak'
+            });
+            
             // Set default streak 0 if no data received
             const defaultStreak: ActivityStreakResponse = {
               participation: {
@@ -427,9 +648,20 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               submissions: []
             };
             newStreakData.set(activityIdentifier, defaultStreak);
+            finalizeStreakDebugInfo(activityIdentifier, 'zero_streak');
           }
         } catch (error) {
           console.log(`UserProfile: Could not load streak for activity ${activityIdentifier}:`, error);
+          
+          addStreakDebugInfo(activityIdentifier, activityTitle, {
+            attempt: 6,
+            method: 'exception_caught',
+            url: 'Exception during streak loading',
+            timestamp: new Date().toISOString(),
+            success: false,
+            error: `Exception: ${error instanceof Error ? error.message : String(error)}`
+          });
+          
           // Set default streak 0 in case of error
           const defaultStreak: ActivityStreakResponse = {
             participation: {
@@ -450,6 +682,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             submissions: []
           };
           newStreakData.set(activityIdentifier, defaultStreak);
+          finalizeStreakDebugInfo(activityIdentifier, 'failed');
         }
       });
 
@@ -710,134 +943,185 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               {/* Active Activities Section */}
               {profileData.activities && profileData.activities.length > 0 && (
                 <>
-                  <Divider style={{ backgroundColor: '#d4c4a8', margin: '16px 0' }} />
-                  <Box mb={2}>
-                    <Typography variant="subtitle2" style={{ color: '#8b7355', fontWeight: 'bold', marginBottom: 8 }}>
-                      Active Activities ({profileData.activities.length})
-                    </Typography>
-                    {profileData.activities.map((activity) => {
-                      const streak = streakData.get(activity.activityId);
-                      const currentStreak = streak?.participation?.currentStreak ?? 0; // Use correct path to streak data
-                      const streakProgress = getStreakProgress(currentStreak);
+                </>
+              )}
+
+              {/* Streak Summary Panel - Always visible when loading is complete */}
+              {!loadingStreaks && profileData?.activities && (
+                <Box style={{ marginTop: '16px', marginBottom: '16px' }}>
+                  <Card style={{ backgroundColor: '#f5f5f5', border: '1px solid #ddd' }}>
+                    <CardContent style={{ padding: '12px' }}>
+                      <Typography variant="subtitle2" style={{ fontWeight: 'bold', marginBottom: '8px' }}>
+                        📊 Streak Loading Summary
+                      </Typography>
+                      <Box display="flex" justifyContent="space-between" style={{ fontSize: '0.8rem' }}>
+                        <span>Total Activities: {profileData.activities.length}</span>
+                        <span>Streaks Loaded: {streakData.size}</span>
+                        <span>Zero Streaks: {Array.from(streakData.values()).filter(s => s.participation.currentStreak === 0).length}</span>
+                        <span>Debug Entries: {streakDebugInfo.size}</span>
+                      </Box>
+                      {Array.from(streakData.values()).filter(s => s.participation.currentStreak === 0).length > 0 && (
+                        <Typography variant="caption" style={{ color: '#f57c00', display: 'block', marginTop: '4px' }}>
+                          ⚠️ Some streaks are 0 - Check debug panel below for details
+                        </Typography>
+                      )}
+                    </CardContent>
+                  </Card>
+                </Box>
+              )}
+
+              {/* Streak Debug Panel - ALWAYS VISIBLE for debugging */}
+              {profileData?.activities && profileData.activities.length > 0 && (
+                <Box style={{ marginTop: '24px' }}>
+                  <Typography variant="h6" style={{ color: '#e57373', marginBottom: '16px' }}>
+                    🔧 Streak Debug Information (ALWAYS VISIBLE)
+                  </Typography>
+                  
+                  {/* Show debug info if available */}
+                  {streakDebugInfo.size > 0 ? (
+                    Array.from(streakDebugInfo.entries()).map(([activityId, debugInfo]) => {
+                      const currentStreak = streakData.get(activityId)?.participation?.currentStreak ?? 0;
                       
                       return (
-                        <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
-                          <Box display="flex" justifyContent="space-between" alignItems="flex-start">
-                            <Box display="flex" alignItems="flex-start" style={{ flex: 1 }}>
-                              {activity.activityBadgeImage && (
-                                <div className={classes.activityBadge}>
-                                  <img 
-                                    src={getBadgeImageUrl(activity.activityBadgeImage) || ''} 
-                                    alt={`${activity.activityTitle} badge`}
-                                    onError={(e) => {
-                                      e.currentTarget.style.display = 'none';
-                                    }}
-                                  />
-                                </div>
-                              )}
-                              <Box style={{ flex: 1 }}>
-                                <Box display="flex" alignItems="center" style={{ gap: '8px', marginBottom: '4px' }}>
-                                  <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
-                                    Week {activity.activityWeek}: {activity.activityTitle}
+                        <Card 
+                          key={activityId} 
+                          style={{ 
+                            marginBottom: '16px', 
+                            border: currentStreak === 0 ? '2px solid #ff9800' : '1px solid #4caf50',
+                            backgroundColor: currentStreak === 0 ? '#fff8e1' : '#f1f8e9'
+                          }}
+                        >
+                          <CardContent>
+                            <Typography variant="subtitle2" style={{ fontWeight: 'bold', color: currentStreak === 0 ? '#e65100' : '#2e7d32' }}>
+                              {debugInfo.activityTitle} (ID: {activityId})
+                            </Typography>
+                            <Typography variant="caption" style={{ color: '#ff5722' }}>
+                              Final Result: {debugInfo.finalResult} | Retries: {debugInfo.retryCount} | Current Streak: {currentStreak}
+                            </Typography>
+                            {currentStreak === 0 && (
+                              <Typography variant="caption" style={{ color: '#f57c00', display: 'block', fontWeight: 'bold' }}>
+                                ⚠️ ZERO STREAK DETECTED - Check debug info below
+                              </Typography>
+                            )}
+                            
+                            <Box style={{ marginTop: '12px' }}>
+                              {debugInfo.attempts.map((attempt, index) => (
+                                <Box 
+                                  key={index} 
+                                  style={{ 
+                                    marginBottom: '8px', 
+                                    padding: '8px', 
+                                    backgroundColor: attempt.success ? '#e8f5e8' : '#ffebee',
+                                    borderRadius: '4px',
+                                    fontSize: '0.8rem'
+                                  }}
+                                >
+                                  <Typography variant="caption" style={{ fontWeight: 'bold' }}>
+                                    {attempt.success ? '✅' : '❌'} Step {attempt.attempt}: {attempt.method}
                                   </Typography>
-                                  {loadingStreaks && !streak ? (
-                                    <CircularProgress size={12} style={{ color: '#d4c4a8' }} />
-                                  ) : (
-                                    <Box display="flex" alignItems="center" style={{ gap: '2px' }}>
-                                      <StreakIcon style={{ 
-                                        fontSize: '1rem', 
-                                        color: currentStreak > 0 ? '#ff7043' : '#d4c4a8'
-                                      }} />
-                                      <Typography 
-                                        variant="caption" 
-                                        style={{ 
-                                          color: currentStreak > 0 ? '#ff7043' : '#999', 
-                                          fontSize: '0.75rem', 
-                                          fontWeight: 'bold',
-                                          marginRight: '2px'
-                                        }}
-                                      >
-                                        {currentStreak}
+                                  <br />
+                                  <Typography variant="caption" style={{ color: '#666' }}>
+                                    {attempt.timestamp} | {attempt.url}
+                                  </Typography>
+                                  {attempt.error && (
+                                    <>
+                                      <br />
+                                      <Typography variant="caption" style={{ color: '#d32f2f' }}>
+                                        Error: {attempt.error}
                                       </Typography>
-                                      <Typography 
-                                        variant="caption" 
-                                        style={{ 
-                                          color: currentStreak > 0 ? '#ff7043' : '#999', 
-                                          fontSize: '0.7rem'
-                                        }}
-                                      >
-                                        streak
+                                    </>
+                                  )}
+                                  {attempt.response && (
+                                    <>
+                                      <br />
+                                      <Typography variant="caption" style={{ color: '#1976d2', fontWeight: 'bold' }}>
+                                        Response Data:
                                       </Typography>
-                                    </Box>
+                                      <br />
+                                      <pre style={{ 
+                                        backgroundColor: '#f8f9fa', 
+                                        padding: '8px', 
+                                        borderRadius: '4px', 
+                                        fontSize: '0.7rem',
+                                        maxHeight: '200px',
+                                        overflow: 'auto',
+                                        margin: '4px 0',
+                                        whiteSpace: 'pre-wrap',
+                                        wordBreak: 'break-word'
+                                      }}>
+                                        {JSON.stringify(attempt.response, null, 2)}
+                                      </pre>
+                                    </>
+                                  )}
+                                  {attempt.statusCode && (
+                                    <>
+                                      <br />
+                                      <Typography variant="caption" style={{ color: '#ff9800' }}>
+                                        Status: {attempt.statusCode}
+                                      </Typography>
+                                    </>
                                   )}
                                 </Box>
+                              ))}
                               
-                              {/* Progress bar - only show if streak > 0 */}
-                              {currentStreak > 0 && (
-                                <Box style={{ marginBottom: '4px', maxWidth: '200px' }}>
-                                  <Box 
-                                    style={{ 
-                                      width: '100%', 
-                                      height: '4px', 
-                                      backgroundColor: '#e0e0e0', 
-                                      borderRadius: '2px',
-                                      overflow: 'hidden'
-                                    }}
-                                  >
-                                    <Box 
-                                      style={{ 
-                                        height: '100%', 
-                                        width: `${streakProgress.progress}%`, 
-                                        backgroundColor: streakProgress.isMaxLevel ? '#4caf50' : '#ff7043',
-                                        borderRadius: '2px',
-                                        transition: 'width 0.3s ease'
-                                      }}
-                                    />
-                                  </Box>
-                                  <Typography 
-                                    variant="caption" 
-                                    style={{ 
-                                      color: '#999', 
-                                      fontSize: '0.65rem',
-                                      marginTop: '2px',
-                                      display: 'block'
-                                    }}
-                                  >
-                                    {streakProgress.isMaxLevel 
-                                      ? 'Max level reached! 🏆' 
-                                      : `${streakProgress.remaining} to level ${streakProgress.nextLevel}`
-                                    }
+                              {/* Show final streak data if available */}
+                              {streakData.get(activityId) && (
+                                <Box 
+                                  style={{ 
+                                    marginTop: '12px',
+                                    padding: '12px', 
+                                    backgroundColor: '#e3f2fd',
+                                    borderRadius: '4px',
+                                    border: '1px solid #2196f3'
+                                  }}
+                                >
+                                  <Typography variant="caption" style={{ fontWeight: 'bold', color: '#1976d2' }}>
+                                    📋 Final Processed Streak Data:
                                   </Typography>
+                                  <pre style={{ 
+                                    backgroundColor: '#fff', 
+                                    padding: '8px', 
+                                    borderRadius: '4px', 
+                                    fontSize: '0.7rem',
+                                    maxHeight: '300px',
+                                    overflow: 'auto',
+                                    margin: '8px 0',
+                                    whiteSpace: 'pre-wrap',
+                                    wordBreak: 'break-word',
+                                    border: '1px solid #e0e0e0'
+                                  }}>
+                                    {JSON.stringify(streakData.get(activityId), null, 2)}
+                                  </pre>
                                 </Box>
                               )}
-                              
-                              <Typography variant="caption" style={{ color: '#8b7355' }}>
-                                Level {activity.level} • Started: {new Date(activity.dateStarted).toLocaleDateString()}
-                              </Typography>
                             </Box>
-                          </Box>
-                            <Box display="flex" style={{ gap: '4px' }}>
-                              {activity.hasSubmittedToday && (
-                                <Chip
-                                  label="Today ✓"
-                                  size="small"
-                                  style={{ backgroundColor: '#6b7d5a', color: 'white', fontSize: '0.7rem' }}
-                                />
-                              )}
-                              {activity.hasSubmittedYesterday && (
-                                <Chip
-                                  label="Yesterday ✓"
-                                  size="small"
-                                  style={{ backgroundColor: '#8b7355', color: 'white', fontSize: '0.7rem' }}
-                                />
-                              )}
-                            </Box>
-                          </Box>
-                        </Box>
+                          </CardContent>
+                        </Card>
                       );
-                    })}
-                  </Box>
-                </>
+                    })
+                  ) : (
+                    <Card style={{ backgroundColor: '#ffeb3b', border: '2px solid #ff9800' }}>
+                      <CardContent>
+                        <Typography variant="h6" style={{ color: '#e65100' }}>
+                          ⚠️ NO DEBUG DATA AVAILABLE
+                        </Typography>
+                        <Typography variant="body2">
+                          Debug info is not being collected. This might mean:
+                        </Typography>
+                        <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                          <li>Streak loading hasn't started yet</li>
+                          <li>There was an error in the debug collection system</li>
+                          <li>Activities haven't been loaded</li>
+                        </ul>
+                        <Typography variant="caption" style={{ color: '#666' }}>
+                          Activities count: {profileData?.activities?.length || 0} | 
+                          Streak data size: {streakData.size} | 
+                          Loading: {loadingStreaks ? 'Yes' : 'No'}
+                        </Typography>
+                      </CardContent>
+                    </Card>
+                  )}
+                </Box>
               )}
 
               {/* Completed Modules Section */}
@@ -1412,6 +1696,158 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             {notification.message}
           </div>
         </Snackbar>
+
+        {/* DEBUG PANEL - MOBILE VERSION - Always visible when activities exist */}
+        {profileData?.activities && profileData.activities.length > 0 && (
+          <Box style={{ marginTop: '24px' }}>
+            <Typography variant="h6" style={{ 
+              color: '#d32f2f', 
+              fontWeight: 'bold', 
+              marginBottom: '16px',
+              textAlign: 'center',
+              backgroundColor: '#ffebee',
+              padding: '12px',
+              borderRadius: '8px',
+              border: '2px solid #f44336'
+            }}>
+              🐛 STREAK DEBUG PANEL (Mobile)
+            </Typography>
+            
+            {Array.from(streakDebugInfo.entries()).length > 0 ? (
+              Array.from(streakDebugInfo.entries()).map(([activityId, debugInfo]) => {
+                return (
+                  <Card 
+                    key={activityId} 
+                    style={{ 
+                      marginBottom: '16px', 
+                      border: '3px solid #ff5722',
+                      backgroundColor: '#fff3e0'
+                    }}
+                  >
+                    <CardContent>
+                      <Typography variant="subtitle1" style={{ fontWeight: 'bold', color: '#d84315' }}>
+                        🎯 Activity: {debugInfo.activityTitle} (ID: {activityId})
+                      </Typography>
+                      
+                      <Box style={{ marginTop: '12px' }}>
+                        {debugInfo.attempts.map((attempt, index) => (
+                          <Box 
+                            key={index} 
+                            style={{ 
+                              marginBottom: '8px', 
+                              padding: '8px', 
+                              backgroundColor: attempt.success ? '#e8f5e8' : '#ffebee',
+                              borderRadius: '4px',
+                              fontSize: '0.8rem'
+                            }}
+                          >
+                            <Typography variant="caption" style={{ fontWeight: 'bold' }}>
+                              {attempt.success ? '✅' : '❌'} Step {attempt.attempt}: {attempt.method}
+                            </Typography>
+                            <br />
+                            <Typography variant="caption" style={{ color: '#666' }}>
+                              {attempt.timestamp} | {attempt.url}
+                            </Typography>
+                            {attempt.error && (
+                              <>
+                                <br />
+                                <Typography variant="caption" style={{ color: '#d32f2f' }}>
+                                  Error: {attempt.error}
+                                </Typography>
+                              </>
+                            )}
+                            {attempt.response && (
+                              <>
+                                <br />
+                                <Typography variant="caption" style={{ color: '#1976d2', fontWeight: 'bold' }}>
+                                  Response Data:
+                                </Typography>
+                                <br />
+                                <pre style={{ 
+                                  backgroundColor: '#f8f9fa', 
+                                  padding: '8px', 
+                                  borderRadius: '4px', 
+                                  fontSize: '0.7rem',
+                                  maxHeight: '200px',
+                                  overflow: 'auto',
+                                  margin: '4px 0',
+                                  whiteSpace: 'pre-wrap',
+                                  wordBreak: 'break-word'
+                                }}>
+                                  {JSON.stringify(attempt.response, null, 2)}
+                                </pre>
+                              </>
+                            )}
+                            {attempt.statusCode && (
+                              <>
+                                <br />
+                                <Typography variant="caption" style={{ color: '#ff9800' }}>
+                                  Status: {attempt.statusCode}
+                                </Typography>
+                              </>
+                            )}
+                          </Box>
+                        ))}
+                        
+                        {/* Show final streak data if available */}
+                        {streakData.get(activityId) && (
+                          <Box 
+                            style={{ 
+                              marginTop: '12px',
+                              padding: '12px', 
+                              backgroundColor: '#e3f2fd',
+                              borderRadius: '4px',
+                              border: '1px solid #2196f3'
+                            }}
+                          >
+                            <Typography variant="caption" style={{ fontWeight: 'bold', color: '#1976d2' }}>
+                              📋 Final Processed Streak Data:
+                            </Typography>
+                            <pre style={{ 
+                              backgroundColor: '#fff', 
+                              padding: '8px', 
+                              borderRadius: '4px', 
+                              fontSize: '0.7rem',
+                              maxHeight: '300px',
+                              overflow: 'auto',
+                              margin: '8px 0',
+                              whiteSpace: 'pre-wrap',
+                              wordBreak: 'break-word',
+                              border: '1px solid #e0e0e0'
+                            }}>
+                              {JSON.stringify(streakData.get(activityId), null, 2)}
+                            </pre>
+                          </Box>
+                        )}
+                      </Box>
+                    </CardContent>
+                  </Card>
+                );
+              })
+            ) : (
+              <Card style={{ backgroundColor: '#ffeb3b', border: '2px solid #ff9800' }}>
+                <CardContent>
+                  <Typography variant="h6" style={{ color: '#e65100' }}>
+                    ⚠️ NO DEBUG DATA AVAILABLE (Mobile)
+                  </Typography>
+                  <Typography variant="body2">
+                    Debug info is not being collected. This might mean:
+                  </Typography>
+                  <ul style={{ margin: '8px 0', paddingLeft: '20px' }}>
+                    <li>Streak loading hasn't started yet</li>
+                    <li>There was an error in the debug collection system</li>
+                    <li>Activities haven't been loaded</li>
+                  </ul>
+                  <Typography variant="caption" style={{ color: '#666' }}>
+                    Activities count: {profileData?.activities?.length || 0} | 
+                    Streak data size: {streakData.size} | 
+                    Loading: {loadingStreaks ? 'Yes' : 'No'}
+                  </Typography>
+                </CardContent>
+              </Card>
+            )}
+          </Box>
+        )}
       </Box>
     );
   }

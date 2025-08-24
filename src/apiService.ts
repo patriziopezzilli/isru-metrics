@@ -737,18 +737,19 @@ export const fetchActivityStreak = async (username: string, activityId: number):
     throw new Error(`Invalid parameters: username="${username}", activityId="${activityId}"`);
   }
   
-  const cacheKey = `activity_streak_${username.toLowerCase()}_${activityId}`;
-  
+  const usernameLower = username.toLowerCase();
+  const cacheKey = `activity_streak_${usernameLower}_${activityId}`;
+
   // Check shared streak cache first - cache condivisa che si azzera a mezzanotte
   const cachedData = CacheService.getStreak(cacheKey);
   if (cachedData) {
-    console.log(`📦 Using shared daily streak cache for: ${username}, activity: ${activityId}`);
+    console.log(`📦 Using shared daily streak cache for: ${usernameLower}, activity: ${activityId}`);
     return cachedData;
   }
 
-  const directUrl = `https://isrucamp.com/api/activities/activity-participations/user_activity_participation/?username=${username}&activity_id=${activityId}`;
-  
-  console.log('🔥 Starting Activity Streak API call for:', username, 'activity:', activityId, 'URL:', directUrl);
+  const directUrl = `https://isrucamp.com/api/activities/activity-participations/user_activity_participation/?username=${usernameLower}&activity_id=${activityId}`;
+
+  console.log('🔥 Starting Activity Streak API call for:', usernameLower, 'activity:', activityId, 'URL:', directUrl);
 
   // Skip direct call and go straight to universal proxy for better reliability
   console.log('⚡ Skipping direct call, using universal proxy directly for better parameter handling');
@@ -756,9 +757,9 @@ export const fetchActivityStreak = async (username: string, activityId: number):
   // If direct call fails, try proxy alternatives
   const proxyUrls = [
     // 🏆 Proxy universale proprietario - Massima velocità e affidabilità
-    `/api/universal-proxy?api=activity-streak&username=${encodeURIComponent(username)}&activity_id=${activityId}`,
+    `/api/universal-proxy?api=activity-streak&username=${encodeURIComponent(usernameLower)}&activity_id=${activityId}`,
     // Backup specifico
-    `/api/activity-streak-proxy?username=${encodeURIComponent(username)}&activity_id=${activityId}`,
+    `/api/activity-streak-proxy?username=${encodeURIComponent(usernameLower)}&activity_id=${activityId}`,
     // Backup proxy esterni (solo se necessario) - questi potrebbero non gestire bene i query params
     `https://api.allorigins.win/get?url=${encodeURIComponent(directUrl)}`,
     `https://proxy.cors.sh/${directUrl}`,
@@ -766,6 +767,14 @@ export const fetchActivityStreak = async (username: string, activityId: number):
     `https://thingproxy.freeboard.io/fetch/${directUrl}`,
     `https://cors-anywhere.herokuapp.com/${directUrl}`
   ];
+
+  console.log('🔍 Activity Streak Proxy URLs to try:', {
+    activityId,
+    activityIdType: typeof activityId,
+    username: usernameLower,
+    primaryUrl: proxyUrls[0],
+    allUrls: proxyUrls
+  });
 
   // Use proxy APIs as fallback
   for (let i = 0; i < proxyUrls.length; i++) {

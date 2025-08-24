@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, useLocation } from 'react-router-dom';
 import { ThemeProvider, createTheme } from '@material-ui/core/styles';
 import { Analytics } from "@vercel/analytics/react"
 import { 
@@ -31,6 +32,7 @@ import { ChangelogDisclaimer } from './components/ChangelogDisclaimer';
 import PositionFinder from './components/PositionFinder';
 import AppLoader from './components/AppLoader';
 import OnlineUserCounter from './components/OnlineUserCounter';
+import AdminDashboard from './components/AdminDashboard';
 import { fetchScoreDistribution, calculateUserStats } from './apiService';
 import { ScoreDistributionResponse, UserStats } from './types';
 import OfflineService from './services/offlineService';
@@ -94,7 +96,14 @@ const theme = createTheme({
   },
 });
 
-const App = () => {
+// Component to check if we're on admin route
+const useAdminRoute = () => {
+  const location = useLocation();
+  return location.pathname === '/admin';
+};
+
+const MainApp = () => {
+  const isAdminRoute = useAdminRoute();
   const [appLoaded, setAppLoaded] = useState(false);
   const [data, setData] = useState<ScoreDistributionResponse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -152,8 +161,7 @@ const App = () => {
   };
 
   return (
-    <ThemeProvider theme={theme}>
-      <CssBaseline />
+    <>
       {!appLoaded ? (
         <AppLoader 
           onLoadComplete={(data, loadedUsername) => {
@@ -189,10 +197,9 @@ const App = () => {
               console.log('✅ App: localStorage after operation:', localStorage.getItem('isru-username'));
             }}
           />
-          <Analytics />
         </>
       )}
-    </ThemeProvider>
+    </>
   );
 };
 
@@ -493,6 +500,22 @@ const AppContent = ({
         </Container>
       </Box>
     </>
+  );
+};
+
+// Main App component with routing
+const App = () => {
+  return (
+    <ThemeProvider theme={theme}>
+      <CssBaseline />
+      <Router>
+        <Routes>
+          <Route path="/admin" element={<AdminDashboard />} />
+          <Route path="/*" element={<MainApp />} />
+        </Routes>
+      </Router>
+      <Analytics />
+    </ThemeProvider>
   );
 };
 
