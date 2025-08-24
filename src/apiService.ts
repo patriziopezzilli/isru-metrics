@@ -800,6 +800,18 @@ export const fetchActivityStreak = async (username: string, activityId: number):
         const proxyData = await response.json();
         console.log('🔍 Activity Streak Proxy response structure:', proxyData);
 
+        // Check for specific error messages that indicate we should try the next proxy
+        if (proxyData && typeof proxyData === 'object') {
+          const errorMessage = proxyData.error || proxyData.message || '';
+          if (typeof errorMessage === 'string' &&
+              (errorMessage.includes('activity_id parameter is required') ||
+               errorMessage.includes('Missing required parameter') ||
+               errorMessage.includes('Invalid parameters'))) {
+            console.log(`⚠️ Activity Streak Proxy ${i + 1} returned parameter error: ${errorMessage}, trying next proxy...`);
+            continue; // Skip to next proxy
+          }
+        }
+
         // Handle different proxy response formats
         if (proxyUrl.includes('/api/universal-proxy')) {
           // 🏆 Proxy universale proprietario - Risposta diretta e pulita
@@ -808,7 +820,7 @@ export const fetchActivityStreak = async (username: string, activityId: number):
             proxyVersion: proxyData._proxy?.version || 'unknown',
             apiType: proxyData._proxy?.api || 'unknown'
           });
-          
+
           // Cache nella cache condivisa degli streak (si azzera a mezzanotte)
           CacheService.setStreak(cacheKey, proxyData);
           return proxyData;
@@ -818,7 +830,13 @@ export const fetchActivityStreak = async (username: string, activityId: number):
             hasData: !!proxyData,
             proxyVersion: proxyData._proxy?.version || 'unknown'
           });
-          
+
+          // Check for error in proprietary proxy response
+          if (proxyData && proxyData.error) {
+            console.log(`⚠️ Activity Streak Proprietary Proxy returned error: ${proxyData.error}, trying next proxy...`);
+            continue; // Skip to next proxy
+          }
+
           // Cache nella cache condivisa degli streak (si azzera a mezzanotte)
           CacheService.setStreak(cacheKey, proxyData);
           return proxyData;
@@ -830,10 +848,22 @@ export const fetchActivityStreak = async (username: string, activityId: number):
 
           if (proxyData.contents) {
             try {
-              const data = typeof proxyData.contents === 'string' 
-                ? JSON.parse(proxyData.contents) 
+              const data = typeof proxyData.contents === 'string'
+                ? JSON.parse(proxyData.contents)
                 : proxyData.contents;
-                
+
+              // Check for error in parsed data
+              if (data && typeof data === 'object' && data.error) {
+                const errorMessage = data.error || '';
+                if (typeof errorMessage === 'string' &&
+                    (errorMessage.includes('activity_id parameter is required') ||
+                     errorMessage.includes('Missing required parameter') ||
+                     errorMessage.includes('Invalid parameters'))) {
+                  console.log(`⚠️ Activity Streak AllOrigins returned parameter error: ${errorMessage}, trying next proxy...`);
+                  continue; // Skip to next proxy
+                }
+              }
+
               console.log('✅ Activity Streak AllOrigins Data parsed successfully');
               // Cache nella cache condivisa degli streak (si azzera a mezzanotte)
               CacheService.setStreak(cacheKey, data);
@@ -845,6 +875,18 @@ export const fetchActivityStreak = async (username: string, activityId: number):
         } else if (proxyUrl.includes('cors-anywhere') || proxyUrl.includes('thingproxy') || proxyUrl.includes('cors.sh') || proxyUrl.includes('codetabs')) {
           // Direct JSON response from these proxies
           if (proxyData && typeof proxyData === 'object') {
+            // Check for error in direct proxy response
+            if (proxyData.error) {
+              const errorMessage = proxyData.error || '';
+              if (typeof errorMessage === 'string' &&
+                  (errorMessage.includes('activity_id parameter is required') ||
+                   errorMessage.includes('Missing required parameter') ||
+                   errorMessage.includes('Invalid parameters'))) {
+                console.log(`⚠️ Activity Streak Direct Proxy returned parameter error: ${errorMessage}, trying next proxy...`);
+                continue; // Skip to next proxy
+              }
+            }
+
             console.log('✅ Activity Streak Direct Proxy Data parsed successfully');
             // Cache nella cache condivisa degli streak (si azzera a mezzanotte)
             CacheService.setStreak(cacheKey, proxyData);

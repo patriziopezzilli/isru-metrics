@@ -123,7 +123,7 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
 
     try {
       console.log(`🔍 Searching profile for: ${trimmedUsername}`);
-      const profile = await fetchSneakerDBProfile(trimmedUsername);
+      const profile = await fetchSneakerDBProfile(trimmedUsername.toLowerCase());
       
       if (profile && profile.user) {
         const ranking = calculateUserRanking(profile.user.totalPoints, scoreDistribution);

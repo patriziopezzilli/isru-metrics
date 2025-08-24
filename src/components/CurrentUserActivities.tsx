@@ -126,7 +126,7 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
       // Load streak data for each activity (limit to first 10 for consistency with User Profile)
       const streakPromises = activities.slice(0, 10).map(async (activity) => {
         try {
-          const streak = await fetchActivityStreak(username, activity.activityId);
+          const streak = await fetchActivityStreak(username.toLowerCase(), activity.activityId);
           
           if (streak) {
             // Handle different possible response structures
@@ -259,12 +259,12 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
     const loadUserProfile = async () => {
       setLoading(true);
       try {
-        const data = await fetchSneakerDBProfile(username);
+        const data = await fetchSneakerDBProfile(username.toLowerCase());
         setProfileData(data);
         
         // Load streak data after profile is loaded
         if (data?.activities) {
-          await loadStreakData(data.activities, username);
+          await loadStreakData(data.activities, username.toLowerCase());
         }
       } catch (error) {
         console.error('Error loading user profile for activities:', error);

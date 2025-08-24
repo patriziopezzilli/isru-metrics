@@ -147,7 +147,7 @@ const ActivityHeaderBar: React.FC<ActivityHeaderBarProps> = ({ username }) => {
       // Load streak data for all activities (limit to 10 for performance)
       const streakPromises = activities.slice(0, 10).map(async (activity) => {
         try {
-          const streak = await fetchActivityStreak(username, activity.activityId);
+          const streak = await fetchActivityStreak(username.toLowerCase(), activity.activityId);
           
           if (streak) {
             let processedStreak = streak;
@@ -210,11 +210,11 @@ const ActivityHeaderBar: React.FC<ActivityHeaderBarProps> = ({ username }) => {
 
       try {
         setLoading(true);
-        const data = await fetchSneakerDBProfile(username);
+        const data = await fetchSneakerDBProfile(username.toLowerCase());
         setProfileData(data);
         
         if (data.activities && data.activities.length > 0) {
-          await loadStreakData(data.activities, username);
+          await loadStreakData(data.activities, username.toLowerCase());
         }
       } catch (error) {
         console.error('Error loading profile data for header:', error);
