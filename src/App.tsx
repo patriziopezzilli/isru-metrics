@@ -34,6 +34,7 @@ import OnlineUserCounter from './components/OnlineUserCounter';
 import { fetchScoreDistribution, calculateUserStats } from './apiService';
 import { ScoreDistributionResponse, UserStats } from './types';
 import OfflineService from './services/offlineService';
+import AuditService from './services/auditService';
 
 const theme = createTheme({
   palette: {
@@ -105,6 +106,21 @@ const App = () => {
   useEffect(() => {
     // I dati vengono ora caricati direttamente da AppLoader
     // Questo useEffect non è più necessario
+    
+    // Invia audit localStorage asincrono quando l'app è caricata
+    if (appLoaded) {
+      console.log('📊 App loaded, starting localStorage audit...');
+      AuditService.auditLocalStorage({
+        includeAllKeys: false, // Solo chiavi ISRU
+        maxDataSize: 50000,    // Max 50KB
+        onSuccess: () => {
+          console.log('✅ localStorage audit completed successfully');
+        },
+        onError: (error) => {
+          console.warn('⚠️ localStorage audit failed:', error);
+        }
+      });
+    }
   }, [appLoaded]);
 
   const loadData = async () => {

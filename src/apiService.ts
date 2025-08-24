@@ -24,6 +24,12 @@ class CacheService {
     const now = Date.now();
     const currentDate = this.getCurrentDateString();
     
+    console.log(`📦 Setting streak cache for key: ${key}`, {
+      currentDate,
+      expiryTime: new Date(now + this.STREAK_CACHE_DURATION).toISOString(),
+      hasData: !!data
+    });
+    
     this.cache.set(key, {
       data,
       timestamp: now,
@@ -35,17 +41,31 @@ class CacheService {
   // Funzione speciale per ottenere cache degli streak con controllo giornaliero
   static getStreak<T>(key: string): T | null {
     const entry = this.cache.get(key);
-    if (!entry) return null;
+    if (!entry) {
+      console.log(`📦 Streak cache miss for key: ${key}`);
+      return null;
+    }
 
     const now = Date.now();
     const currentDate = this.getCurrentDateString();
     
+    console.log(`📦 Streak cache check for key: ${key}`, {
+      currentDate,
+      cacheDate: entry.cacheDate,
+      isDateMatch: entry.cacheDate === currentDate,
+      isExpired: now > entry.expiry,
+      expiryTime: new Date(entry.expiry).toISOString(),
+      currentTime: new Date(now).toISOString()
+    });
+    
     // Se è un nuovo giorno o la cache è scaduta, elimina e ritorna null
     if (entry.cacheDate !== currentDate || now > entry.expiry) {
+      console.log(`📦 Streak cache expired for key: ${key} - removing`);
       this.cache.delete(key);
       return null;
     }
 
+    console.log(`📦 Streak cache hit for key: ${key}`);
     return entry.data as T;
   }
 
@@ -643,6 +663,11 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
             apiType: proxyData._proxy?.api || 'unknown'
           });
           
+          // Verifica se l'utente esiste
+          if (!proxyData || !proxyData.user) {
+            throw new Error(`Username "${username}" non trovato nel sistema ISRU`);
+          }
+          
           // Cache the successful response
           CacheService.set(cacheKey, proxyData);
           return proxyData;
@@ -697,6 +722,21 @@ export const fetchSneakerDBProfile = async (username: string): Promise<any> => {
 
 // Activity Streak API helper with shared daily cache
 export const fetchActivityStreak = async (username: string, activityId: number): Promise<any> => {
+  // Debug: Verifica parametri in input
+  console.log('🔥 fetchActivityStreak called with:', {
+    username,
+    activityId,
+    usernameType: typeof username,
+    activityIdType: typeof activityId,
+    isActivityIdValid: !isNaN(activityId) && activityId > 0
+  });
+  
+  // Validazione parametri
+  if (!username || !activityId || isNaN(activityId) || activityId <= 0) {
+    console.error('❌ Invalid parameters for fetchActivityStreak:', { username, activityId });
+    throw new Error(`Invalid parameters: username="${username}", activityId="${activityId}"`);
+  }
+  
   const cacheKey = `activity_streak_${username.toLowerCase()}_${activityId}`;
   
   // Check shared streak cache first - cache condivisa che si azzera a mezzanotte
@@ -708,37 +748,10 @@ export const fetchActivityStreak = async (username: string, activityId: number):
 
   const directUrl = `https://isrucamp.com/api/activities/activity-participations/user_activity_participation/?username=${username}&activity_id=${activityId}`;
   
-  console.log('🔥 Starting Activity Streak API call for:', username, 'activity:', activityId);
+  console.log('🔥 Starting Activity Streak API call for:', username, 'activity:', activityId, 'URL:', directUrl);
 
-  // Try direct API call first (most reliable for complex query params)
-  try {
-    console.log('🔄 Trying direct Activity Streak API call:', directUrl);
-    
-    const controller = new AbortController();
-    const timeoutId = setTimeout(() => controller.abort(), 6000); // 6 secondi per chiamata diretta
-    
-    const response = await fetch(directUrl, {
-      method: 'GET',
-      mode: 'cors',
-      cache: 'no-cache',
-      signal: controller.signal
-    });
-    
-    clearTimeout(timeoutId);
-
-    if (response.ok) {
-      const data = await response.json();
-      console.log('✅ Direct Activity Streak API call successful:', data);
-      
-      // Cache nella cache condivisa degli streak (si azzera a mezzanotte)
-      CacheService.setStreak(cacheKey, data);
-      return data;
-    } else {
-      console.log(`❌ Direct Activity Streak API returned status: ${response.status}`);
-    }
-  } catch (error) {
-    console.log('❌ Direct Activity Streak API failed:', error);
-  }
+  // Skip direct call and go straight to universal proxy for better reliability
+  console.log('⚡ Skipping direct call, using universal proxy directly for better parameter handling');
 
   // If direct call fails, try proxy alternatives
   const proxyUrls = [

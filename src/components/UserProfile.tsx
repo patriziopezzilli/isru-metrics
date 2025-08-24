@@ -278,6 +278,38 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     }
   }, [username, open]);
 
+  // Function to load streak data with automatic retry when all streaks are 0
+  const loadStreakDataWithRetry = async (activities: any[], username: string, retryCount = 0): Promise<void> => {
+    console.log(`🔄 Loading streak data (attempt ${retryCount + 1}/3)`);
+    
+    await loadStreakData(activities, username);
+    
+    // Check if all streaks are 0 and we have retry attempts left
+    const allStreaksAreZero = Array.from(streakData.values()).every(streak => 
+      streak.participation.currentStreak === 0
+    );
+    
+    if (allStreaksAreZero && retryCount < 2 && streakData.size > 0) {
+      console.log(`🔁 All streaks are 0, retrying... (${retryCount + 1}/3)`);
+      
+      // Clear streak cache to force fresh data
+      console.log('🧹 Clearing streak cache for retry');
+      CacheService.clearStreakCache();
+      
+      // Wait 2 seconds before retry
+      await new Promise(resolve => setTimeout(resolve, 2000));
+      
+      // Recursively retry
+      return await loadStreakDataWithRetry(activities, username, retryCount + 1);
+    }
+    
+    if (allStreaksAreZero && retryCount >= 2) {
+      console.log('❌ All 3 retry attempts completed, streaks still 0');
+    } else if (!allStreaksAreZero) {
+      console.log('✅ Streak data loaded successfully with valid values');
+    }
+  };
+
   // Function to load streak data for activities
   const loadStreakData = async (activities: any[], username: string) => {
     setLoadingStreaks(true);
@@ -286,8 +318,28 @@ export const UserProfile: React.FC<UserProfileProps> = ({
     try {
       // Load streak data for each activity (limit to first 10 for performance)
       const streakPromises = activities.slice(0, 10).map(async (activity) => {
+        // Prova activityId prima, poi id come fallback (definito fuori dal try/catch)
+        const activityIdentifier = activity.activityId || activity.id;
+        
         try {
-          const streak = await fetchActivityStreak(username, activity.activityId);
+          // Debug: Verifica la struttura dell'activity
+          console.log('🔍 Activity structure:', {
+            activity,
+            activityId: activity.activityId,
+            id: activity.id,
+            hasActivityId: !!activity.activityId,
+            hasId: !!activity.id,
+            activityKeys: Object.keys(activity),
+            finalIdentifier: activityIdentifier
+          });
+          
+          // Verifica che activityId esista
+          if (!activityIdentifier) {
+            console.warn('UserProfile: Activity missing activityId/id:', activity);
+            return null;
+          }
+          
+          const streak = await fetchActivityStreak(username, activityIdentifier);
           
           if (streak) {
             // Handle different possible response structures
@@ -308,7 +360,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             if (processedStreak && typeof processedStreak === 'object') {
               // Handle the correct API structure: {participation: {currentStreak: 38}, submissions: [...]}
               if (processedStreak.participation && typeof processedStreak.participation.currentStreak === 'number') {
-                newStreakData.set(activity.activityId, processedStreak);
+                newStreakData.set(activityIdentifier, processedStreak);
               } else {
                 console.warn('UserProfile: Unexpected streak data structure:', processedStreak);
                 // Set default streak 0 if data structure is invalid
@@ -317,8 +369,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                     id: 0,
                     user: 0,
                     userName: username,
-                    activity: activity.activityId,
-                    activityTitle: activity.activityTitle || 'Unknown',
+                    activity: activityIdentifier,
+                    activityTitle: activity.activityTitle || activity.title || 'Unknown',
                     activityInitialSignupPoints: 0,
                     badgeImage: '',
                     setupProof: null,
@@ -330,7 +382,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   },
                   submissions: []
                 };
-                newStreakData.set(activity.activityId, defaultStreak);
+                newStreakData.set(activityIdentifier, defaultStreak);
               }
             } else {
               // Set default streak 0 if data structure is invalid
@@ -339,8 +391,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   id: 0,
                   user: 0,
                   userName: username,
-                  activity: activity.activityId,
-                  activityTitle: activity.activityTitle || 'Unknown',
+                  activity: activityIdentifier,
+                  activityTitle: activity.activityTitle || activity.title || 'Unknown',
                   activityInitialSignupPoints: 0,
                   badgeImage: '',
                   setupProof: null,
@@ -352,7 +404,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 },
                 submissions: []
               };
-              newStreakData.set(activity.activityId, defaultStreak);
+              newStreakData.set(activityIdentifier, defaultStreak);
             }
           } else {
             // Set default streak 0 if no data received
@@ -361,8 +413,8 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                 id: 0,
                 user: 0,
                 userName: username,
-                activity: activity.activityId,
-                activityTitle: activity.activityTitle || 'Unknown',
+                activity: activityIdentifier,
+                activityTitle: activity.activityTitle || activity.title || 'Unknown',
                 activityInitialSignupPoints: 0,
                 badgeImage: '',
                 setupProof: null,
@@ -374,18 +426,18 @@ export const UserProfile: React.FC<UserProfileProps> = ({
               },
               submissions: []
             };
-            newStreakData.set(activity.activityId, defaultStreak);
+            newStreakData.set(activityIdentifier, defaultStreak);
           }
         } catch (error) {
-          console.log(`UserProfile: Could not load streak for activity ${activity.activityId}:`, error);
+          console.log(`UserProfile: Could not load streak for activity ${activityIdentifier}:`, error);
           // Set default streak 0 in case of error
           const defaultStreak: ActivityStreakResponse = {
             participation: {
               id: 0,
               user: 0,
               userName: username,
-              activity: activity.activityId,
-              activityTitle: activity.activityTitle || 'Unknown',
+              activity: activityIdentifier,
+              activityTitle: activity.activityTitle || activity.title || 'Unknown',
               activityInitialSignupPoints: 0,
               badgeImage: '',
               setupProof: null,
@@ -397,7 +449,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
             },
             submissions: []
           };
-          newStreakData.set(activity.activityId, defaultStreak);
+          newStreakData.set(activityIdentifier, defaultStreak);
         }
       });
 
@@ -426,9 +478,9 @@ export const UserProfile: React.FC<UserProfileProps> = ({
       
       setProfileData(data);
       
-      // Load streak data after profile is loaded
+      // Load streak data after profile is loaded with automatic retry
       if (data?.activities) {
-        await loadStreakData(data.activities, usernameToFetch);
+        await loadStreakDataWithRetry(data.activities, usernameToFetch);
       }
     } catch (err) {
       const errorDetails = err instanceof Error ? {
@@ -448,12 +500,22 @@ export const UserProfile: React.FC<UserProfileProps> = ({
         isMobile: /iPhone|iPad|iPod|Android/.test(navigator.userAgent)
       });
       
-      // Show user-friendly message on mobile
-      if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
-        alert(`📱 Profile loading issue on Safari mobile. Error: ${errorDetails.message}`);
+      // Gestione specifica per username non trovato
+      let userFriendlyMessage = errorDetails.message;
+      if (errorDetails.message.includes('failed') || errorDetails.message.includes('404')) {
+        userFriendlyMessage = `Username "${usernameToFetch}" non trovato. Verifica di aver scritto correttamente il nome utente.`;
+      } else if (errorDetails.message.includes('network') || errorDetails.message.includes('fetch')) {
+        userFriendlyMessage = `Errore di connessione. Controlla la tua connessione internet e riprova.`;
+      } else if (errorDetails.message.includes('timeout')) {
+        userFriendlyMessage = `Richiesta troppo lenta. Riprova tra qualche secondo.`;
       }
       
-      setError(errorDetails.message);
+      // Show user-friendly message on mobile
+      if (/iPhone|iPad|iPod/.test(navigator.userAgent)) {
+        alert(`📱 ${userFriendlyMessage}`);
+      }
+      
+      setError(userFriendlyMessage);
       setProfileData(null);
     } finally {
       setLoading(false);

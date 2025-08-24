@@ -1,6 +1,49 @@
-class MigrationService {
-  private static readonly NEW_DOMAIN = 'https://www.isru-league.com';
-  private static readonly MIGRATION_KEY = 'auto-migration-completed';
+// =====================================================
+// MIGRATION SERVICE - LocalStorage to Database Migration
+// Servizio per migrare i dati dal localStorage al database
+// =====================================================
+
+import { DatabaseService, MigrationData, MigrationResult } from './databaseService';
+
+// =====================================================
+// TIPI E INTERFACCE
+// =====================================================
+
+export interface LocalStorageData {
+    username?: string;
+    'friends-league'?: any[];
+    [key: string]: any; // Per altri dati del localStorage
+}
+
+export interface MigrationProgress {
+    step: string;
+    progress: number;
+    total: number;
+    message: string;
+    completed: boolean;
+    error?: string;
+}
+
+export interface MigrationOptions {
+    clearLocalStorageAfterMigration?: boolean;
+    createBackupFile?: boolean;
+    onProgress?: (progress: MigrationProgress) => void;
+}
+
+// =====================================================
+// MIGRATION SERVICE CLASS
+// =====================================================
+
+export class MigrationService {
+    private static readonly NEW_DOMAIN = 'https://www.isru-league.com';
+    private static readonly MIGRATION_KEY = 'auto-migration-completed';
+    
+    private databaseService: DatabaseService;
+    private migrationInProgress: boolean = false;
+
+    constructor(databaseService: DatabaseService) {
+        this.databaseService = databaseService;
+    }
   
   /**
    * Verifica se il nuovo dominio è raggiungibile e sicuro
@@ -17,7 +60,7 @@ class MigrationService {
       return false;
     }
   }
-  
+
   /**
    * Controlla se siamo in ambiente locale
    */
