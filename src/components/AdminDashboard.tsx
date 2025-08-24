@@ -97,10 +97,10 @@ const useStyles = makeStyles((theme) => ({
   dashboardHeader: {
     background: 'linear-gradient(135deg, #8b7355 0%, #c4a07a 100%)',
     color: 'white',
-    borderRadius: '20px',
-    padding: theme.spacing(4),
-    marginBottom: theme.spacing(4),
-    boxShadow: '0 15px 35px rgba(139, 115, 85, 0.2)',
+    borderRadius: '12px',
+    padding: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    boxShadow: '0 8px 20px rgba(139, 115, 85, 0.2)',
     position: 'relative',
     overflow: 'hidden',
     '&::before': {
@@ -115,65 +115,93 @@ const useStyles = makeStyles((theme) => ({
   },
   headerTitle: {
     fontFamily: '"Rocket Sharpie Bold", "Courier New", monospace !important',
-    fontSize: '2.5rem',
+    fontSize: '1.4rem',
     fontWeight: 'bold',
-    marginBottom: theme.spacing(1),
+    marginBottom: theme.spacing(0.5),
     position: 'relative',
     zIndex: 1,
+    textAlign: 'center',
   },
   headerSubtitle: {
-    fontSize: '1.2rem',
+    fontSize: '0.8rem',
     opacity: 0.9,
     position: 'relative',
     zIndex: 1,
+    textAlign: 'center',
   },
   statsGrid: {
-    marginBottom: theme.spacing(4),
+    marginBottom: theme.spacing(2),
   },
   statCard: {
     background: 'linear-gradient(135deg, #ffffff 0%, #f8f6f3 100%)',
-    borderRadius: '16px',
-    padding: theme.spacing(3),
+    borderRadius: '12px',
+    padding: theme.spacing(1.5),
     textAlign: 'center',
     border: '1px solid rgba(139, 115, 85, 0.1)',
-    boxShadow: '0 8px 25px rgba(139, 115, 85, 0.08)',
+    boxShadow: '0 4px 12px rgba(139, 115, 85, 0.08)',
     transition: 'all 0.3s ease',
-    '&:hover': {
-      transform: 'translateY(-5px)',
-      boxShadow: '0 15px 35px rgba(139, 115, 85, 0.15)',
-    },
+    minHeight: '80px',
+    display: 'flex',
+    flexDirection: 'column',
+    justifyContent: 'center',
   },
   statIcon: {
-    fontSize: 48,
-    marginBottom: theme.spacing(1),
+    fontSize: 24,
+    marginBottom: theme.spacing(0.5),
     color: '#8b7355',
   },
   statValue: {
-    fontSize: '2.2rem',
+    fontSize: '1.4rem',
     fontWeight: 'bold',
     color: '#8b7355',
     fontFamily: '"Courier New", monospace',
+    lineHeight: 1,
   },
   statLabel: {
     color: '#666',
-    fontSize: '0.95rem',
-    marginTop: theme.spacing(0.5),
+    fontSize: '0.7rem',
+    marginTop: theme.spacing(0.3),
+    lineHeight: 1.2,
   },
   usersTable: {
     background: 'linear-gradient(135deg, #ffffff 0%, #f8f6f3 100%)',
-    borderRadius: '20px',
-    padding: theme.spacing(3),
+    borderRadius: '12px',
+    padding: theme.spacing(2),
     border: '1px solid rgba(139, 115, 85, 0.1)',
-    boxShadow: '0 15px 35px rgba(139, 115, 85, 0.1)',
+    boxShadow: '0 8px 20px rgba(139, 115, 85, 0.1)',
   },
   tableTitle: {
     fontFamily: '"Rocket Sharpie Bold", "Courier New", monospace !important',
     color: '#8b7355',
-    fontSize: '1.8rem',
-    marginBottom: theme.spacing(3),
+    fontSize: '1.2rem',
+    marginBottom: theme.spacing(2),
+    textAlign: 'center',
+  },
+  userCard: {
+    background: 'linear-gradient(135deg, #ffffff 0%, #faf9f7 100%)',
+    borderRadius: '12px',
+    padding: theme.spacing(2),
+    marginBottom: theme.spacing(1.5),
+    border: '1px solid rgba(139, 115, 85, 0.1)',
+    boxShadow: '0 4px 12px rgba(139, 115, 85, 0.08)',
+  },
+  userCardHeader: {
     display: 'flex',
+    justifyContent: 'space-between',
     alignItems: 'center',
-    gap: theme.spacing(1),
+    marginBottom: theme.spacing(1),
+  },
+  userCardBody: {
+    display: 'flex',
+    justifyContent: 'space-around',
+    alignItems: 'center',
+    gap: theme.spacing(2),
+    marginBottom: theme.spacing(1.5),
+  },
+  userCardFooter: {
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   tableContainer: {
     borderRadius: '12px',
@@ -200,21 +228,32 @@ const useStyles = makeStyles((theme) => ({
     },
     transition: 'all 0.2s ease',
   },
-  usernameCell: {
+  usernameText: {
     fontWeight: 'bold',
     color: '#8b7355',
-    fontSize: '1.1rem',
+    fontSize: '1rem',
+  },
+  userInfoLabel: {
+    fontSize: '0.7rem',
+    color: '#666',
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: '0.5px',
+  },
+  userInfoValue: {
+    fontSize: '0.8rem',
+    color: '#333',
+    fontFamily: '"Courier New", monospace',
   },
   actionButton: {
     backgroundColor: '#c4a07a',
     color: 'white',
     borderRadius: '8px',
-    fontSize: '0.85rem',
-    padding: theme.spacing(0.5, 1.5),
+    fontSize: '0.75rem',
+    padding: theme.spacing(0.5, 1),
+    minWidth: 'auto',
     '&:hover': {
       backgroundColor: '#b8956d',
-      transform: 'translateY(-1px)',
-      boxShadow: '0 4px 12px rgba(196, 160, 122, 0.3)',
     },
     transition: 'all 0.2s ease',
   },
@@ -222,12 +261,14 @@ const useStyles = makeStyles((theme) => ({
     background: 'linear-gradient(135deg, #8b7355 0%, #c4a07a 100%)',
     color: 'white',
     borderRadius: '12px',
-    padding: theme.spacing(1.5, 3),
-    fontSize: '1.1rem',
+    padding: theme.spacing(1, 2),
+    fontSize: '0.9rem',
     fontWeight: 'bold',
+    width: '100%',
+    marginTop: theme.spacing(2),
     '&:hover': {
-      transform: 'translateY(-2px)',
-      boxShadow: '0 8px 25px rgba(139, 115, 85, 0.3)',
+      transform: 'translateY(-1px)',
+      boxShadow: '0 4px 15px rgba(139, 115, 85, 0.3)',
     },
     transition: 'all 0.3s ease',
   },
@@ -250,54 +291,63 @@ const useStyles = makeStyles((theme) => ({
   userDataModal: {
     '& .MuiDialog-paper': {
       backgroundColor: '#fefdfb',
-      borderRadius: '20px',
-      maxWidth: '800px',
-      width: '90%',
-      maxHeight: '80vh',
+      borderRadius: '12px',
+      maxWidth: '95vw',
+      width: '95%',
+      maxHeight: '90vh',
+      margin: theme.spacing(1),
     },
   },
   modalTitle: {
     background: 'linear-gradient(135deg, #8b7355 0%, #c4a07a 100%)',
     color: 'white',
     fontFamily: '"Rocket Sharpie Bold", "Courier New", monospace !important',
-    fontSize: '1.5rem',
-    padding: theme.spacing(3),
+    fontSize: '1.1rem',
+    padding: theme.spacing(2),
+    textAlign: 'center',
   },
   modalContent: {
-    padding: theme.spacing(3),
+    padding: theme.spacing(2),
   },
   dataSection: {
-    marginBottom: theme.spacing(3),
-    padding: theme.spacing(2),
+    marginBottom: theme.spacing(2),
+    padding: theme.spacing(1.5),
     backgroundColor: '#f8f6f3',
-    borderRadius: '12px',
+    borderRadius: '8px',
     border: '1px solid rgba(139, 115, 85, 0.1)',
+  },
+  dataSectionTitle: {
+    color: '#8b7355',
+    marginBottom: theme.spacing(1),
+    fontFamily: '"Courier New", monospace',
+    fontSize: '0.9rem',
+    fontWeight: 'bold',
   },
   dataKey: {
     fontWeight: 'bold',
     color: '#8b7355',
     fontFamily: '"Courier New", monospace',
-    fontSize: '0.9rem',
+    fontSize: '0.75rem',
   },
   dataValue: {
     fontFamily: '"Courier New", monospace',
-    fontSize: '0.85rem',
+    fontSize: '0.7rem',
     color: '#333',
     backgroundColor: '#ffffff',
-    padding: theme.spacing(1),
-    borderRadius: '8px',
+    padding: theme.spacing(0.5),
+    borderRadius: '6px',
     border: '1px solid #e0e0e0',
-    marginTop: theme.spacing(0.5),
+    marginTop: theme.spacing(0.3),
     wordBreak: 'break-all',
   },
   jsonViewer: {
     backgroundColor: '#2d3748',
     color: '#e2e8f0',
-    padding: theme.spacing(2),
-    borderRadius: '8px',
+    padding: theme.spacing(1),
+    borderRadius: '6px',
     fontFamily: '"Courier New", monospace',
-    fontSize: '0.8rem',
-    maxHeight: '300px',
+    fontSize: '0.65rem',
+    maxHeight: '200px',
     overflow: 'auto',
     whiteSpace: 'pre-wrap',
     wordBreak: 'break-word',
@@ -456,7 +506,12 @@ const AdminDashboard: React.FC = () => {
 
       // Check for specific localStorage keys
       const hasIsruUsername = !!mostRecentAudit.localStorage_data['isru-username'];
-      const hasFriendsLeague = !!mostRecentAudit.localStorage_data['friends-league'];
+
+      // Check if friends-league exists AND has content (not empty array)
+      const friendsLeagueData = mostRecentAudit.localStorage_data['friends-league'];
+      const hasFriendsLeague = !!(friendsLeagueData &&
+        Array.isArray(friendsLeagueData) &&
+        friendsLeagueData.length > 0);
 
       return {
         username,
@@ -603,8 +658,8 @@ const AdminDashboard: React.FC = () => {
         {userSummaries.length > 0 && (
           <>
             {/* Summary Cards */}
-            <Grid container spacing={3} className={classes.statsGrid}>
-              <Grid item xs={12} sm={6} md={3}>
+            <Grid container spacing={2} className={classes.statsGrid}>
+              <Grid item xs={6}>
                 <Card className={classes.statCard}>
                   <CardContent>
                     <PeopleIcon className={classes.statIcon} />
@@ -612,27 +667,13 @@ const AdminDashboard: React.FC = () => {
                       {userSummaries.length}
                     </Typography>
                     <Typography className={classes.statLabel}>
-                      🧑‍🚀 Active Users
+                      🧑‍🚀 Total Users
                     </Typography>
                   </CardContent>
                 </Card>
               </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
-                <Card className={classes.statCard}>
-                  <CardContent>
-                    <StorageIcon className={classes.statIcon} />
-                    <Typography className={classes.statValue}>
-                      {auditData.length}
-                    </Typography>
-                    <Typography className={classes.statLabel}>
-                      📊 Total Audits
-                    </Typography>
-                  </CardContent>
-                </Card>
-              </Grid>
-
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={6}>
                 <Card className={classes.statCard}>
                   <CardContent>
                     <TimelineIcon className={classes.statIcon} />
@@ -646,7 +687,7 @@ const AdminDashboard: React.FC = () => {
                 </Card>
               </Grid>
 
-              <Grid item xs={12} sm={6} md={3}>
+              <Grid item xs={12}>
                 <Card className={classes.statCard}>
                   <CardContent>
                     <DashboardIcon className={classes.statIcon} />
@@ -654,88 +695,70 @@ const AdminDashboard: React.FC = () => {
                       {userSummaries.filter(u => u.hasFriendsLeague).length}
                     </Typography>
                     <Typography className={classes.statLabel}>
-                      👥 In League
+                      👥 Active in League (with friends data)
                     </Typography>
                   </CardContent>
                 </Card>
               </Grid>
             </Grid>
 
-            {/* Users Table */}
+            {/* Users Cards - Mobile Optimized */}
             <Paper className={classes.usersTable}>
               <Typography className={classes.tableTitle}>
-                🧑‍🚀 Mars Colonist Audit Registry
+                🧑‍🚀 Mars Colonists ({userSummaries.length})
               </Typography>
-              <TableContainer className={classes.tableContainer}>
-                <Table>
-                  <TableHead className={classes.tableHeader}>
-                    <TableRow>
-                      <TableCell>👤 Username</TableCell>
-                      <TableCell align="center">📊 Audits</TableCell>
-                      <TableCell align="center">🕒 Last Seen</TableCell>
-                      <TableCell align="center">💾 Storage</TableCell>
-                      <TableCell align="center">🔑 ISRU ID</TableCell>
-                      <TableCell align="center">👥 League</TableCell>
-                      <TableCell align="center">⚙️ Actions</TableCell>
-                    </TableRow>
-                  </TableHead>
-                  <TableBody>
-                    {userSummaries.map((user, index) => (
-                      <TableRow key={index} className={classes.tableRow}>
-                        <TableCell>
-                          <Typography className={classes.usernameCell}>
-                            {user.username}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Chip
-                            label={user.auditCount}
-                            size="small"
-                            className={`${classes.chip} ${classes.primaryChip}`}
-                          />
-                        </TableCell>
-                        <TableCell align="center">
-                          <Typography variant="caption" style={{ fontFamily: '"Courier New", monospace' }}>
-                            {new Date(user.lastSeen).toLocaleString('it-IT')}
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          <Typography variant="body2" style={{ fontFamily: '"Courier New", monospace', fontWeight: 'bold' }}>
-                            {Math.round(user.avgStorageSize / 1024)}KB
-                          </Typography>
-                        </TableCell>
-                        <TableCell align="center">
-                          {user.hasIsruUsername ? (
-                            <Chip label="✓" size="small" className={`${classes.chip} ${classes.primaryChip}`} />
-                          ) : (
-                            <Chip label="✗" size="small" className={`${classes.chip} ${classes.defaultChip}`} />
-                          )}
-                        </TableCell>
-                        <TableCell align="center">
-                          {user.hasFriendsLeague ? (
-                            <Chip label="✓" size="small" className={`${classes.chip} ${classes.primaryChip}`} />
-                          ) : (
-                            <Chip label="✗" size="small" className={`${classes.chip} ${classes.defaultChip}`} />
-                          )}
-                        </TableCell>
-                        <TableCell align="center">
-                          <Button
-                            size="small"
-                            variant="contained"
-                            className={classes.actionButton}
-                            onClick={() => {
-                              setSelectedUser(user);
-                              setUserDataModalOpen(true);
-                            }}
-                          >
-                            🔍 View Data
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </TableContainer>
+
+              {userSummaries.map((user, index) => (
+                <Box key={index} className={classes.userCard}>
+                  {/* Header with username */}
+                  <Box className={classes.userCardHeader}>
+                    <Typography className={classes.usernameText}>
+                      👤 {user.username}
+                    </Typography>
+                    <Typography variant="caption" style={{ color: '#666', fontSize: '0.7rem' }}>
+                      {new Date(user.lastSeen).toLocaleDateString('it-IT')}
+                    </Typography>
+                  </Box>
+
+                  {/* Body with key info */}
+                  <Box className={classes.userCardBody}>
+                    <Box>
+                      <Typography className={classes.userInfoLabel}>🔑 ISRU ID</Typography>
+                      {user.hasIsruUsername ? (
+                        <Chip label="✓ Yes" size="small" className={`${classes.chip} ${classes.primaryChip}`} />
+                      ) : (
+                        <Chip label="✗ No" size="small" className={`${classes.chip} ${classes.defaultChip}`} />
+                      )}
+                    </Box>
+                    <Box>
+                      <Typography className={classes.userInfoLabel}>👥 League</Typography>
+                      {user.hasFriendsLeague ? (
+                        <Chip label="✓ Active" size="small" className={`${classes.chip} ${classes.primaryChip}`} />
+                      ) : (
+                        <Chip label="✗ Empty" size="small" className={`${classes.chip} ${classes.defaultChip}`} />
+                      )}
+                    </Box>
+                  </Box>
+
+                  {/* Footer with action button */}
+                  <Box className={classes.userCardFooter}>
+                    <Typography variant="caption" style={{ color: '#666', fontSize: '0.7rem' }}>
+                      {new Date(user.lastSeen).toLocaleTimeString('it-IT')}
+                    </Typography>
+                    <Button
+                      size="small"
+                      variant="contained"
+                      className={classes.actionButton}
+                      onClick={() => {
+                        setSelectedUser(user);
+                        setUserDataModalOpen(true);
+                      }}
+                    >
+                      🔍 View
+                    </Button>
+                  </Box>
+                </Box>
+              ))}
             </Paper>
             <Box mt={4} display="flex" justifyContent="center">
               <Button
@@ -767,26 +790,30 @@ const AdminDashboard: React.FC = () => {
               <Box>
                 {/* User Summary */}
                 <Box className={classes.dataSection}>
-                  <Typography variant="h6" style={{ color: '#8b7355', marginBottom: '16px', fontFamily: '"Courier New", monospace' }}>
-                    📊 User Summary
+                  <Typography className={classes.dataSectionTitle}>
+                    📊 Summary
                   </Typography>
-                  <Grid container spacing={2}>
-                    <Grid item xs={6} sm={3}>
+                  <Grid container spacing={1}>
+                    <Grid item xs={6}>
                       <Typography className={classes.dataKey}>Username:</Typography>
                       <Typography className={classes.dataValue}>{selectedUser.username}</Typography>
                     </Grid>
-                    <Grid item xs={6} sm={3}>
-                      <Typography className={classes.dataKey}>Audit Count:</Typography>
-                      <Typography className={classes.dataValue}>{selectedUser.auditCount}</Typography>
-                    </Grid>
-                    <Grid item xs={6} sm={3}>
-                      <Typography className={classes.dataKey}>Storage Size:</Typography>
-                      <Typography className={classes.dataValue}>{Math.round(selectedUser.avgStorageSize / 1024)}KB</Typography>
-                    </Grid>
-                    <Grid item xs={6} sm={3}>
+                    <Grid item xs={6}>
                       <Typography className={classes.dataKey}>Last Seen:</Typography>
                       <Typography className={classes.dataValue}>
-                        {new Date(selectedUser.lastSeen).toLocaleString('it-IT')}
+                        {new Date(selectedUser.lastSeen).toLocaleDateString('it-IT')}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography className={classes.dataKey}>ISRU ID:</Typography>
+                      <Typography className={classes.dataValue}>
+                        {selectedUser.hasIsruUsername ? '✓ Present' : '✗ Missing'}
+                      </Typography>
+                    </Grid>
+                    <Grid item xs={6}>
+                      <Typography className={classes.dataKey}>League:</Typography>
+                      <Typography className={classes.dataValue}>
+                        {selectedUser.hasFriendsLeague ? '✓ Active' : '✗ Empty'}
                       </Typography>
                     </Grid>
                   </Grid>
@@ -794,24 +821,32 @@ const AdminDashboard: React.FC = () => {
 
                 {/* LocalStorage Data */}
                 <Box className={classes.dataSection}>
-                  <Typography variant="h6" style={{ color: '#8b7355', marginBottom: '16px', fontFamily: '"Courier New", monospace' }}>
-                    💾 LocalStorage Data
+                  <Typography className={classes.dataSectionTitle}>
+                    💾 LocalStorage ({Object.keys(selectedUser.localStorageData).length} keys)
                   </Typography>
                   {Object.keys(selectedUser.localStorageData).length > 0 ? (
                     <Box>
-                      {Object.entries(selectedUser.localStorageData).map(([key, value]) => (
-                        <Box key={key} mb={2}>
+                      {Object.entries(selectedUser.localStorageData).slice(0, 5).map(([key, value]) => (
+                        <Box key={key} mb={1}>
                           <Typography className={classes.dataKey}>
                             🔑 {key}
                           </Typography>
                           <Typography className={classes.dataValue}>
-                            {typeof value === 'object' ? JSON.stringify(value, null, 2) : String(value)}
+                            {typeof value === 'object'
+                              ? JSON.stringify(value).substring(0, 100) + (JSON.stringify(value).length > 100 ? '...' : '')
+                              : String(value).substring(0, 100) + (String(value).length > 100 ? '...' : '')
+                            }
                           </Typography>
                         </Box>
                       ))}
+                      {Object.keys(selectedUser.localStorageData).length > 5 && (
+                        <Typography style={{ color: '#666', fontStyle: 'italic', fontSize: '0.7rem' }}>
+                          ... and {Object.keys(selectedUser.localStorageData).length - 5} more keys
+                        </Typography>
+                      )}
                     </Box>
                   ) : (
-                    <Typography style={{ color: '#666', fontStyle: 'italic' }}>
+                    <Typography style={{ color: '#666', fontStyle: 'italic', fontSize: '0.8rem' }}>
                       No localStorage data available
                     </Typography>
                   )}
@@ -819,30 +854,34 @@ const AdminDashboard: React.FC = () => {
 
                 {/* Raw JSON Data */}
                 <Box className={classes.dataSection}>
-                  <Typography variant="h6" style={{ color: '#8b7355', marginBottom: '16px', fontFamily: '"Courier New", monospace' }}>
-                    🔧 Raw JSON Data
+                  <Typography className={classes.dataSectionTitle}>
+                    🔧 Raw JSON
                   </Typography>
                   <Box className={classes.jsonViewer}>
-                    {JSON.stringify(selectedUser.localStorageData, null, 2)}
+                    {JSON.stringify(selectedUser.localStorageData, null, 1)}
                   </Box>
                 </Box>
               </Box>
             )}
           </DialogContent>
-          <DialogActions style={{ padding: '16px 24px' }}>
+          <DialogActions style={{ padding: '12px 16px', gap: '8px' }}>
             <Button
               onClick={() => {
                 navigator.clipboard.writeText(JSON.stringify(selectedUser?.localStorageData, null, 2));
-                alert('📋 Data copied to clipboard!');
+                alert('📋 Copied!');
               }}
               className={classes.actionButton}
-              startIcon={<span>📋</span>}
+              size="small"
+              fullWidth
             >
-              Copy JSON
+              📋 Copy
             </Button>
             <Button
               onClick={() => setUserDataModalOpen(false)}
-              className={classes.refreshButton}
+              className={classes.actionButton}
+              size="small"
+              fullWidth
+              style={{ backgroundColor: '#8b7355' }}
             >
               Close
             </Button>
