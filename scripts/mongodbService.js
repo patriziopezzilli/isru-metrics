@@ -12,6 +12,7 @@ import { MongoClient } from 'mongodb';
 const COLLECTIONS = {
   AUDIT_LOGS: 'audit_logs',
   AUDIT_STATS: 'audit_stats',
+  ACTIVITY_TRACKING: 'activity_tracking',
 };
 
 const INDEXES = {
@@ -24,6 +25,17 @@ const INDEXES = {
     { key: { date_key: 1, username_lower: 1, created_at: -1 } },
     { key: { username: 'text', url: 'text' } },
     { key: { created_at: 1 }, expireAfterSeconds: 365 * 24 * 60 * 60 }
+  ],
+  ACTIVITY_TRACKING: [
+    { key: { activity_id: 1 }, unique: true },
+    { key: { session_id: 1 } },
+    { key: { username_lower: 1, created_at: -1 } },
+    { key: { date_key: 1, created_at: -1 } },
+    { key: { created_at: -1 } },
+    { key: { activity_score: -1 } },
+    { key: { engagement_level: 1, created_at: -1 } },
+    { key: { username_lower: 1, activity_score: -1 } },
+    { key: { created_at: 1 }, expireAfterSeconds: 30 * 24 * 60 * 60 } // 30 days TTL
   ]
 };
 
@@ -156,6 +168,27 @@ export class MongoDBService {
           }
         }
       }
+
+      // Create activity tracking indexes
+      const activityCollection = this.getActivityCollection();
+
+      for (const indexSpec of INDEXES.ACTIVITY_TRACKING) {
+        try {
+          await activityCollection.createIndex(indexSpec.key, {
+            unique: indexSpec.unique || false,
+            expireAfterSeconds: indexSpec.expireAfterSeconds,
+            background: true
+          });
+
+          console.log(`🎯 Created activity index:`, indexSpec.key);
+        } catch (error) {
+          // Ignore duplicate index errors
+          if (error.code !== 85) {
+            console.warn(`⚠️ Failed to create activity index:`, indexSpec.key, error.message);
+          }
+        }
+      }
+
     } catch (error) {
       console.error('❌ Failed to create indexes:', error);
       throw error;
@@ -167,6 +200,13 @@ export class MongoDBService {
       throw new Error('Database not connected');
     }
     return this.db.collection(COLLECTIONS.AUDIT_LOGS);
+  }
+
+  getActivityCollection() {
+    if (!this.db) {
+      throw new Error('Database not connected');
+    }
+    return this.db.collection(COLLECTIONS.ACTIVITY_TRACKING);
   }
 
   async saveAudit(auditData) {
@@ -189,6 +229,57 @@ export class MongoDBService {
     } catch (error) {
       console.error('❌ Failed to save audit:', error);
       throw new Error(`Failed to save audit to MongoDB: ${error.message}`);
+    }
+  }
+
+  async upsertAuditByUsername(username, auditData) {
+    try {
+      const collection = this.getAuditCollection();
+      const usernameLower = username.toLowerCase();
+
+      // Prepare audit data with timestamps
+      const now = new Date();
+      const audit = {
+        ...auditData,
+        username: username,
+        username_lower: usernameLower,
+        updated_at: now,
+        server_timestamp: now,
+        date_key: this.formatDateKey(now)
+      };
+
+      // Set created_at only if it's a new document
+      const updateData = {
+        $set: audit,
+        $setOnInsert: {
+          created_at: now,
+          audit_id: auditData.audit_id || this.generateAuditId(username)
+        }
+      };
+
+      // Upsert: update if exists, insert if not
+      const result = await collection.updateOne(
+        { username_lower: usernameLower },
+        updateData,
+        { upsert: true }
+      );
+
+      console.log('✅ Audit upserted for user:', username, {
+        matched: result.matchedCount,
+        modified: result.modifiedCount,
+        upserted: !!result.upsertedId
+      });
+
+      return {
+        matchedCount: result.matchedCount,
+        modifiedCount: result.modifiedCount,
+        upserted: !!result.upsertedId,
+        upsertedId: result.upsertedId
+      };
+
+    } catch (error) {
+      console.error('❌ Failed to upsert audit:', error);
+      throw new Error(`Failed to upsert audit to MongoDB: ${error.message}`);
     }
   }
 
@@ -349,6 +440,144 @@ export class MongoDBService {
     const user = username || 'anonymous';
     const random = Math.random().toString(36).substr(2, 8);
     return `${user}_${timestamp}_${random}`;
+  }
+
+  // =====================================================
+  // ACTIVITY TRACKING METHODS
+  // =====================================================
+
+  async saveActivity(activityData) {
+    try {
+      const collection = this.getActivityCollection();
+
+      // Ensure required fields are set
+      const activity = {
+        ...activityData,
+        created_at: activityData.created_at || new Date(),
+        server_timestamp: activityData.server_timestamp || new Date()
+      };
+
+      const result = await collection.insertOne(activity);
+      console.log('✅ Activity saved to MongoDB:', activity.activity_id);
+
+      return {
+        success: true,
+        activity_id: activity.activity_id,
+        inserted_id: result.insertedId
+      };
+
+    } catch (error) {
+      console.error('❌ Failed to save activity:', error);
+      throw error;
+    }
+  }
+
+  async getActivityLeaderboard(options = {}) {
+    try {
+      const collection = this.getActivityCollection();
+      const { limit = 50, dateFrom, dateTo } = options;
+
+      // Build match filter
+      const matchFilter = {};
+
+      if (dateFrom || dateTo) {
+        matchFilter.created_at = {};
+        if (dateFrom) matchFilter.created_at.$gte = new Date(dateFrom);
+        if (dateTo) matchFilter.created_at.$lte = new Date(dateTo);
+      }
+
+      // Only include users with usernames
+      matchFilter.username_lower = { $ne: null };
+
+      const pipeline = [
+        { $match: matchFilter },
+        {
+          $group: {
+            _id: '$username_lower',
+            username: { $first: '$username' },
+            total_activity_score: { $sum: '$activity_score' },
+            total_sessions: { $sum: 1 },
+            total_events: { $sum: { $size: '$events' } },
+            avg_session_duration: { $avg: '$session_duration' },
+            last_activity: { $max: '$created_at' },
+            engagement_levels: { $push: '$engagement_level' }
+          }
+        },
+        {
+          $addFields: {
+            avg_session_minutes: { $round: [{ $divide: ['$avg_session_duration', 60000] }, 1] },
+            high_engagement_sessions: {
+              $size: {
+                $filter: {
+                  input: '$engagement_levels',
+                  cond: { $in: ['$$this', ['high', 'very_high']] }
+                }
+              }
+            }
+          }
+        },
+        { $sort: { total_activity_score: -1 } },
+        { $limit: limit }
+      ];
+
+      const leaderboard = await collection.aggregate(pipeline).toArray();
+
+      return {
+        leaderboard,
+        total_users: leaderboard.length,
+        generated_at: new Date().toISOString()
+      };
+
+    } catch (error) {
+      console.error('❌ Failed to get activity leaderboard:', error);
+      throw error;
+    }
+  }
+
+  async getUserActivityStats(username) {
+    try {
+      const collection = this.getActivityCollection();
+      const usernameLower = username.toLowerCase();
+
+      const pipeline = [
+        { $match: { username_lower: usernameLower } },
+        {
+          $group: {
+            _id: null,
+            total_activity_score: { $sum: '$activity_score' },
+            total_sessions: { $sum: 1 },
+            total_events: { $sum: { $size: '$events' } },
+            avg_session_duration: { $avg: '$session_duration' },
+            total_clicks: { $sum: '$total_clicks' },
+            total_page_views: { $sum: { $size: '$page_views' } },
+            last_activity: { $max: '$created_at' },
+            first_activity: { $min: '$created_at' },
+            engagement_levels: { $push: '$engagement_level' }
+          }
+        },
+        {
+          $addFields: {
+            avg_session_minutes: { $round: [{ $divide: ['$avg_session_duration', 60000] }, 1] },
+            high_engagement_sessions: {
+              $size: {
+                $filter: {
+                  input: '$engagement_levels',
+                  cond: { $in: ['$$this', ['high', 'very_high']] }
+                }
+              }
+            }
+          }
+        }
+      ];
+
+      const stats = await collection.aggregate(pipeline).toArray();
+
+      return stats.length > 0 ? stats[0] : null;
+
+    } catch (error) {
+      console.error('❌ Failed to get user activity stats:', error);
+      throw error;
+    }
   }
 }
 

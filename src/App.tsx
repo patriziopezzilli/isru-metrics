@@ -21,6 +21,7 @@ import DashboardIcon from '@material-ui/icons/Dashboard';
 import SearchIcon from '@material-ui/icons/Search';
 import PersonIcon from '@material-ui/icons/Person';
 import SportsSoccerIcon from '@material-ui/icons/SportsSoccer';
+import EmojiEventsIcon from '@material-ui/icons/EmojiEvents';
 import Dashboard from './components/Dashboard';
 import UserSearch from './components/UserSearch';
 import { UserProfile } from './components/UserProfile';
@@ -33,6 +34,8 @@ import PositionFinder from './components/PositionFinder';
 import AppLoader from './components/AppLoader';
 import OnlineUserCounter from './components/OnlineUserCounter';
 import AdminDashboard from './components/AdminDashboard';
+import ActivityLeague from './components/ActivityLeague';
+import { activityTracker } from './services/activityTracker';
 import { fetchScoreDistribution, calculateUserStats } from './apiService';
 import { ScoreDistributionResponse, UserStats } from './types';
 import OfflineService from './services/offlineService';
@@ -115,10 +118,14 @@ const MainApp = () => {
   useEffect(() => {
     // I dati vengono ora caricati direttamente da AppLoader
     // Questo useEffect non è più necessario
-    
+
     // Invia audit localStorage asincrono quando l'app è caricata
     if (appLoaded) {
       console.log('📊 App loaded, starting localStorage audit...');
+
+      // Track initial page view
+      activityTracker.trackPageView('I.S.R.U League - Main App');
+
       AuditService.auditLocalStorage({
         includeAllKeys: false, // Solo chiavi ISRU
         maxDataSize: 50000,    // Max 50KB
@@ -157,7 +164,7 @@ const MainApp = () => {
   };
 
   const handleTabChange = (event: React.ChangeEvent<{}>, newValue: number) => {
-    setActiveTab(newValue as 0 | 1 | 2);
+    setActiveTab(newValue as 0 | 1 | 2 | 3);
   };
 
   return (
@@ -177,7 +184,7 @@ const MainApp = () => {
             loading={loading}
             error={error}
             scoreDistribution={data}
-            activeTab={activeTab as 0 | 1 | 2}
+            activeTab={activeTab as 0 | 1 | 2 | 3}
             onTabChange={handleTabChange}
             onLoadData={loadData}
             username={username}
@@ -219,7 +226,7 @@ const AppContent = ({
   loading: boolean;
   error: string | null;
   scoreDistribution: ScoreDistributionResponse | null;
-  activeTab: 0 | 1 | 2;
+  activeTab: 0 | 1 | 2 | 3;
   onTabChange: (event: React.ChangeEvent<{}>, newValue: number) => void;
   onLoadData: () => void;
   username: string;
@@ -236,6 +243,11 @@ const AppContent = ({
   // Debug wrapper per tab change
   const handleTabChangeWithDebug = (event: React.ChangeEvent<{}>, newValue: number) => {
     console.log('🎯 Tab change:', { from: activeTab, to: newValue, isMobile, hasUsername: !!username });
+
+    // Track tab change activity
+    const tabNames = ['Dashboard', 'User Search', 'Profile', 'Activity League'];
+    activityTracker.trackTabChange(tabNames[newValue] || `Tab ${newValue}`);
+
     onTabChange(event, newValue);
   };
 
@@ -351,8 +363,8 @@ const AppContent = ({
                 backgroundColor: 'rgba(0, 0, 0, 0.05)',
                 borderRadius: 12,
                 padding: isMobile ? '2px' : '4px',
-                maxWidth: isMobile ? 280 : 300,
-                minWidth: isMobile ? 280 : 300,
+                maxWidth: isMobile ? 320 : 400,
+                minWidth: isMobile ? 320 : 400,
               }}
             >
               <Tab 
@@ -365,11 +377,21 @@ const AppContent = ({
                   color: '#333',
                 }}
               />
-              <Tab 
-                icon={<SearchIcon />} 
+              <Tab
+                icon={<SearchIcon />}
                 label={!isMobile ? "User Search" : undefined}
-                style={{ 
-                  borderRadius: 8, 
+                style={{
+                  borderRadius: 8,
+                  minHeight: isMobile ? 40 : 48,
+                  fontSize: isMobile ? '0.8rem' : '0.9rem',
+                  color: '#333',
+                }}
+              />
+              <Tab
+                icon={<EmojiEventsIcon />}
+                label={!isMobile ? "Activity League" : undefined}
+                style={{
+                  borderRadius: 8,
                   minHeight: isMobile ? 40 : 48,
                   fontSize: isMobile ? '0.8rem' : '0.9rem',
                   color: '#333',
@@ -431,8 +453,12 @@ const AppContent = ({
         {activeTab === 1 && (
           <UserSearch scoreDistribution={scoreDistribution} />
         )}
-        
-        {activeTab === 2 && isMobile && (
+
+        {activeTab === 2 && (
+          <ActivityLeague currentUsername={username} />
+        )}
+
+        {activeTab === 3 && isMobile && (
           <UserProfile
             open={true}
             onClose={onProfileDialogClose}

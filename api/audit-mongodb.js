@@ -33,6 +33,14 @@ export default async function handler(req, res) {
             });
         }
 
+        // Verifica che ci sia un username valido
+        if (!auditData.username || auditData.username.trim() === '') {
+            return res.status(400).json({
+                error: 'Username required',
+                message: 'Audit data requires a valid username'
+            });
+        }
+
         // Crea servizio MongoDB
         const mongoService = createMongoDBService();
         
@@ -65,15 +73,17 @@ export default async function handler(req, res) {
             }
         };
 
-        // Salva in MongoDB
-        const insertedId = await mongoService.saveAudit(mongoAuditData);
+        // Upsert: aggiorna se esiste, crea se non esiste (per username)
+        const result = await mongoService.upsertAuditByUsername(auditData.username.trim(), mongoAuditData);
 
-        console.log('✅ Audit data saved to MongoDB:', {
+        console.log('✅ Audit data upserted to MongoDB:', {
             audit_id: auditId,
             username: auditData.username,
             timestamp: serverTimestamp.toISOString(),
             localStorage_size: auditData.localStorage_size,
-            inserted_id: insertedId
+            operation: result.upserted ? 'inserted' : 'updated',
+            matched_count: result.matchedCount,
+            modified_count: result.modifiedCount
         });
 
         // Disconnetti (il connection pool gestirà le connessioni)

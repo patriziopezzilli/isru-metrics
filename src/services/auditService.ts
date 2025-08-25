@@ -36,16 +36,46 @@ export class AuditService {
     private static readonly MAX_RETRIES = 3;
     private static readonly RETRY_DELAY = 1000; // 1 secondo
 
+    // Throttling per evitare spam
+    private static lastAuditTime: number = 0;
+    private static lastAuditUsername: string | null = null;
+    private static readonly AUDIT_COOLDOWN = 30 * 60 * 1000; // 30 minuti
+
     /**
      * Invia audit asincrono del localStorage al database
      */
     static async auditLocalStorage(options: AuditOptions = {}): Promise<void> {
         try {
-            console.log('📊 Starting localStorage audit...');
-            
+            // 1. Verifica che ci sia un username
+            const username = localStorage.getItem('isru-username');
+            if (!username || username.trim() === '') {
+                console.log('📊 Audit skipped: no username in session');
+                if (options.onSuccess) options.onSuccess();
+                return;
+            }
+
+            // 2. Throttling intelligente
+            const now = Date.now();
+            const timeSinceLastAudit = now - this.lastAuditTime;
+            const sameUser = this.lastAuditUsername === username;
+
+            // Se stesso utente e meno di 30 minuti fa, salta
+            if (sameUser && timeSinceLastAudit < this.AUDIT_COOLDOWN) {
+                const remainingTime = Math.ceil((this.AUDIT_COOLDOWN - timeSinceLastAudit) / 60000);
+                console.log(`📊 Audit throttled: same user, ${remainingTime} minutes remaining`);
+                if (options.onSuccess) options.onSuccess();
+                return;
+            }
+
+            console.log('📊 Starting localStorage audit for user:', username);
+
+            // Aggiorna tracking
+            this.lastAuditTime = now;
+            this.lastAuditUsername = username;
+
             // Raccogli dati audit
             const auditData = this.collectAuditData(options);
-            
+
             // Invia in modo asincrono (non blocca UI)
             this.sendAuditAsync(auditData, options);
             
