@@ -32,7 +32,7 @@ export interface AuditOptions {
 // =====================================================
 
 export class AuditService {
-    private static readonly AUDIT_ENDPOINT = '/api/audit-blob'; // Cambiato a Vercel Blob
+    private static readonly AUDIT_ENDPOINT = '/api/audit-mongodb'; // Cambiato a MongoDB Atlas
     private static readonly MAX_RETRIES = 3;
     private static readonly RETRY_DELAY = 1000; // 1 secondo
 
@@ -156,7 +156,19 @@ export class AuditService {
                     this.sendWithRetry(auditData, options, attempt + 1);
                 }, this.RETRY_DELAY * (attempt + 1)); // Exponential backoff
             } else {
-                console.error('❌ Audit failed after all retries');
+                console.warn('⚠️ Audit failed after all retries. Service may be unavailable, but user not blocked.');
+
+                // Graceful degradation - don't block user experience
+                if (options.onSuccess) {
+                    options.onSuccess({
+                        success: true,
+                        audit_id: `fallback_${Date.now()}`,
+                        message: 'Audit service temporarily unavailable',
+                        warning: 'Data not persisted'
+                    });
+                }
+
+                // Still call onError for logging purposes
                 if (options.onError) {
                     options.onError(error);
                 }

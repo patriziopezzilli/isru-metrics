@@ -199,11 +199,16 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
           </Box>
           
           <form onSubmit={handleSearchSubmit}>
-            <Box 
-              display="flex" 
-              alignItems="center" 
+            <Box
+              display="flex"
+              alignItems="center"
               flexDirection={isMobile ? "column" : "row"}
-              style={{ gap: isMobile ? 12 : 16 }}
+              style={{
+                gap: isMobile ? 12 : 16,
+                width: '100%',
+                maxWidth: '100%',
+                overflow: 'hidden'
+              }}
             >
               <TextField
                 fullWidth
@@ -211,6 +216,10 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                 placeholder={isMobile ? "Enter username..." : "Enter username to search (e.g., cokisnake)..."}
                 value={searchQuery}
                 onChange={handleSearchChange}
+                style={{
+                  width: '100%',
+                  maxWidth: '100%'
+                }}
                 InputProps={{
                   startAdornment: (
                     <InputAdornment position="start">
@@ -221,7 +230,9 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                     borderRadius: 12,
                     backgroundColor: '#f5f1eb',
                     border: '1px solid #e6ddd4',
-                    fontSize: isMobile ? '0.9rem' : '1rem'
+                    fontSize: isMobile ? '0.9rem' : '1rem',
+                    width: '100%',
+                    maxWidth: '100%'
                   }
                 }}
               />

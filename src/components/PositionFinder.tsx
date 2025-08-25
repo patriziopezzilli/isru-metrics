@@ -179,6 +179,7 @@ interface PositionResult {
   isExact: boolean;
   totalPoints?: number;
   username: string;
+  usersWithSameScore?: number;
 }
 
 interface PositionFinderProps {
@@ -255,16 +256,25 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
             if (user.username.toLowerCase() === targetUsername) {
               position = (page - 1) * limit + i + 1;
               found = true;
-              
+
+              // Count users with the same score on this page
+              let usersWithSameScore = 0;
+              for (const pageUser of data.results) {
+                if (pageUser.totalPoints === user.totalPoints) {
+                  usersWithSameScore++;
+                }
+              }
+
               setResult({
                 position,
                 totalPages: page,
                 isExact: true,
                 totalPoints: user.totalPoints,
-                username: user.username
+                username: user.username,
+                usersWithSameScore
               });
-              
-              console.log(`🎯 Found ${targetUsername} at position ${position}!`);
+
+              console.log(`🎯 Found ${targetUsername} at position ${position}! Users with same score on this page: ${usersWithSameScore}`);
               break;
             }
           }
@@ -311,17 +321,22 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
     return pos.toString();
   };
 
-  const getPositionText = (pos: number, isExact: boolean): string => {
+  const getPositionText = (pos: number, isExact: boolean, usersWithSameScore?: number): string => {
     if (!isExact && pos > 2000) {
-      return 'You are ranked beyond position 2000';
+      return 'User not found in top 2000 positions. They might be ranked beyond position 2000 or not exist in the leaderboard.';
     }
     if (!isExact) {
-      return `You are ranked beyond position ${pos - 1} (at least ${pos - 1} people ahead)`;
+      return `User not found in the first ${pos - 1} positions. They are likely ranked beyond position ${pos - 1}.`;
     }
     if (pos === 1) {
       return 'You are #1! 🏆';
     }
-    return `You have ${pos - 1} people ahead of you`;
+
+    let baseText = `You have ${pos - 1} people ahead of you`;
+    if (usersWithSameScore && usersWithSameScore > 1) {
+      baseText += ` (${usersWithSameScore} people share your score)`;
+    }
+    return baseText;
   };
 
   return (
@@ -402,7 +417,7 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
                 </Typography>
               
               <Typography className={classes.rankText}>
-                {getPositionText(result.position, result.isExact)}
+                {getPositionText(result.position, result.isExact, result.usersWithSameScore)}
               </Typography>
 
               <Box className={classes.statsRow}>
@@ -417,6 +432,14 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
                     className={classes.statChip}
                     icon={<TrophyIcon />}
                     label={`${result.totalPoints} points`}
+                    size="small"
+                  />
+                )}
+                {result.usersWithSameScore && result.usersWithSameScore > 1 && (
+                  <Chip
+                    className={classes.statChip}
+                    icon={<PeopleIcon />}
+                    label={`${result.usersWithSameScore} with same score`}
                     size="small"
                   />
                 )}

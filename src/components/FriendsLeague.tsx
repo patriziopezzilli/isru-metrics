@@ -676,6 +676,19 @@ export const FriendsLeague: React.FC = () => {
       newProfiles.delete(username);
       return newProfiles;
     });
+    // Clean up loading and error states
+    setLoading(prev => {
+      const newLoading = new Map(prev);
+      newLoading.delete(username);
+      return newLoading;
+    });
+    setErrors(prev => {
+      const newErrors = new Map(prev);
+      newErrors.delete(username);
+      return newErrors;
+    });
+    // Clean up cache
+    profileCache.delete(username);
     showSnackbar(`Removed ${username} from friends`);
   };
 
@@ -976,7 +989,10 @@ export const FriendsLeague: React.FC = () => {
                             </Box>
                             <IconButton
                               size="small"
-                              onClick={() => removeFriend(friend)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeFriend(friend);
+                              }}
                               style={{ color: '#f44336' }}
                             >
                               <ClearIcon />
@@ -1038,7 +1054,10 @@ export const FriendsLeague: React.FC = () => {
                             
                             <IconButton
                               size="small"
-                              onClick={() => removeFriend(friend)}
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                removeFriend(friend);
+                              }}
                               style={{ color: '#8b7355', opacity: 0.6 }}
                             >
                               <ClearIcon />
