@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Box, Typography, CircularProgress, LinearProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
-import MigrationService from '../services/migrationService';
 import { fetchScoreDistribution } from '../apiService';
 import OfflineService from '../services/offlineService';
 
@@ -91,80 +90,22 @@ const AppLoader: React.FC<AppLoaderProps> = ({ onLoadComplete }) => {
   useEffect(() => {
     const performStartupSequence = async () => {
       try {
-        // Stage 1: Check for migration need
-        setLoadingStage('checking');
-        setStatusMessage('Checking for data migration...');
+        // Stage 1: Initialize application
+        setLoadingStage('loading');
+        setStatusMessage('Initializing I.S.R.U League...');
         setProgress(20);
-        
+
         await new Promise(resolve => setTimeout(resolve, 800));
 
-        console.log('🔍 AppLoader: Checking for migration import...');
-        console.log('🔍 Current URL:', window.location.href);
-        console.log('🔍 SessionStorage keys:', Object.keys(sessionStorage));
-        console.log('🔍 Migration data in sessionStorage:', sessionStorage.getItem('migration-data-full') ? 'FOUND' : 'NOT FOUND');
-
-        // Controlla se sul nuovo dominio dobbiamo importare dati
-        const migrationImported = MigrationService.importMigratedData();
-        console.log('🔍 Migration import result:', migrationImported);
-        
-        if (migrationImported) {
-          setLoadingStage('importing');
-          setStatusMessage('Importing your data from old domain...');
-          setProgress(60);
-          await new Promise(resolve => setTimeout(resolve, 1500));
-          
-          setStatusMessage('Migration completed successfully! 🎉');
-          setProgress(80);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          MigrationService.showMigrationSuccess();
-        }
-
-        console.log('🔍 AppLoader: Checking if should migrate...');
-        console.log('🔍 Should migrate:', MigrationService.shouldMigrate());
-
-        // Controlla se dobbiamo migrare verso il nuovo dominio
-        if (MigrationService.shouldMigrate()) {
-          console.log('🔍 AppLoader: Starting migration process...');
-          setLoadingStage('migrating');
-          setStatusMessage('Preparing data for migration...');
-          setProgress(40);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-          
-          if (MigrationService.isLocalEnvironment()) {
-            setStatusMessage('Simulating migration (local environment)...');
-          } else {
-            setStatusMessage('Redirecting to new domain...');
-          }
-          setProgress(70);
-          await new Promise(resolve => setTimeout(resolve, 800));
-          
-          console.log('🔍 AppLoader: Calling performMigration...');
-          // Esegue la migrazione (in locale simula, altrimenti reindirizza)
-          await MigrationService.performMigration();
-          
-          // Se siamo in locale, continua il caricamento normale
-          if (!MigrationService.isLocalEnvironment()) {
-            console.log('🔍 AppLoader: Not local environment, should redirect now');
-            return; // Non continua perché verrà reindirizzato
-          }
-          
-          // Solo per locale: mostra messaggio di successo
-          setStatusMessage('Migration simulation completed! 🧪');
-          setProgress(85);
-          await new Promise(resolve => setTimeout(resolve, 1000));
-        }
-
-        // Stage 2: Normal startup
-        setLoadingStage('loading');
+        // Stage 2: Load application components
         setStatusMessage('Loading application components...');
-        setProgress(60);
-        await new Promise(resolve => setTimeout(resolve, 1000));
+        setProgress(40);
+        await new Promise(resolve => setTimeout(resolve, 800));
 
         // Stage 3: Load application data
         setLoadingStage('loading-data');
         setStatusMessage('Loading I.S.R.U League data...');
-        setProgress(70);
+        setProgress(60);
         
         let scoreDistribution = null;
         let username = '';

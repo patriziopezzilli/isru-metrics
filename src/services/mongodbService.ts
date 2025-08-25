@@ -154,11 +154,19 @@ export class MongoDBService {
       
       for (const indexSpec of INDEXES.AUDIT_LOGS) {
         try {
-          await auditCollection.createIndex(indexSpec.key, {
-            unique: indexSpec.unique || false,
-            expireAfterSeconds: indexSpec.expireAfterSeconds,
+          const indexOptions: any = {
             background: true
-          } as CreateIndexesOptions);
+          };
+
+          if ('unique' in indexSpec) {
+            indexOptions.unique = indexSpec.unique;
+          }
+
+          if ('expireAfterSeconds' in indexSpec) {
+            indexOptions.expireAfterSeconds = indexSpec.expireAfterSeconds;
+          }
+
+          await auditCollection.createIndex(indexSpec.key, indexOptions);
           
           console.log(`📊 Created index:`, indexSpec.key);
         } catch (error: any) {
@@ -356,7 +364,10 @@ export class MongoDBService {
         }
       ];
 
-      const topUsers = await collection.aggregate(topUsersPipeline).toArray();
+      const topUsers = await collection.aggregate(topUsersPipeline).toArray() as Array<{
+        username: string;
+        audit_count: number;
+      }>;
 
       return {
         total_audits: stats?.total_audits || 0,

@@ -2,7 +2,6 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, IconButton, Collapse, Paper, LinearProgress, CircularProgress } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { Close as CloseIcon, Launch as LaunchIcon, Warning as WarningIcon } from '@material-ui/icons';
-import MigrationService from '../services/migrationService';
 import { fetchScoreDistribution } from '../apiService';
 import OfflineService from '../services/offlineService';
 import { ScoreDistributionResponse } from '../types';
@@ -149,17 +148,9 @@ const DomainMigrationWarning: React.FC<DomainMigrationWarningProps> = ({
         return;
       }
 
-      // Show warning in these cases:
-      // 1. On old domain (not isru-league.com)
-      // 2. If migration was recently completed (migration-completed exists)
-      const currentDomain = window.location.hostname;
-      const isNewDomain = currentDomain.includes('isru-league.com');
-      const migrationCompleted = localStorage.getItem('migration-completed') !== null;
-      const isLocalEnv = MigrationService.isLocalEnvironment();
-      
-      // Show if on old domain OR if migration was recently completed OR in local for testing
-      const shouldShow = !isNewDomain || migrationCompleted || isLocalEnv;
-      
+      // Simplified: only show in loader mode or if explicitly needed
+      const shouldShow = showAsLoader;
+
       setIsVisible(shouldShow);
     }
   }, [showAsLoader]);
@@ -176,60 +167,10 @@ const DomainMigrationWarning: React.FC<DomainMigrationWarningProps> = ({
       
       await new Promise(resolve => setTimeout(resolve, 800));
 
-      // Controlla se sul nuovo dominio dobbiamo importare dati
-      const migrationImported = MigrationService.importMigratedData();
-      if (migrationImported) {
-        setLoadingStage('importing');
-        setStatusMessage('Importing your data from old domain...');
-        setProgress(30);
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        
-        setStatusMessage('Migration completed successfully! 🎉');
-        setProgress(40);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        MigrationService.showMigrationSuccess();
-      }
-
-      // Controlla se dobbiamo migrare verso il nuovo dominio
-      if (MigrationService.shouldMigrate()) {
-        setLoadingStage('migrating');
-        const hasData = localStorage.getItem('isru-username') !== null;
-        
-        if (hasData) {
-          setStatusMessage('Preparing data for migration...');
-        } else {
-          setStatusMessage('Redirecting to new domain...');
-        }
-        setProgress(25);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        if (MigrationService.isLocalEnvironment()) {
-          setStatusMessage('Simulating migration (local environment)...');
-        } else {
-          setStatusMessage('Redirecting to new domain...');
-        }
-        setProgress(35);
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Esegue la migrazione (in locale simula, altrimenti reindirizza)
-        await MigrationService.performMigration();
-        
-        // Se siamo in locale, continua il caricamento normale
-        if (!MigrationService.isLocalEnvironment()) {
-          return; // Non continua perché verrà reindirizzato
-        }
-        
-        // Solo per locale: mostra messaggio di successo
-        setStatusMessage('Migration simulation completed! 🧪');
-        setProgress(45);
-        await new Promise(resolve => setTimeout(resolve, 1000));
-      }
-
       // Stage 2: Load user data
       setLoadingStage('loading');
       setStatusMessage('Loading user profile...');
-      setProgress(50);
+      setProgress(30);
       
       // Carica username dal localStorage
       const savedUsername = localStorage.getItem('isru-username');
@@ -241,7 +182,7 @@ const DomainMigrationWarning: React.FC<DomainMigrationWarningProps> = ({
 
       // Stage 3: Fetch API data
       setStatusMessage('Fetching score distribution data...');
-      setProgress(70);
+      setProgress(60);
       
       try {
         scoreData = await fetchScoreDistribution();

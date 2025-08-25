@@ -160,12 +160,7 @@ export class AuditService {
 
                 // Graceful degradation - don't block user experience
                 if (options.onSuccess) {
-                    options.onSuccess({
-                        success: true,
-                        audit_id: `fallback_${Date.now()}`,
-                        message: 'Audit service temporarily unavailable',
-                        warning: 'Data not persisted'
-                    });
+                    options.onSuccess();
                 }
 
                 // Still call onError for logging purposes
