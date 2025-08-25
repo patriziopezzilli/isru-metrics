@@ -257,13 +257,9 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
               position = (page - 1) * limit + i + 1;
               found = true;
 
-              // Count users with the same score on this page
-              let usersWithSameScore = 0;
-              for (const pageUser of data.results) {
-                if (pageUser.totalPoints === user.totalPoints) {
-                  usersWithSameScore++;
-                }
-              }
+              // Count ALL users with the same score across the entire leaderboard
+              console.log(`🔍 Counting all users with ${user.totalPoints} points...`);
+              const usersWithSameScore = await countUsersWithSameScore(user.totalPoints);
 
               setResult({
                 position,
@@ -274,7 +270,7 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
                 usersWithSameScore
               });
 
-              console.log(`🎯 Found ${targetUsername} at position ${position}! Users with same score on this page: ${usersWithSameScore}`);
+              console.log(`🎯 Found ${targetUsername} at position ${position}! Total users with same score: ${usersWithSameScore}`);
               break;
             }
           }
@@ -321,6 +317,84 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
     return pos.toString();
   };
 
+  // Count all users with the same score across the entire leaderboard
+  const countUsersWithSameScore = async (targetPoints: number): Promise<number> => {
+    try {
+      console.log(`🔍 Searching for all users with ${targetPoints} points...`);
+      const limit = 100; // Same as findPosition function
+      let totalCount = 0;
+      let currentPage = 1;
+      let hasMorePages = true;
+
+      while (hasMorePages && currentPage <= 50) { // Safety limit: max 50 pages (100k users)
+        try {
+          const response = await fetch(
+            `/api/universal-proxy?api=isru-leaderboard-pages&page=${currentPage}&limit=${limit}`,
+            {
+              method: 'GET',
+              headers: {
+                'Accept': 'application/json',
+              },
+            }
+          );
+
+          if (!response.ok) {
+            console.warn(`⚠️ Failed to fetch page ${currentPage} for score counting`);
+            break;
+          }
+
+          const data = await response.json();
+
+          if (!data.results || data.results.length === 0) {
+            hasMorePages = false;
+            break;
+          }
+
+          // Count users with same score on this page
+          let pageCount = 0;
+          for (const user of data.results) {
+            if (user.totalPoints === targetPoints) {
+              pageCount++;
+            }
+          }
+
+          totalCount += pageCount;
+          console.log(`📄 Page ${currentPage}: found ${pageCount} users with ${targetPoints} points (total so far: ${totalCount})`);
+
+          // If no users with target score on this page, we might be done
+          // (assuming leaderboard is sorted by score descending)
+          if (pageCount === 0) {
+            // Check if we've gone past the target score
+            const maxScoreOnPage = Math.max(...data.results.map((u: any) => u.totalPoints));
+
+            if (maxScoreOnPage < targetPoints) {
+              // We've gone past the target score, stop searching
+              console.log(`🛑 Reached scores below target (${maxScoreOnPage} < ${targetPoints}), stopping search`);
+              hasMorePages = false;
+              break;
+            }
+          }
+
+          currentPage++;
+
+          // Small delay to avoid overwhelming the API
+          await new Promise(resolve => setTimeout(resolve, 100));
+
+        } catch (pageError) {
+          console.warn(`⚠️ Error fetching page ${currentPage}:`, pageError);
+          break;
+        }
+      }
+
+      console.log(`✅ Total users with ${targetPoints} points: ${totalCount}`);
+      return totalCount;
+
+    } catch (error) {
+      console.error('❌ Error counting users with same score:', error);
+      return 1; // Fallback: at least the user we found
+    }
+  };
+
   const getPositionText = (pos: number, isExact: boolean, usersWithSameScore?: number): string => {
     if (!isExact && pos > 2000) {
       return 'User not found in top 2000 positions. They might be ranked beyond position 2000 or not exist in the leaderboard.';
@@ -334,7 +408,11 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
 
     let baseText = `You have ${pos - 1} people ahead of you`;
     if (usersWithSameScore && usersWithSameScore > 1) {
-      baseText += ` (${usersWithSameScore} people share your score)`;
+      if (usersWithSameScore === 2) {
+        baseText += ` (1 other person shares your score)`;
+      } else {
+        baseText += ` (${usersWithSameScore - 1} other people share your score)`;
+      }
     }
     return baseText;
   };
@@ -439,7 +517,11 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
                   <Chip
                     className={classes.statChip}
                     icon={<PeopleIcon />}
-                    label={`${result.usersWithSameScore} with same score`}
+                    label={
+                      result.usersWithSameScore === 2
+                        ? `1 other with same score`
+                        : `${result.usersWithSameScore - 1} others with same score`
+                    }
                     size="small"
                   />
                 )}

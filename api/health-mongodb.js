@@ -6,8 +6,10 @@
 import { createMongoDBService } from '../scripts/mongodbService.js';
 import dotenv from 'dotenv';
 
-// Load environment variables
-dotenv.config({ path: '.env.local' });
+// Load environment variables in production
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config({ path: '.env.local' });
+}
 
 export default async function handler(req, res) {
     // Solo GET requests

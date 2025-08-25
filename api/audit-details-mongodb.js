@@ -3,7 +3,13 @@
 // API endpoint per ottenere dettagli audit da MongoDB Atlas
 // =====================================================
 
-import { createMongoDBService } from '../src/services/mongodbService.js';
+import { createMongoDBService } from '../scripts/mongodbService.js';
+import dotenv from 'dotenv';
+
+// Load environment variables in development
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config({ path: '.env.local' });
+}
 
 export default async function handler(req, res) {
     // Solo GET requests
