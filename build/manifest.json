@@ -1,6 +1,7 @@
 {
   "short_name": "I.S.R.U League",
-  "name": "I.S.R.U League Dashboard",
+  "name": "I.S.R.U League - Tom Sachs Mars Training Dashboard",
+  "description": "Official leaderboard for Tom Sachs I.S.R.U Summer Camp and NikeCraft space activities",
   "icons": [
     {
       "src": "favicon.ico",

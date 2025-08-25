@@ -587,11 +587,11 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const renderFirstTimeSetup = () => (
     <>
       <DialogTitle className={classes.dialogTitle}>
-        Welcome to I.S.R.U League
+        Welcome to Tom Sachs I.S.R.U League
       </DialogTitle>
       <DialogContent>
         <Typography variant="body1" style={{ marginBottom: 16, color: '#8b7355' }}>
-          Enter your username to set up your profile and track your league position:
+          Join the official Tom Sachs I.S.R.U Summer Camp leaderboard. Enter your username to track your Mars training progress and compete in NikeCraft-inspired space activities:
         </Typography>
         <TextField
           fullWidth
@@ -924,7 +924,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                   fontWeight: 'bold',
                   marginBottom: '12px'
                 }}>
-                  Welcome to I.S.R.U League
+                  Welcome to Tom Sachs I.S.R.U League
                 </Typography>
                 
                 <Typography variant="body1" style={{ 

@@ -490,7 +490,10 @@ const AppContent = ({
       >
         <Container maxWidth="lg">
           <Typography variant="body2" color="textSecondary" align="center" style={{ fontWeight: 500 }}>
-            📱 Mobile Optimized • 📊 Data from isrucamp.com
+            🚀 Official Tom Sachs I.S.R.U Summer Camp Leaderboard • 📊 Data from isrucamp.com
+          </Typography>
+          <Typography variant="caption" color="textSecondary" align="center" style={{ marginTop: '8px', display: 'block' }}>
+            Inspired by Tom Sachs Studio • NikeCraft Mars Training Activities • Space Resource Utilization Rankings
           </Typography>
           
           {/* Connection Status nel footer */}

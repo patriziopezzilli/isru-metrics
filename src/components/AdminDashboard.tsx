@@ -492,73 +492,81 @@ const AdminDashboard: React.FC = () => {
     setError('');
 
     try {
-      console.log('🔄 Loading ALL audit data (no date limits)...');
+      console.log('🔄 Loading audit data from MongoDB Atlas...');
 
-      // Fetch ALL audit files without date restrictions
-      const allAuditFiles: any[] = [];
-
-      // Try to get audit files from the last 30 days to ensure we get everyone
-      const daysToLoad = 30; // Load last 30 days to catch all users
-
-      for (let i = 0; i < daysToLoad; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = date.toISOString().slice(0, 10); // YYYY-MM-DD
-
-        try {
-          const listResponse = await fetch(`/api/audit-list?date=${dateStr}`);
-          if (listResponse.ok) {
-            const auditFilesResponse = await listResponse.json();
-            const dayFiles = Array.isArray(auditFilesResponse.audits) ? auditFilesResponse.audits : [];
-            allAuditFiles.push(...dayFiles);
-            console.log(`📁 Found ${dayFiles.length} files for ${dateStr}`);
-          }
-        } catch (err) {
-          console.warn(`Failed to load audit files for ${dateStr}:`, err);
-        }
-      }
-
-      console.log(`📊 Total audit files found: ${allAuditFiles.length}`);
+      // Fetch audit data from MongoDB with pagination
       const allAuditData: AuditData[] = [];
+      let currentPage = 1;
+      let hasMoreData = true;
+      const pageSize = 100; // Load 100 records per page
 
-      // Process ALL files - no limits to get everyone
-      const filesToProcess = allAuditFiles;
-
-      for (const file of filesToProcess) {
+      while (hasMoreData) {
         try {
-          const detailsResponse = await fetch(`/api/audit-details?url=${encodeURIComponent(file.url)}`);
-          if (detailsResponse.ok) {
-            const details = await detailsResponse.json();
+          console.log(`📄 Loading page ${currentPage}...`);
 
-            if (details && typeof details === 'object' && details.username) {
+          const response = await fetch(`/api/audit-list-mongodb?page=${currentPage}&limit=${pageSize}`);
+
+          if (!response.ok) {
+            if (response.status === 404) {
+              console.log('📭 No more audit data available');
+              break;
+            }
+            throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+          }
+
+          const result = await response.json();
+
+          if (!result.success || !result.data || !result.data.audits) {
+            console.warn('⚠️ Invalid response format from MongoDB API');
+            break;
+          }
+
+          const pageAudits = result.data.audits;
+          console.log(`📊 Page ${currentPage}: loaded ${pageAudits.length} audits`);
+
+          // Convert MongoDB format to AdminDashboard format
+          for (const mongoAudit of pageAudits) {
+            if (mongoAudit.username) { // Only include audits with username
               allAuditData.push({
-                audit_id: details.audit_id || file.pathname,
-                username: details.username,
-                timestamp: details.timestamp || new Date().toISOString(),
-                server_timestamp: details.server_timestamp || details.timestamp,
-                localStorage_data: details.localStorage_data || {},
-                localStorage_size: details.localStorage_size || 0,
-                url: details.url || 'Unknown',
-                userAgent: details.user_agent || details.userAgent || 'Unknown',
-                client_ip: details.client_ip || 'Unknown',
-                app_version: details.app_version
+                audit_id: mongoAudit.audit_id,
+                username: mongoAudit.username,
+                timestamp: mongoAudit.timestamp,
+                server_timestamp: mongoAudit.server_timestamp,
+                localStorage_data: mongoAudit.localStorage_data || {},
+                localStorage_size: mongoAudit.localStorage_size || 0,
+                url: mongoAudit.url || 'Unknown',
+                userAgent: mongoAudit.user_agent || 'Unknown',
+                client_ip: mongoAudit.client_ip || 'Unknown',
+                app_version: mongoAudit.app_version
               });
             }
           }
-        } catch (err) {
-          console.warn('Failed to load details for file:', file.pathname, err);
+
+          // Check if there are more pages
+          hasMoreData = result.data.has_more;
+          currentPage++;
+
+          // Safety limit to prevent infinite loops
+          if (currentPage > 100) {
+            console.warn('⚠️ Reached page limit (100), stopping load');
+            break;
+          }
+
+        } catch (pageError) {
+          console.error(`❌ Error loading page ${currentPage}:`, pageError);
+          break;
         }
       }
 
+      console.log(`✅ Total audit data loaded: ${allAuditData.length} entries from MongoDB`);
       setAuditData(allAuditData);
-      console.log('📊 Loaded audit data:', allAuditData.length, 'entries');
 
       // Generate user summaries
       generateUserSummaries(allAuditData);
 
     } catch (err) {
-      console.error('Error loading audit data:', err);
-      setError('Errore durante il caricamento dei dati di audit');
+      console.error('❌ Error loading audit data from MongoDB:', err);
+      setError('Errore durante il caricamento dei dati di audit da MongoDB');
     } finally {
       setLoading(false);
     }
@@ -686,7 +694,7 @@ const AdminDashboard: React.FC = () => {
 
             <Box mt={2} textAlign="center">
               <Typography variant="caption" style={{ color: '#8b7355', fontWeight: 'bold' }}>
-                🔑 Default: admin / admin
+                🔑 Enter your admin credentials
               </Typography>
             </Box>
           </Paper>
@@ -723,7 +731,7 @@ const AdminDashboard: React.FC = () => {
           >
             <CircularProgress style={{ color: '#8b7355' }} />
             <Typography variant="h6" style={{ marginLeft: 24, color: '#8b7355', fontFamily: '"Courier New", monospace' }}>
-              🔄 Loading audit data from Mars servers...
+              🔄 Loading audit data from MongoDB Atlas...
             </Typography>
           </Box>
         )}
