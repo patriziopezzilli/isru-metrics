@@ -48,8 +48,28 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
   // Responsive margin bottom to match FriendsLeague
   const cardMarginBottom = isMobile ? 16 : 32;
   
+
   const metrics = useMemo(() => {
     return calculateDashboardMetrics(scoreDistribution);
+  }, [scoreDistribution]);
+
+  // Extract top 10 users from leaderboard (not just score buckets)
+  const topUsers: { username: string; score: number; profilePhoto?: string }[] = useMemo(() => {
+    const allUsers: { username: string; score: number; profilePhoto?: string }[] = [];
+    scoreDistribution.scoreDistribution.forEach(item => {
+      if (item.users && item.users.length > 0) {
+        item.users.forEach(user => {
+          allUsers.push({
+            username: user.username,
+            score: item.score,
+            profilePhoto: user.profilePhotoData?.image || undefined
+          });
+        });
+      }
+    });
+    // Sort by score descending, then username
+    allUsers.sort((a, b) => b.score - a.score || a.username.localeCompare(b.username));
+    return allUsers.slice(0, 10);
   }, [scoreDistribution]);
 
   return (
@@ -73,6 +93,7 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
         style={{ 
           background: 'linear-gradient(135deg, #fefdfb 0%, #f5f1eb 100%)',
           border: '1px solid #e6ddd4',
+          marginBottom: cardMarginBottom // Add spacing below Statistics
         }}
       >
         <CardContent style={{ padding: cardPadding }}>
@@ -180,7 +201,8 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
         </CardContent>
       </Card>
 
-      {/* Top 10 Scores */}
+
+      {/* Top 10 Scores (actual users) */}
       <Card 
         elevation={0} 
         style={{ 
@@ -215,7 +237,7 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
                 Top 10 Scores
               </Typography>
               <Chip 
-                label={`${metrics.topScores.length} entries`} 
+                label={`${topUsers.length} users`} 
                 size="small" 
                 style={{ 
                   marginLeft: 12,
@@ -232,16 +254,15 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
               {topScoresExpanded ? <ExpandLessIcon /> : <ExpandMoreIcon />}
             </IconButton>
           </Box>
-          
           <Collapse in={topScoresExpanded} timeout={300}>
             <List style={{ padding: 0 }}>
-              {metrics.topScores.map((item, index) => (
-                <React.Fragment key={item.score}>
+              {topUsers.map((user, index) => (
+                <React.Fragment key={user.username + user.score}>
                   <ListItem 
                     style={{ 
                       padding: '16px 0',
                       borderRadius: 12,
-                      marginBottom: index < metrics.topScores.length - 1 ? 8 : 0,
+                      marginBottom: index < topUsers.length - 1 ? 8 : 0,
                     }}
                   >
                     <ListItemIcon>
@@ -258,23 +279,23 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
                     </ListItemIcon>
                     <ListItemText
                       primary={
-                        <Typography variant="h6" style={{ fontWeight: 600, color: '#3c3530' }}>
-                          Score {item.score}
-                        </Typography>
+                        <Box display="flex" alignItems="center">
+                          {user.profilePhoto && (
+                            <img src={user.profilePhoto} alt={user.username} style={{ width: 32, height: 32, borderRadius: '50%', marginRight: 12 }} />
+                          )}
+                          <Typography variant="h6" style={{ fontWeight: 600, color: '#3c3530' }}>
+                            @{user.username}
+                          </Typography>
+                        </Box>
                       }
                       secondary={
                         <Typography variant="body2" color="textSecondary" style={{ fontWeight: 500 }}>
-                          {item.users ? `${item.users.length} user${item.users.length === 1 ? '' : 's'}` : 'No users'}
+                          Score: {user.score}
                         </Typography>
                       }
                     />
-                    <Box textAlign="right">
-                      <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 600 }}>
-                        {item.percentage}%
-                      </Typography>
-                    </Box>
                   </ListItem>
-                  {index < metrics.topScores.length - 1 && <Divider style={{ margin: '0 16px' }} />}
+                  {index < topUsers.length - 1 && <Divider style={{ margin: '0 16px' }} />}
                 </React.Fragment>
               ))}
             </List>

@@ -156,13 +156,7 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
           </>
         )}
       </Box>
-      <IconButton
-        color="primary"
-        style={{ marginTop: 12, backgroundColor: '#8b7355', color: 'white', borderRadius: 8, width: 40, height: 40, boxShadow: '0 2px 8px rgba(139,115,85,0.12)' }}
-        onClick={() => setUploadOpen(true)}
-      >
-        <AddAPhoto style={{ fontSize: 22 }} />
-      </IconButton>
+
       <Dialog open={uploadOpen} onClose={() => setUploadOpen(false)} maxWidth="xs" fullWidth>
         <DialogTitle>Upload your shoe photo</DialogTitle>
         <DialogContent>

@@ -1,6 +1,6 @@
 const { MongoClient } = require('mongodb');
 
-const uri = process.env.MONGODB_URI;
+const uri = process.env.MONGODB_CONNECTION_STRING;
 const dbName = process.env.MONGODB_DB || 'isru-metrics';
 
 module.exports = async (req, res) => {
