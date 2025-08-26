@@ -32,7 +32,7 @@ export interface AuditOptions {
 // =====================================================
 
 export class AuditService {
-    private static readonly AUDIT_ENDPOINT = '/api/audit-mongodb'; // Cambiato a MongoDB Atlas
+    private static readonly AUDIT_ENDPOINT = '/api/audit'; // Cambiato a MongoDB Atlas
     private static readonly MAX_RETRIES = 3;
     private static readonly RETRY_DELAY = 1000; // 1 secondo
 
