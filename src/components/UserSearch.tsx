@@ -173,6 +173,13 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
               percentageAbove: accurateRanking.percentageAbove,
               usersWithSameScore: accurateRanking.usersWithSameScore
             });
+
+            // Mostra brevemente un messaggio di successo
+            setNotification({
+              open: true,
+              message: `✅ Accurate position calculated: #${accurateRanking.position.toLocaleString()}`,
+              severity: 'success'
+            });
           } else {
             // Fallback: mantieni la stima
             setSearchedUsers(prev => prev.map(user =>
@@ -449,14 +456,44 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                           
                           {searchedUser.profile && searchedUser.ranking && (
                             <Box>
-                              <Box 
-                                display="flex" 
-                                alignItems="center" 
+                              {/* Loader per calcolo posizione accurata */}
+                              {searchedUser.calculatingPosition && (
+                                <Box
+                                  display="flex"
+                                  alignItems="center"
+                                  style={{
+                                    marginBottom: 12,
+                                    padding: '8px 12px',
+                                    backgroundColor: '#fff3e0',
+                                    borderRadius: 8,
+                                    border: '1px solid #ffcc02'
+                                  }}
+                                >
+                                  <CircularProgress
+                                    size={16}
+                                    style={{ color: '#ff9800', marginRight: 8 }}
+                                  />
+                                  <Typography
+                                    variant="caption"
+                                    style={{
+                                      color: '#e65100',
+                                      fontWeight: 600,
+                                      fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                    }}
+                                  >
+                                    🔍 Calculating accurate position in leaderboard...
+                                  </Typography>
+                                </Box>
+                              )}
+
+                              <Box
+                                display="flex"
+                                alignItems="center"
                                 flexWrap="wrap"
                                 style={{ gap: isMobile ? 4 : 12, marginBottom: 8 }}
                               >
-                                <Chip 
-                                  label={`${searchedUser.profile.user?.totalPoints || 0} points`} 
+                                <Chip
+                                  label={`${searchedUser.profile.user?.totalPoints || 0} points`}
                                   size="small"
                                   style={{
                                     backgroundColor: '#8b7355',
@@ -469,7 +506,7 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                 <Chip
                                   label={
                                     searchedUser.calculatingPosition
-                                      ? `Position: #${searchedUser.ranking?.position?.toLocaleString() || 'N/A'} (calculating...)`
+                                      ? `Position: #${searchedUser.ranking?.position?.toLocaleString() || 'N/A'} (preliminary)`
                                       : `Position: #${searchedUser.ranking?.position?.toLocaleString() || 'N/A'}${searchedUser.ranking?.isExact === false ? ' (est.)' : ''}`
                                   }
                                   size="small"
@@ -483,7 +520,8 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                     color: 'white',
                                     fontWeight: 600,
                                     borderRadius: 8,
-                                    fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                    fontSize: isMobile ? '0.7rem' : '0.75rem',
+                                    opacity: searchedUser.calculatingPosition ? 0.8 : 1
                                   }}
                                 />
                                 <Chip
@@ -494,10 +532,11 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                     color: 'white',
                                     fontWeight: 600,
                                     borderRadius: 8,
-                                    fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                    fontSize: isMobile ? '0.7rem' : '0.75rem',
+                                    opacity: searchedUser.calculatingPosition ? 0.8 : 1
                                   }}
                                 />
-                                {searchedUser.ranking?.usersWithSameScore && searchedUser.ranking.usersWithSameScore > 1 && (
+                                {searchedUser.ranking?.usersWithSameScore && searchedUser.ranking.usersWithSameScore > 1 && !searchedUser.calculatingPosition && (
                                   <Chip
                                     label={
                                       searchedUser.ranking.usersWithSameScore === 2
@@ -512,6 +551,21 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                       fontWeight: 600,
                                       borderRadius: 8,
                                       fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                    }}
+                                  />
+                                )}
+                                {searchedUser.calculatingPosition && (
+                                  <Chip
+                                    label="Checking for users with same score..."
+                                    size="small"
+                                    icon={<CircularProgress size={14} style={{ color: 'white' }} />}
+                                    style={{
+                                      backgroundColor: '#9c27b0',
+                                      color: 'white',
+                                      fontWeight: 600,
+                                      borderRadius: 8,
+                                      fontSize: isMobile ? '0.7rem' : '0.75rem',
+                                      opacity: 0.8
                                     }}
                                   />
                                 )}
@@ -561,7 +615,7 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                   }}
                                 >
                                   {searchedUser.calculatingPosition
-                                    ? `Calculating position...`
+                                    ? `🔍 Searching leaderboard for accurate position...`
                                     : `${(searchedUser.ranking?.usersAbove || 0).toLocaleString()} people ahead${searchedUser.ranking?.usersWithSameScore && searchedUser.ranking.usersWithSameScore > 1 ? ` • ${searchedUser.ranking.usersWithSameScore - 1} others with same score` : ''}`
                                   }
                                 </Typography>
