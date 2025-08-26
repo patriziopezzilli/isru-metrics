@@ -28,6 +28,7 @@ import { ScoreDistributionResponse } from '../types';
 import { calculateDashboardMetrics } from '../apiService';
 import FriendsLeague from './FriendsLeague';
 import { CurrentUserActivities } from './CurrentUserActivities';
+import UserShoeCarousel from './UserShoeCarousel';
 
 interface DashboardProps {
   scoreDistribution: ScoreDistributionResponse;
@@ -53,6 +54,11 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
 
   return (
     <Box>
+      {/* Mars Yard Countdown (presumibilmente già presente sopra) */}
+      {/* User Shoe Carousel sotto il countdown: visibile solo per patriziopezzilli */}
+      {currentUsername && currentUsername === 'cokisnake' && (
+        <UserShoeCarousel username={currentUsername} />
+      )}
       {/* Current User Activities */}
       {currentUsername && (
         <CurrentUserActivities username={currentUsername} cardMarginBottom={cardMarginBottom} />
