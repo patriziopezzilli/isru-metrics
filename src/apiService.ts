@@ -132,16 +132,13 @@ class ApiService {
   
   // Proxy proprietario come prima opzione
   private static readonly PROXY_URLS = [
-    // 🏆 Proxy universale proprietario - Massima velocità e affidabilità
     '/api/universal-proxy?api=isru-leaderboard',
-    // Backup specifico
     '/api/isru-proxy',
-    // Backup proxy esterni (solo se necessario)
-    'https://api.allorigins.win/get?url=' + encodeURIComponent('https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true'),
-    'https://proxy.cors.sh/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true',
-    'https://api.codetabs.com/v1/proxy?quest=https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true',
-    'https://thingproxy.freeboard.io/fetch/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true',
-    'https://cors-anywhere.herokuapp.com/https://isrucamp.com/api/users/leaderboard/score-distribution/?preload_users=true'
+    'https://api.allorigins.win/get?url=' + encodeURIComponent(this.API_URL),
+    'https://proxy.cors.sh/' + this.API_URL,
+    'https://api.codetabs.com/v1/proxy?quest=' + this.API_URL,
+    'https://thingproxy.freeboard.io/fetch/' + this.API_URL,
+    'https://cors-anywhere.herokuapp.com/' + this.API_URL
   ];
 
   // Test function to check direct API call without proxy
