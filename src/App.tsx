@@ -29,10 +29,13 @@ import { UserProfileIcon } from './components/UserProfileIcon';
 import { GoalTracker } from './components/GoalTracker';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MarsYardCountdown } from './components/MarsYardCountdown';
-import { ChangelogDisclaimer } from './components/ChangelogDisclaimer';
+// import { ChangelogDisclaimer } from './components/ChangelogDisclaimer';
 import PositionFinder from './components/PositionFinder';
 import AppLoader from './components/AppLoader';
 import OnlineUserCounter from './components/OnlineUserCounter';
+import CollapsibleFeedback from './components/CollapsibleFeedback';
+import Snackbar from '@material-ui/core/Snackbar';
+import MuiAlert from '@material-ui/lab/Alert';
 import AdminDashboard from './components/AdminDashboard';
 import ActivityLeague from './components/ActivityLeague';
 import { activityTracker } from './services/activityTracker';
@@ -237,8 +240,9 @@ const AppContent = ({
   profileDialogOpen: boolean;
   onProfileDialogOpen: () => void;
   onProfileDialogClose: () => void;
-  onUsernameSet: (username: string) => void;
+  onUsernameSet: (newUsername: string) => void;
 }) => {
+  const [feedbackSent, setFeedbackSent] = useState(false);
   const materialTheme = useTheme();
   const isMobile = useMediaQuery(materialTheme.breakpoints.down('sm'));
   const [showGoalTracker, setShowGoalTracker] = useState(false);
@@ -275,42 +279,99 @@ const AppContent = ({
   if (error || !scoreDistribution) {
     return (
       <>
-        <Container maxWidth="sm" style={{ marginTop: 64 }}>
-          <Paper elevation={3} style={{ padding: 32, textAlign: 'center' }}>
-            <Typography variant="h6" color="error" gutterBottom>
-              Loading Error
-            </Typography>
-            <Typography variant="body2" style={{ marginBottom: 24 }}>
-              {error || 'Unable to load data'}
-            </Typography>
-            <Button
-              variant="contained"
-              startIcon={<RefreshIcon />}
-              onClick={onLoadData}
-              size="large"
-            >
-              Retry
-            </Button>
-          </Paper>
-        </Container>
+        <Paper elevation={3} style={{ padding: 32, textAlign: 'center', marginTop: 64 }}>
+          <Typography variant="h6" color="error" gutterBottom>
+            Loading Error
+          </Typography>
+          <Typography variant="body2" style={{ marginBottom: 24 }}>
+            {error || 'Unable to load data'}
+          </Typography>
+          <Button
+            variant="contained"
+            startIcon={<RefreshIcon />}
+            onClick={onLoadData}
+            size="large"
+          >
+            Retry
+          </Button>
+        </Paper>
       </>
     );
   }
 
   return (
     <>
-      <AppBar position="static" elevation={0} style={{ background: '#E5E4CF', paddingTop: '16px' }}>
+      <AppBar
+        position="static"
+        elevation={0}
+        style={{
+          background: '#E5E4CF',
+          paddingTop: '16px',
+          width: '100%',
+          maxWidth: '100vw',
+          margin: 0,
+          padding: 0
+        }}
+      >
         {/* Header con logo principale centrato */}
-        <Toolbar style={{ padding: isMobile ? '16px' : '24px', minHeight: isMobile ? 120 : 140, justifyContent: 'center' }}>
-          {React.createElement('img', {
-            src: "/main-logo-new.jpg",
-            alt: "Main Logo",
-            style: {
-              height: isMobile ? 100 : 120,
-              maxWidth: '100%',
-              objectFit: 'contain' as const,
-            }
-          })}
+        <Toolbar
+          style={{
+            padding: isMobile ? '16px' : '24px',
+            minHeight: isMobile ? 120 : 140,
+            position: 'relative',
+            width: '100%',
+            maxWidth: '100vw',
+            margin: 0,
+            boxSizing: 'border-box'
+          }}
+        >
+          <Box
+            style={{
+              position: 'absolute',
+              left: '50%',
+              top: '50%',
+              transform: 'translate(-50%, -50%)',
+              zIndex: 2,
+            }}
+          >
+            {React.createElement('img', {
+              src: "/main-logo-new.jpg",
+              alt: "Main Logo",
+              style: {
+                height: isMobile ? 100 : 120,
+                maxWidth: '100%',
+                objectFit: 'contain' as const,
+                marginTop: isMobile ? 8 : 16,
+              }
+            })}
+          </Box>
+          <Box
+            style={{
+              position: 'absolute',
+              right: isMobile ? 8 : 24,
+              top: '50%',
+              transform: 'translateY(-50%)',
+              zIndex: 3,
+            }}
+          >
+            <Button
+              color="inherit"
+              onClick={onLoadData}
+              size={isMobile ? "small" : "medium"}
+              style={{ 
+                borderRadius: '50%',
+                backgroundColor: 'rgba(139, 115, 85, 0.1)',
+                color: '#8b7355',
+                fontSize: isMobile ? '0.8rem' : '0.9rem',
+                minWidth: isMobile ? 40 : 48,
+                width: isMobile ? 40 : 48,
+                height: isMobile ? 40 : 48,
+                padding: 0,
+              }}
+            >
+              <RefreshIcon fontSize={isMobile ? "small" : "medium"} />
+            </Button>
+          </Box>
         </Toolbar>
         
         {/* Disclaimer S/N tra logo e counter */}
@@ -329,35 +390,38 @@ const AppContent = ({
           </Typography>
         </Box>
         
-        {/* Online Users Counter sotto il disclaimer */}
+        {/* Sezione feedback collapsabile */}
         <Box display="flex" justifyContent="center" alignItems="center" style={{ paddingBottom: '12px' }}>
-          <OnlineUserCounter />
+          <CollapsibleFeedback onSent={() => setFeedbackSent(true)} />
         </Box>
+        <Snackbar open={feedbackSent} autoHideDuration={2500} onClose={() => setFeedbackSent(false)} anchorOrigin={{ vertical: 'top', horizontal: 'center' }}>
+          <MuiAlert elevation={6} variant="filled" onClose={() => setFeedbackSent(false)} severity="success">
+            Feedback sent! Thank you 🙏
+          </MuiAlert>
+        </Snackbar>
         
         {/* Seconda riga - Controlli sempre su riga separata */}
-        <Box style={{ borderTop: '1px solid rgba(0, 0, 0, 0.1)', backgroundColor: 'rgba(0, 0, 0, 0.02)' }}>
-          <Toolbar style={{ padding: isMobile ? '8px 16px' : '12px 24px', minHeight: isMobile ? 48 : 56, justifyContent: 'space-between' }}>
-            <Box display="flex" alignItems="center" style={{ gap: '8px' }}>
-              <Button
-                color="inherit"
-                onClick={onLoadData}
-                size={isMobile ? "small" : "medium"}
-                style={{ 
-                  borderRadius: '50%',
-                  backgroundColor: 'rgba(139, 115, 85, 0.1)',
-                  color: '#8b7355',
-                  fontSize: isMobile ? '0.8rem' : '0.9rem',
-                  minWidth: isMobile ? 40 : 48,
-                  width: isMobile ? 40 : 48,
-                  height: isMobile ? 40 : 48,
-                  padding: 0,
-                }}
-              >
-                <RefreshIcon fontSize={isMobile ? "small" : "medium"} />
-              </Button>
-              
-              {/* Debug button removed for Safari */}
-            </Box>
+        <Box
+          style={{
+            borderTop: '1px solid rgba(0, 0, 0, 0.1)',
+            backgroundColor: 'rgba(0, 0, 0, 0.02)',
+            width: '100%',
+            maxWidth: '100vw',
+            margin: 0,
+            padding: 0
+          }}
+        >
+          <Toolbar
+            style={{
+              padding: isMobile ? '8px 16px' : '12px 24px',
+              minHeight: isMobile ? 48 : 56,
+              justifyContent: 'center',
+              width: '100%',
+              maxWidth: '100vw',
+              margin: 0,
+              boxSizing: 'border-box'
+            }}
+          >
             <Tabs
               value={activeTab}
               onChange={handleTabChangeWithDebug}
@@ -369,6 +433,7 @@ const AppContent = ({
                 padding: isMobile ? '2px' : '4px',
                 maxWidth: isMobile ? 320 : 400,
                 minWidth: isMobile ? 320 : 400,
+                margin: '0 auto',
               }}
             >
               <Tab 
@@ -428,23 +493,20 @@ const AppContent = ({
       </AppBar>
       
       {/* Mars Yard 3.0 Countdown */}
-      <MarsYardCountdown />
-      
+      <Box style={{ marginBottom: isMobile ? 16 : 24 }}>
+        <MarsYardCountdown />
+      </Box>
+
       {/* Changelog Disclaimer */}
-      <Container maxWidth="lg" style={{ paddingLeft: isMobile ? 16 : 24, paddingRight: isMobile ? 16 : 24 }}>
-        <ChangelogDisclaimer />
-      </Container>
-      
-      <Container
-        maxWidth="lg"
+
+      <Box
         style={{
-          marginTop: 32,
+          marginTop: 0,
           marginBottom: 32,
           paddingLeft: isMobile ? 8 : 24,
           paddingRight: isMobile ? 8 : 24,
           maxWidth: '100vw',
           overflowX: 'hidden',
-          // Fix per tastiera mobile
           position: 'relative',
           width: '100%',
           minHeight: isMobile ? 'calc(100vh - 200px)' : 'auto'
@@ -453,7 +515,9 @@ const AppContent = ({
         {console.log('🎭 Rendering content for activeTab:', activeTab, { isMobile, hasUsername: !!username })}
         {activeTab === 0 && (
           <>
-            <PositionFinder currentUsername={username} />
+            <Box style={{ marginBottom: isMobile ? 16 : 24 }}>
+              <PositionFinder currentUsername={username} />
+            </Box>
             <Dashboard scoreDistribution={scoreDistribution} currentUsername={username} />
           </>
         )}
@@ -475,7 +539,7 @@ const AppContent = ({
             inline={true}
           />
         )}
-      </Container>
+  </Box>
 
       {/* Goal Tracker Dialog */}
       {username && (

@@ -55,7 +55,7 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
     <Box>
       {/* Current User Activities */}
       {currentUsername && (
-        <CurrentUserActivities username={currentUsername} />
+        <CurrentUserActivities username={currentUsername} cardMarginBottom={cardMarginBottom} />
       )}
 
       {/* Friends League */}
@@ -65,7 +65,6 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
       <Card 
         elevation={0} 
         style={{ 
-          marginBottom: cardMarginBottom, 
           background: 'linear-gradient(135deg, #fefdfb 0%, #f5f1eb 100%)',
           border: '1px solid #e6ddd4',
         }}

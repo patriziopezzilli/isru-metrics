@@ -19,11 +19,11 @@ body {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 
-  /* Fix per tastiera mobile */
-  position: fixed;
+  /* Layout stabile */
+  margin: 0;
+  padding: 0;
   width: 100%;
-  height: 100%;
-  overflow: hidden;
+  min-height: 100vh;
   /* Prevent horizontal scroll on mobile */
   overflow-x: hidden;
   max-width: 100vw;
@@ -40,12 +40,11 @@ html, body {
   overflow-x: hidden;
   max-width: 100vw;
 
-  /* Fix per layout mobile con tastiera */
+  /* Layout stabile */
   position: relative;
   width: 100%;
-  height: 100vh;
-  height: 100dvh; /* Dynamic viewport height per browser moderni */
-  overflow-y: auto;
+  min-height: 100vh;
+  min-height: 100dvh; /* Dynamic viewport height per browser moderni */
 }
 
 code {
@@ -98,15 +97,18 @@ code {
   }
 }
 
-/* Stili quando la tastiera è aperta */
+/* Stili quando la tastiera è aperta - meno invasivi */
 body.keyboard-open {
   position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  width: 100% !important;
   overflow: hidden !important;
 }
 
 body.keyboard-open #root {
   overflow-y: auto !important;
-  height: 100% !important;
+  height: 100vh !important;
   -webkit-overflow-scrolling: touch;
 }
 
@@ -118,6 +120,23 @@ body.keyboard-open .MuiTextField-root {
 
 body.keyboard-open .MuiInputBase-root {
   background-color: white;
+}
+
+/* Fix per AppBar sempre centrato */
+.MuiAppBar-root {
+  width: 100% !important;
+  max-width: 100vw !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+}
+
+.MuiToolbar-root {
+  width: 100% !important;
+  max-width: 100vw !important;
+  margin: 0 !important;
+  box-sizing: border-box !important;
 }
 
 /* Specifici per Material-UI */

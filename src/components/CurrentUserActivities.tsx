@@ -105,9 +105,10 @@ const useStyles = makeStyles((theme) => ({
 
 interface CurrentUserActivitiesProps {
   username: string;
+  cardMarginBottom?: number;
 }
 
-export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ username }) => {
+export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ username, cardMarginBottom }) => {
   const classes = useStyles();
   const theme = useTheme();
   const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
@@ -294,7 +295,7 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
   const totalActivities = profileData.activities.length;
 
   return (
-    <Card className={classes.card} elevation={0}>
+    <Card className={classes.card} elevation={0} style={{ marginBottom: cardMarginBottom }}>
       <Box className={classes.header}>
         <Box display="flex" alignItems="center" style={{ flex: 1 }}>
           <Box 
