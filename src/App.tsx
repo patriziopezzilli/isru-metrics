@@ -36,6 +36,7 @@ import OnlineUserCounter from './components/OnlineUserCounter';
 import AdminDashboard from './components/AdminDashboard';
 import ActivityLeague from './components/ActivityLeague';
 import { activityTracker } from './services/activityTracker';
+import { useViewportFix } from './hooks/useViewportFix';
 import { fetchScoreDistribution, calculateUserStats } from './apiService';
 import { ScoreDistributionResponse, UserStats } from './types';
 import OfflineService from './services/offlineService';
@@ -114,6 +115,9 @@ const MainApp = () => {
   const [activeTab, setActiveTab] = useState(0);
   const [username, setUsername] = useState<string>('');
   const [profileDialogOpen, setProfileDialogOpen] = useState(false);
+
+  // Fix per layout mobile con tastiera
+  useViewportFix();
 
   useEffect(() => {
     // I dati vengono ora caricati direttamente da AppLoader
@@ -431,15 +435,19 @@ const AppContent = ({
         <ChangelogDisclaimer />
       </Container>
       
-      <Container 
-        maxWidth="lg" 
-        style={{ 
-          marginTop: 32, 
+      <Container
+        maxWidth="lg"
+        style={{
+          marginTop: 32,
           marginBottom: 32,
-          paddingLeft: isMobile ? 16 : 24,
-          paddingRight: isMobile ? 16 : 24,
+          paddingLeft: isMobile ? 8 : 24,
+          paddingRight: isMobile ? 8 : 24,
           maxWidth: '100vw',
-          overflowX: 'hidden'
+          overflowX: 'hidden',
+          // Fix per tastiera mobile
+          position: 'relative',
+          width: '100%',
+          minHeight: isMobile ? 'calc(100vh - 200px)' : 'auto'
         }}
       >
         {console.log('🎭 Rendering content for activeTab:', activeTab, { isMobile, hasUsername: !!username })}

@@ -18,6 +18,12 @@ body {
   font-family: 'Courier New', 'Courier', monospace;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+
+  /* Fix per tastiera mobile */
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
   /* Prevent horizontal scroll on mobile */
   overflow-x: hidden;
   max-width: 100vw;
@@ -33,10 +39,85 @@ html, body {
 #root {
   overflow-x: hidden;
   max-width: 100vw;
+
+  /* Fix per layout mobile con tastiera */
+  position: relative;
+  width: 100%;
+  height: 100vh;
+  height: 100dvh; /* Dynamic viewport height per browser moderni */
+  overflow-y: auto;
 }
 
 code {
   font-family: 'Courier New', 'Courier', monospace;
+}
+
+/* Fix specifici per mobile e tastiera */
+@media (max-width: 768px) {
+  /* Previeni zoom su input focus (iOS) */
+  input, textarea, select {
+    font-size: 16px !important;
+    transform: translateZ(0);
+    -webkit-appearance: none;
+  }
+
+  /* Container principale mobile */
+  .MuiContainer-root {
+    padding-left: 8px !important;
+    padding-right: 8px !important;
+    max-width: 100vw !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Fix per Material-UI Paper components */
+  .MuiPaper-root {
+    max-width: calc(100vw - 16px) !important;
+    overflow-x: hidden !important;
+  }
+
+  /* Fix per tab container */
+  .MuiTabs-root {
+    max-width: 100vw !important;
+    overflow-x: auto !important;
+  }
+
+  /* Fix per input fields */
+  .MuiTextField-root {
+    max-width: 100% !important;
+  }
+
+  .MuiInputBase-root {
+    max-width: 100% !important;
+  }
+}
+
+/* Fix per iOS Safari viewport */
+@supports (-webkit-touch-callout: none) {
+  #root {
+    height: -webkit-fill-available;
+  }
+}
+
+/* Stili quando la tastiera è aperta */
+body.keyboard-open {
+  position: fixed !important;
+  overflow: hidden !important;
+}
+
+body.keyboard-open #root {
+  overflow-y: auto !important;
+  height: 100% !important;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* Fix per input quando tastiera è aperta */
+body.keyboard-open .MuiTextField-root {
+  position: relative;
+  z-index: 1000;
+}
+
+body.keyboard-open .MuiInputBase-root {
+  background-color: white;
 }
 
 /* Specifici per Material-UI */

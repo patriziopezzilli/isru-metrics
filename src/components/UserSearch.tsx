@@ -26,9 +26,11 @@ import TrendingUpIcon from '@material-ui/icons/TrendingUp';
 import ShareIcon from '@material-ui/icons/Share';
 import GetAppIcon from '@material-ui/icons/GetApp';
 import FileCopyIcon from '@material-ui/icons/FileCopy';
+import PeopleIcon from '@material-ui/icons/People';
 import { ScoreDistributionResponse, SneakerDBUserProfile } from '../types';
 import { searchUsers, fetchSneakerDBProfile, calculateUserRanking } from '../apiService';
 import ProfileExportService from '../services/profileExportService';
+import { PositionCalculatorService, AccurateRanking } from '../services/positionCalculator';
 
 interface UserSearchProps {
   scoreDistribution: ScoreDistributionResponse;
@@ -38,8 +40,9 @@ interface SearchedUser {
   username: string;
   loading: boolean;
   profile?: SneakerDBUserProfile;
-  ranking?: any;
+  ranking?: AccurateRanking | null;
   error?: string;
+  calculatingPosition?: boolean;
 }
 
 const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
@@ -124,21 +127,71 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
     try {
       console.log(`🔍 Searching profile for: ${trimmedUsername}`);
       const profile = await fetchSneakerDBProfile(trimmedUsername.toLowerCase());
-      
+
       if (profile && profile.user) {
-        const ranking = calculateUserRanking(profile.user.totalPoints, scoreDistribution);
-        
-        setSearchedUsers(prev => prev.map(user => 
-          user.username.toLowerCase() === trimmedUsername.toLowerCase() 
-            ? { ...user, loading: false, profile, ranking }
+        // Prima mostra il profilo con ranking stimato
+        const estimatedRanking = PositionCalculatorService.calculateEstimatedPosition(
+          profile.user.totalPoints,
+          scoreDistribution
+        );
+
+        setSearchedUsers(prev => prev.map(user =>
+          user.username.toLowerCase() === trimmedUsername.toLowerCase()
+            ? { ...user, loading: false, profile, ranking: estimatedRanking, calculatingPosition: true }
             : user
         ));
-        
+
         console.log(`✅ Profile found for ${trimmedUsername}:`, {
           totalPoints: profile.user.totalPoints,
-          position: ranking.position,
-          percentageAbove: ranking.percentageAbove
+          estimatedPosition: estimatedRanking?.position,
+          calculatingAccurate: true
         });
+
+        // Poi calcola la posizione accurata in background
+        try {
+          console.log(`🔍 Calculating accurate position for ${trimmedUsername}...`);
+
+          const accurateRanking = await PositionCalculatorService.calculateAccuratePosition(
+            trimmedUsername,
+            profile.user.totalPoints,
+            (progress, searchedUsers) => {
+              console.log(`📊 Position calculation progress: ${progress}% (${searchedUsers} users searched)`);
+            }
+          );
+
+          if (accurateRanking) {
+            // Aggiorna con la posizione accurata
+            setSearchedUsers(prev => prev.map(user =>
+              user.username.toLowerCase() === trimmedUsername.toLowerCase()
+                ? { ...user, ranking: accurateRanking, calculatingPosition: false }
+                : user
+            ));
+
+            console.log(`🎯 Accurate position calculated for ${trimmedUsername}:`, {
+              position: accurateRanking.position,
+              usersAbove: accurateRanking.usersAbove,
+              percentageAbove: accurateRanking.percentageAbove,
+              usersWithSameScore: accurateRanking.usersWithSameScore
+            });
+          } else {
+            // Fallback: mantieni la stima
+            setSearchedUsers(prev => prev.map(user =>
+              user.username.toLowerCase() === trimmedUsername.toLowerCase()
+                ? { ...user, calculatingPosition: false }
+                : user
+            ));
+            console.warn(`⚠️ Could not calculate accurate position for ${trimmedUsername}, using estimate`);
+          }
+
+        } catch (positionError) {
+          console.error(`❌ Error calculating accurate position for ${trimmedUsername}:`, positionError);
+          // Mantieni la stima in caso di errore
+          setSearchedUsers(prev => prev.map(user =>
+            user.username.toLowerCase() === trimmedUsername.toLowerCase()
+              ? { ...user, calculatingPosition: false }
+              : user
+          ));
+        }
       } else {
         throw new Error('User profile not found');
       }
@@ -413,20 +466,28 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                     fontSize: isMobile ? '0.7rem' : '0.75rem'
                                   }}
                                 />
-                                <Chip 
-                                  label={`Position: #${searchedUser.ranking.position?.toLocaleString() || 'N/A'}`} 
+                                <Chip
+                                  label={
+                                    searchedUser.calculatingPosition
+                                      ? `Position: #${searchedUser.ranking?.position?.toLocaleString() || 'N/A'} (calculating...)`
+                                      : `Position: #${searchedUser.ranking?.position?.toLocaleString() || 'N/A'}${searchedUser.ranking?.isExact === false ? ' (est.)' : ''}`
+                                  }
                                   size="small"
-                                  icon={<TrendingUpIcon style={{ fontSize: isMobile ? 14 : 16 }} />}
+                                  icon={
+                                    searchedUser.calculatingPosition
+                                      ? <CircularProgress size={14} style={{ color: 'white' }} />
+                                      : <TrendingUpIcon style={{ fontSize: isMobile ? 14 : 16 }} />
+                                  }
                                   style={{
-                                    backgroundColor: '#a0916c',
+                                    backgroundColor: searchedUser.calculatingPosition ? '#ff9800' : '#a0916c',
                                     color: 'white',
                                     fontWeight: 600,
                                     borderRadius: 8,
                                     fontSize: isMobile ? '0.7rem' : '0.75rem'
                                   }}
                                 />
-                                <Chip 
-                                  label={`Top ${searchedUser.ranking.percentageAbove || 0}%`} 
+                                <Chip
+                                  label={`Top ${searchedUser.ranking?.percentageAbove || 0}%`}
                                   size="small"
                                   style={{
                                     backgroundColor: '#6b7d5a',
@@ -436,6 +497,24 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                     fontSize: isMobile ? '0.7rem' : '0.75rem'
                                   }}
                                 />
+                                {searchedUser.ranking?.usersWithSameScore && searchedUser.ranking.usersWithSameScore > 1 && (
+                                  <Chip
+                                    label={
+                                      searchedUser.ranking.usersWithSameScore === 2
+                                        ? `1 other with same score`
+                                        : `${searchedUser.ranking.usersWithSameScore - 1} others with same score`
+                                    }
+                                    size="small"
+                                    icon={<PeopleIcon style={{ fontSize: isMobile ? 14 : 16 }} />}
+                                    style={{
+                                      backgroundColor: '#9c27b0',
+                                      color: 'white',
+                                      fontWeight: 600,
+                                      borderRadius: 8,
+                                      fontSize: isMobile ? '0.7rem' : '0.75rem'
+                                    }}
+                                  />
+                                )}
                               </Box>
                               <Box 
                                 display="flex" 
@@ -481,7 +560,10 @@ const UserSearch = ({ scoreDistribution }: UserSearchProps) => {
                                     textAlign: 'left'
                                   }}
                                 >
-                                  {(searchedUser.ranking.usersAbove || 0).toLocaleString()} users above • {(searchedUser.ranking.totalUsers || 0).toLocaleString()} total
+                                  {searchedUser.calculatingPosition
+                                    ? `Calculating position...`
+                                    : `${(searchedUser.ranking?.usersAbove || 0).toLocaleString()} people ahead${searchedUser.ranking?.usersWithSameScore && searchedUser.ranking.usersWithSameScore > 1 ? ` • ${searchedUser.ranking.usersWithSameScore - 1} others with same score` : ''}`
+                                  }
                                 </Typography>
                               )}
                             </Box>
