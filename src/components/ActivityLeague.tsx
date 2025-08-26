@@ -45,8 +45,10 @@ const useStyles = makeStyles((theme) => ({
   // Container principale mobile-first
   container: {
     padding: theme.spacing(1),
-    maxWidth: '100%',
+    maxWidth: '100vw',
     margin: 0,
+    width: '100%',
+    boxSizing: 'border-box',
     [theme.breakpoints.up('sm')]: {
       padding: theme.spacing(2),
       maxWidth: 1200,
@@ -102,30 +104,36 @@ const useStyles = makeStyles((theme) => ({
     }
   },
 
-  // Sezione filtri mobile-optimized
+  // Sezione filtri centrata
   controls: {
     marginBottom: theme.spacing(2),
     padding: theme.spacing(1),
     background: '#f8f6f1',
     borderRadius: 12,
     display: 'flex',
-    flexDirection: 'column',
-    gap: theme.spacing(1),
+    justifyContent: 'center',
+    alignItems: 'center',
     [theme.breakpoints.up('sm')]: {
       marginBottom: theme.spacing(3),
-      padding: theme.spacing(2),
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      gap: theme.spacing(2)
+      padding: theme.spacing(2)
     }
   },
 
   filterControl: {
     minWidth: '100%',
+    maxWidth: 300,
     [theme.breakpoints.up('sm')]: {
-      minWidth: 200
+      minWidth: 250
     }
+  },
+
+  // Pulsante refresh nell'header
+  headerRefreshButton: {
+    '&:hover': {
+      backgroundColor: 'rgba(255,255,255,0.3)',
+      transform: 'scale(1.05)'
+    },
+    transition: 'all 0.2s ease'
   },
 
   // Stats cards mobile-first
@@ -477,11 +485,31 @@ const ActivityLeague: React.FC<ActivityLeagueProps> = ({ currentUsername }) => {
   }
 
   return (
-    <Container maxWidth="lg" className={classes.container}>
+    <Box className={classes.container}>
       {/* Header moderno con background */}
       <Fade in timeout={800}>
         <Box className={classes.header}>
           <Box className={classes.headerBackground} />
+
+          {/* Refresh button in top right */}
+          <Button
+            onClick={loadActivityLeague}
+            className={classes.headerRefreshButton}
+            style={{
+              position: 'absolute',
+              top: isMobile ? 12 : 16,
+              right: isMobile ? 12 : 16,
+              minWidth: 'auto',
+              padding: isMobile ? 6 : 8,
+              borderRadius: '50%',
+              backgroundColor: 'rgba(255,255,255,0.2)',
+              color: 'white',
+              zIndex: 2
+            }}
+          >
+            <RefreshIcon style={{ fontSize: isMobile ? 18 : 20 }} />
+          </Button>
+
           <Typography variant={isMobile ? "h5" : "h4"} className={classes.title}>
             🏆 Activity League
           </Typography>
@@ -491,13 +519,17 @@ const ActivityLeague: React.FC<ActivityLeagueProps> = ({ currentUsername }) => {
         </Box>
       </Fade>
 
-      {/* Controls mobile-friendly */}
+      {/* Controls centrati - solo filtro periodo */}
       <Fade in timeout={1000}>
         <Box className={classes.controls}>
           <FormControl
             variant="outlined"
             size={isMobile ? "small" : "medium"}
             className={classes.filterControl}
+            style={{
+              margin: '0 auto',
+              display: 'block'
+            }}
           >
             <InputLabel>📅 Time Period</InputLabel>
             <Select
@@ -512,20 +544,6 @@ const ActivityLeague: React.FC<ActivityLeagueProps> = ({ currentUsername }) => {
               <MenuItem value={30}>🗓️ Last month</MenuItem>
             </Select>
           </FormControl>
-
-          <Button
-            onClick={loadActivityLeague}
-            startIcon={<RefreshIcon />}
-            variant="outlined"
-            className={classes.refreshButton}
-            style={{
-              color: '#8b7355',
-              borderColor: '#8b7355',
-              minWidth: isMobile ? '100%' : 'auto'
-            }}
-          >
-            🔄 Refresh Data
-          </Button>
         </Box>
       </Fade>
 
@@ -640,33 +658,12 @@ const ActivityLeague: React.FC<ActivityLeagueProps> = ({ currentUsername }) => {
                   }}
                 >
                   <ListItemAvatar>
-                    <Box style={{ position: 'relative' }}>
-                      <Avatar
-                        className={classes.positionAvatar}
-                        style={{ backgroundColor: getPositionColor(user.position) }}
-                      >
-                        {getPositionIcon(user.position)}
-                      </Avatar>
-                      {user.position <= 3 && (
-                        <Box
-                          style={{
-                            position: 'absolute',
-                            top: -4,
-                            right: -4,
-                            background: user.position === 1 ? '#ffd700' : user.position === 2 ? '#c0c0c0' : '#cd7f32',
-                            borderRadius: '50%',
-                            width: 16,
-                            height: 16,
-                            display: 'flex',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            fontSize: '0.6rem'
-                          }}
-                        >
-                          {user.position === 1 ? '🥇' : user.position === 2 ? '🥈' : '🥉'}
-                        </Box>
-                      )}
-                    </Box>
+                    <Avatar
+                      className={classes.positionAvatar}
+                      style={{ backgroundColor: getPositionColor(user.position) }}
+                    >
+                      {getPositionIcon(user.position)}
+                    </Avatar>
                   </ListItemAvatar>
 
                   <ListItemText
@@ -678,6 +675,11 @@ const ActivityLeague: React.FC<ActivityLeagueProps> = ({ currentUsername }) => {
                             color: user.username.toLowerCase() === currentUsername?.toLowerCase() ? '#e65100' : '#333'
                           }}
                         >
+                          {user.position <= 3 && (
+                            <span style={{ marginRight: 8 }}>
+                              {user.position === 1 ? '🥇' : user.position === 2 ? '🥈' : '🥉'}
+                            </span>
+                          )}
                           {user.username}
                           {user.username.toLowerCase() === currentUsername?.toLowerCase() && ' (You)'}
                         </Typography>
@@ -752,7 +754,7 @@ const ActivityLeague: React.FC<ActivityLeagueProps> = ({ currentUsername }) => {
           </Box>
         </Fade>
       )}
-    </Container>
+    </Box>
   );
 };
 
