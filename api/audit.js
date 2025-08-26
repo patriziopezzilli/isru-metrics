@@ -16,32 +16,44 @@ export default async function handler(req, res) {
             const { type } = req.query;
             if (type === 'list') {
                 // List audits
-                // ...estrai parametri come in audit-list-mongodb.js
-                // ...chiama mongoService.listAudits(...)
-                // ...restituisci risultato
-                // (Copia la logica da audit-list-mongodb.js)
-                // ...existing code...
-                res.status(200).json({ success: true, data: 'list audits (to implement)' });
+                const { username, date_from, date_to, limit, skip, sort } = req.query;
+                const options = {
+                    username,
+                    date_from: date_from ? new Date(date_from) : undefined,
+                    date_to: date_to ? new Date(date_to) : undefined,
+                    limit: limit ? parseInt(limit) : 50,
+                    skip: skip ? parseInt(skip) : 0,
+                    sort: sort ? JSON.parse(sort) : undefined
+                };
+                const result = await mongoService.listAudits(options);
+                res.status(200).json({ success: true, ...result });
             } else if (type === 'details') {
                 // Audit details
-                // ...estrai parametri come in audit-details-mongodb.js
-                // ...chiama mongoService.getAudit(...)
-                // ...existing code...
-                res.status(200).json({ success: true, data: 'audit details (to implement)' });
+                const { audit_id } = req.query;
+                if (!audit_id) {
+                    return res.status(400).json({ error: 'Missing audit_id' });
+                }
+                const audit = await mongoService.getAudit(audit_id);
+                if (!audit) {
+                    return res.status(404).json({ error: 'Audit not found' });
+                }
+                res.status(200).json({ success: true, audit });
             } else if (type === 'stats') {
                 // Audit stats
-                // ...estrai parametri come in audit-stats-mongodb.js
-                // ...chiama mongoService.getAuditStats(...)
-                // ...existing code...
-                res.status(200).json({ success: true, data: 'audit stats (to implement)' });
+                const { date_from, date_to } = req.query;
+                const stats = await mongoService.getAuditStats(date_from ? new Date(date_from) : undefined, date_to ? new Date(date_to) : undefined);
+                res.status(200).json({ success: true, stats });
             } else {
                 res.status(400).json({ error: 'Invalid type parameter' });
             }
         } else if (req.method === 'POST') {
             // Save audit
-            // ...copia la logica da audit-mongodb.js
-            // ...existing code...
-            res.status(200).json({ success: true, data: 'audit saved (to implement)' });
+            const auditData = req.body;
+            if (!auditData || typeof auditData !== 'object') {
+                return res.status(400).json({ error: 'Missing or invalid audit data' });
+            }
+            const insertedId = await mongoService.saveAudit(auditData);
+            res.status(200).json({ success: true, insertedId });
         } else {
             res.status(405).json({ error: 'Method not allowed' });
         }
