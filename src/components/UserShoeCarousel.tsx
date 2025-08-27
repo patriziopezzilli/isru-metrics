@@ -128,6 +128,11 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
     }
   };
 
+  // 1. Aggiungi una classe per la transizione
+  const carouselImageStyle = {
+    transition: 'transform 0.5s cubic-bezier(.4,0,.2,1), opacity 0.5s cubic-bezier(.4,0,.2,1)',
+  };
+
   return (
   <Box mt={2} mb={2} display="flex" flexDirection="column" alignItems="center" style={{ width: '100%' }}>
       {/* Search + Upload affiancati, larghezza massima come il box */}
@@ -180,18 +185,18 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
                 <img
                   src={`data:image/jpeg;base64,${filteredPhotos[(current - 1 + filteredPhotos.length) % filteredPhotos.length].imageBase64}`}
                   alt="prev"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(1px)' }}
+                  style={{ ...carouselImageStyle, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(1px)' }}
                 />
               )}
             </Box>
             {/* Current photo */}
-            <Box display="flex" flexDirection="column" alignItems="center" style={{ width: '220px', height: '180px', overflow: 'hidden', zIndex: 2, background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
+            <Box display="flex" flexDirection="column" alignItems="center" style={{ width: '220px', height: '180px', overflow: 'hidden', zIndex: 2, background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.07)', padding: '16px 0' }}>
               <img
                 src={`data:image/jpeg;base64,${filteredPhotos[current].imageBase64}`}
                 alt={filteredPhotos[current].shoeType}
-                style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: 12, marginBottom: 12, marginTop: 12 }}
+                style={{ ...carouselImageStyle, width: '100%', height: '120px', objectFit: 'cover', borderRadius: 12, marginBottom: 12, marginTop: 8 }}
               />
-              <Typography variant="caption" style={{ color: '#8b7355', fontWeight: 500 }}>
+              <Typography variant="caption" style={{ color: '#8b7355', fontWeight: 500, marginTop: 8, textAlign: 'center', width: '100%' }}>
                 {filteredPhotos[current].username} - {filteredPhotos[current].shoeType}
               </Typography>
             </Box>
@@ -201,7 +206,7 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
                 <img
                   src={`data:image/jpeg;base64,${filteredPhotos[(current + 1) % filteredPhotos.length].imageBase64}`}
                   alt="next"
-                  style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(1px)' }}
+                  style={{ ...carouselImageStyle, width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(1px)' }}
                 />
               )}
             </Box>
