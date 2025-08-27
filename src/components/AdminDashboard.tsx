@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
   Container,
   Paper,
@@ -468,6 +469,44 @@ function removeCookie(name: string) {
 }
 
 const AdminDashboard: React.FC = () => {
+  // Chart and metrics state
+  const [metrics, setMetrics] = useState({ totalUploads: 0, totalActivities: 0, totalAudits: 0, uniqueUsers: 0 });
+  const [chartData, setChartData] = useState([]);
+
+  // Fetch metrics and chart data from MongoDB APIs
+  useEffect(() => {
+    async function fetchDashboardData() {
+      try {
+        // Fetch audit stats (total audits, unique users, etc.)
+        const auditRes = await fetch('/api/audit-stats-mongodb');
+        const auditJson = await auditRes.json();
+        if (auditJson.success && auditJson.stats) {
+          setMetrics({
+            totalAudits: auditJson.stats.total_audits,
+            uniqueUsers: auditJson.stats.unique_users,
+            totalUploads: auditJson.stats.top_users?.reduce((sum: number, u: { audit_count?: number }) => sum + (u.audit_count || 0), 0) || 0,
+            totalActivities: 0 // Placeholder, will be set below
+          });
+        }
+
+        // Fetch activity league (for activity metrics and chart)
+        const activityRes = await fetch('/api/activity-league?limit=6&period=180');
+        const activityJson = await activityRes.json();
+        if (activityJson.success && activityJson.data && activityJson.data.leaderboard) {
+          setMetrics(prev => ({ ...prev, totalActivities: activityJson.data.leaderboard.reduce((sum: number, u: { activity_score?: number }) => sum + (u.activity_score || 0), 0) }));
+          // Prepare chart data (last 6 users by activity)
+          setChartData(activityJson.data.leaderboard.map((user: { username: string; sessions: number; activity_score: number }) => ({
+            name: user.username,
+            uploads: user.sessions,
+            activities: user.activity_score
+          })));
+        }
+      } catch (err) {
+        // Fallback: keep metrics empty
+      }
+    }
+    fetchDashboardData();
+  }, []);
   const classes = useStyles();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
   const [username, setUsername] = useState('');
@@ -728,6 +767,68 @@ const AdminDashboard: React.FC = () => {
 
   return (
     <Box className={classes.container}>
+      {/* Metrics & Chart Section */}
+      <Container maxWidth="lg" style={{ marginBottom: 32 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} md={3}>
+            <Card className={classes.statCard}>
+              <CardContent>
+                <Typography className={classes.statLabel}>Total Audits</Typography>
+                <Typography className={classes.statValue}>{metrics.totalAudits}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card className={classes.statCard}>
+              <CardContent>
+                <Typography className={classes.statLabel}>Unique Users</Typography>
+                <Typography className={classes.statValue}>{metrics.uniqueUsers}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card className={classes.statCard}>
+              <CardContent>
+                <Typography className={classes.statLabel}>Total Uploads</Typography>
+                <Typography className={classes.statValue}>{metrics.totalUploads}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+          <Grid item xs={12} md={3}>
+            <Card className={classes.statCard}>
+              <CardContent>
+                <Typography className={classes.statLabel}>Total Activities</Typography>
+                <Typography className={classes.statValue}>{metrics.totalActivities}</Typography>
+              </CardContent>
+            </Card>
+          </Grid>
+        </Grid>
+        <Box sx={{ mt: 4 }}>
+          <Typography variant="h6" align="center" gutterBottom>
+            Uploads & Activities Over Time
+          </Typography>
+          {/* @ts-ignore: Recharts type workaround */}
+          <ResponsiveContainer width="100%" height={300}>
+            {/* @ts-ignore: Recharts type workaround */}
+            <LineChart data={chartData}>
+              {/* @ts-ignore: Recharts type workaround */}
+              <CartesianGrid strokeDasharray="3 3" />
+              {/* @ts-ignore: Recharts type workaround */}
+              <XAxis dataKey="name" />
+              {/* @ts-ignore: Recharts type workaround */}
+              <YAxis />
+              {/* @ts-ignore: Recharts type workaround */}
+              <Tooltip />
+              {/* @ts-ignore: Recharts type workaround */}
+              <Legend />
+              {/* @ts-ignore: Recharts type workaround */}
+              <Line type="monotone" dataKey="uploads" stroke="#8884d8" activeDot={{ r: 8 }} />
+              {/* @ts-ignore: Recharts type workaround */}
+              <Line type="monotone" dataKey="activities" stroke="#82ca9d" />
+            </LineChart>
+          </ResponsiveContainer>
+        </Box>
+      </Container>
       <Container maxWidth="lg" className={classes.contentWrapper}>
         {/* Header */}
         <Box className={classes.dashboardHeader}>
