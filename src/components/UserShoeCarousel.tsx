@@ -26,16 +26,43 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [uploadShoeType, setUploadShoeType] = useState(SHOE_TYPES[0].value);
   const [uploadImage, setUploadImage] = useState<File | null>(null);
+  const [uploadPreview, setUploadPreview] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
 
-  useEffect(() => {
-    fetch('/api/user-shoes')
-      .then(res => res.json())
-      .then(data => {
-        setPhotos(data.shoes || []);
-        setLoading(false);
-      });
-  }, []);
+  // Ridimensiona immagine lato client
+  const resizeImage = (file: File, maxSize = 1024, quality = 0.85): Promise<string> => {
+    return new Promise((resolve, reject) => {
+      const img = new window.Image();
+      const reader = new FileReader();
+      reader.onload = e => {
+        if (!e.target?.result) return reject('No result');
+        img.onload = () => {
+          let { width, height } = img;
+          if (width > maxSize || height > maxSize) {
+            if (width > height) {
+              height = Math.round(height * (maxSize / width));
+              width = maxSize;
+            } else {
+              width = Math.round(width * (maxSize / height));
+              height = maxSize;
+            }
+          }
+          const canvas = document.createElement('canvas');
+          canvas.width = width;
+          canvas.height = height;
+          const ctx = canvas.getContext('2d');
+          if (!ctx) return reject('No canvas context');
+          ctx.drawImage(img, 0, 0, width, height);
+          const dataUrl = canvas.toDataURL('image/jpeg', quality);
+          resolve(dataUrl);
+        };
+        img.onerror = reject;
+        img.src = e.target.result as string;
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  };
 
   // Filtra le foto per username o tipo scarpa
   const filteredPhotos = useMemo(() => {
@@ -46,46 +73,59 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
       photo.shoeType.toLowerCase().includes(term)
     );
   }, [photos, searchTerm]);
-
   const handlePrev = () => setCurrent(current > 0 ? current - 1 : filteredPhotos.length - 1);
   const handleNext = () => setCurrent(current < filteredPhotos.length - 1 ? current + 1 : 0);
 
+  // Autoplay
+  useEffect(() => {
+    if (filteredPhotos.length < 2) return;
+    const interval = setInterval(() => {
+      setCurrent(prev => (prev < filteredPhotos.length - 1 ? prev + 1 : 0));
+    }, 3500); // 3.5 secondi
+    return () => clearInterval(interval);
+  }, [filteredPhotos.length]);
+
+  useEffect(() => {
+    fetch('/api/user-shoes')
+      .then(res => res.json())
+      .then(data => {
+        setPhotos(data.shoes || []);
+        setLoading(false);
+      });
+  }, []);
+
   const handleUpload = async () => {
-    if (!uploadImage) return;
+    if (!uploadImage || !uploadPreview) return;
     setUploading(true);
-    const reader = new FileReader();
-    reader.onloadend = async () => {
-      if (typeof reader.result === 'string') {
-        const imageBase64 = reader.result.split(',')[1];
-        const res = await fetch('/api/user-shoes', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            username,
-            shoeType: uploadShoeType,
-            imageBase64
-          })
+    // uploadPreview è già la versione ridimensionata in base64
+    const imageBase64 = uploadPreview.split(',')[1];
+    const res = await fetch('/api/user-shoes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        username,
+        shoeType: uploadShoeType,
+        imageBase64
+      })
+    });
+    if (res.ok) {
+      setUploadOpen(false);
+      setUploadImage(null);
+      setUploadPreview(null);
+      setUploading(false);
+      // Refresh photos
+      setLoading(true);
+      fetch('/api/user-shoes')
+        .then(res => res.json())
+        .then(data => {
+          setPhotos(data.shoes || []);
+          setLoading(false);
+          setCurrent(0);
         });
-        if (res.ok) {
-          setUploadOpen(false);
-          setUploadImage(null);
-          setUploading(false);
-          // Refresh photos
-          setLoading(true);
-          fetch('/api/user-shoes')
-            .then(res => res.json())
-            .then(data => {
-              setPhotos(data.shoes || []);
-              setLoading(false);
-              setCurrent(0);
-            });
-        } else {
-          alert('Upload failed');
-          setUploading(false);
-        }
-      }
-    };
-    if (uploadImage) reader.readAsDataURL(uploadImage);
+    } else {
+      alert('Upload failed');
+      setUploading(false);
+    }
   };
 
   return (
@@ -144,7 +184,7 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
               <img
                 src={`data:image/jpeg;base64,${filteredPhotos[current].imageBase64}`}
                 alt={filteredPhotos[current].shoeType}
-                style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: 12, marginBottom: 6 }}
+                style={{ width: '100%', height: '140px', objectFit: 'cover', borderRadius: 12, marginBottom: 12, marginTop: 12 }}
               />
               <Typography variant="caption" style={{ color: '#8b7355', fontWeight: 500 }}>
                 {filteredPhotos[current].username} - {filteredPhotos[current].shoeType}
@@ -172,25 +212,59 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
               <MenuItem key={opt.value} value={opt.value}>{opt.label}</MenuItem>
             ))}
           </TextField>
-          <input
-            type="file"
-            accept="image/*"
-            onChange={e => {
-              const files = e.target.files;
-              if (files && files[0]) setUploadImage(files[0]);
-              else setUploadImage(null);
-            }}
-            style={{ marginBottom: 12 }}
-          />
-          <Button
-            variant="contained"
-            color="primary"
-            disabled={!uploadImage || uploading}
-            onClick={handleUpload}
-            style={{ backgroundColor: '#8b7355', color: 'white', borderRadius: 8 }}
-          >
-            {uploading ? 'Uploading...' : 'Upload'}
-          </Button>
+          {!uploadImage && !uploading && (
+            <input
+              type="file"
+              accept="image/*"
+              onChange={e => {
+                const files = e.target.files;
+                if (files && files[0]) {
+                  resizeImage(files[0]).then(resizedDataUrl => {
+                    setUploadImage(files[0]);
+                    setUploadPreview(resizedDataUrl);
+                  }).catch(() => {
+                    setUploadImage(files[0]);
+                    // fallback: mostra preview originale
+                    const reader = new FileReader();
+                    reader.onloadend = () => {
+                      if (typeof reader.result === 'string') setUploadPreview(reader.result);
+                    };
+                    reader.readAsDataURL(files[0]);
+                  });
+                } else {
+                  setUploadImage(null);
+                  setUploadPreview(null);
+                }
+              }}
+              style={{ marginBottom: 12 }}
+            />
+          )}
+          {uploadImage && !uploading && (
+            <Box display="flex" flexDirection="column" alignItems="center" mb={2}>
+              {uploadPreview && (
+                <img src={uploadPreview} alt="Preview" style={{ width: 180, height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
+              )}
+              <Button variant="outlined" color="secondary" onClick={() => { setUploadImage(null); setUploadPreview(null); }} style={{ marginBottom: 8 }}>
+                Cambia immagine
+              </Button>
+            </Box>
+          )}
+          {uploading ? (
+            <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" style={{ minHeight: 120 }}>
+              <CircularProgress size={48} style={{ marginBottom: 12 }} />
+              <Typography variant="body2" style={{ color: '#8b7355' }}>Caricamento in corso...</Typography>
+            </Box>
+          ) : (
+            <Button
+              variant="contained"
+              color="primary"
+              disabled={!uploadImage || uploading}
+              onClick={handleUpload}
+              style={{ backgroundColor: '#8b7355', color: 'white', borderRadius: 8 }}
+            >
+              Upload
+            </Button>
+          )}
         </DialogContent>
       </Dialog>
     </Box>
