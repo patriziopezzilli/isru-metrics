@@ -452,6 +452,21 @@ interface UserAuditSummary {
   recentAudits: AuditData[];
 }
 
+// Cookie helpers
+function setCookie(name: string, value: string, days: number) {
+  const expires = new Date(Date.now() + days * 864e5).toUTCString();
+  document.cookie = name + '=' + encodeURIComponent(value) + '; expires=' + expires + '; path=/';
+}
+function getCookie(name: string) {
+  return document.cookie.split('; ').reduce((r, v) => {
+    const parts = v.split('=');
+    return parts[0] === name ? decodeURIComponent(parts[1]) : r;
+  }, '');
+}
+function removeCookie(name: string) {
+  document.cookie = name + '=; expires=Thu, 01 Jan 1970 00:00:00 GMT; path=/';
+}
+
 const AdminDashboard: React.FC = () => {
   const classes = useStyles();
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -468,6 +483,13 @@ const AdminDashboard: React.FC = () => {
   const [currentPage, setCurrentPage] = useState(1);
   const [usersPerPage] = useState(10);
 
+  // Check auth cookie on mount
+  useEffect(() => {
+    if (getCookie('adminAuth') === 'true') {
+      setIsAuthenticated(true);
+    }
+  }, []);
+
   // Filter and pagination logic
   const filteredUsers = userSummaries.filter(user =>
     user.username.toLowerCase().includes(searchTerm.toLowerCase())
@@ -481,6 +503,7 @@ const AdminDashboard: React.FC = () => {
     if (username === 'admin' && password === 'admin') {
       setIsAuthenticated(true);
       setLoginError('');
+      setCookie('adminAuth', 'true', 30); // Sessione valida 30 giorni
       loadAuditData();
     } else {
       setLoginError('Credenziali non valide');

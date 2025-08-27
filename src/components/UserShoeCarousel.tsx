@@ -103,7 +103,7 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        username,
+        username: username && username.trim() ? username : 'Anonymous',
         shoeType: uploadShoeType,
         imageBase64
       })
@@ -130,9 +130,6 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
 
   return (
   <Box mt={2} mb={2} display="flex" flexDirection="column" alignItems="center" style={{ width: '100%' }}>
-      <Typography variant="h6" style={{ marginBottom: 8, color: '#8b7355', fontWeight: 600 }}>
-        Camp WDYWT
-      </Typography>
       {/* Search + Upload affiancati, larghezza massima come il box */}
       <Box display="flex" alignItems="center" justifyContent="center" style={{ width: '100%', maxWidth: 600, marginBottom: 12 }}>
         <TextField
@@ -176,11 +173,19 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
         ) : filteredPhotos.length === 0 ? (
           <Typography variant="body2" style={{ color: '#8b7355' }}>No photos found.</Typography>
         ) : (
-          <>
-            <IconButton onClick={handlePrev} style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)' }}>
-              <ArrowBackIos />
-            </IconButton>
-            <Box display="flex" flexDirection="column" alignItems="center" style={{ width: '220px', height: '180px', overflow: 'hidden' }}>
+          <Box display="flex" alignItems="center" justifyContent="center" style={{ width: '100%', height: '180px', position: 'relative' }}>
+            {/* Previous photo (peek) */}
+            <Box style={{ width: 80, height: 120, overflow: 'hidden', opacity: 0.5, borderRadius: 8, marginRight: -24, zIndex: 1, background: '#f5f5f5', display: filteredPhotos.length > 1 ? 'block' : 'none' }}>
+              {filteredPhotos.length > 1 && (
+                <img
+                  src={`data:image/jpeg;base64,${filteredPhotos[(current - 1 + filteredPhotos.length) % filteredPhotos.length].imageBase64}`}
+                  alt="prev"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(1px)' }}
+                />
+              )}
+            </Box>
+            {/* Current photo */}
+            <Box display="flex" flexDirection="column" alignItems="center" style={{ width: '220px', height: '180px', overflow: 'hidden', zIndex: 2, background: '#fff', borderRadius: 16, boxShadow: '0 2px 8px rgba(0,0,0,0.07)' }}>
               <img
                 src={`data:image/jpeg;base64,${filteredPhotos[current].imageBase64}`}
                 alt={filteredPhotos[current].shoeType}
@@ -190,10 +195,24 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
                 {filteredPhotos[current].username} - {filteredPhotos[current].shoeType}
               </Typography>
             </Box>
-            <IconButton onClick={handleNext} style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)' }}>
+            {/* Next photo (peek) */}
+            <Box style={{ width: 80, height: 120, overflow: 'hidden', opacity: 0.5, borderRadius: 8, marginLeft: -24, zIndex: 1, background: '#f5f5f5', display: filteredPhotos.length > 1 ? 'block' : 'none' }}>
+              {filteredPhotos.length > 1 && (
+                <img
+                  src={`data:image/jpeg;base64,${filteredPhotos[(current + 1) % filteredPhotos.length].imageBase64}`}
+                  alt="next"
+                  style={{ width: '100%', height: '100%', objectFit: 'cover', filter: 'blur(1px)' }}
+                />
+              )}
+            </Box>
+            {/* Navigation arrows */}
+            <IconButton onClick={handlePrev} style={{ position: 'absolute', left: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 3 }}>
+              <ArrowBackIos />
+            </IconButton>
+            <IconButton onClick={handleNext} style={{ position: 'absolute', right: 0, top: '50%', transform: 'translateY(-50%)', zIndex: 3 }}>
               <ArrowForwardIos />
             </IconButton>
-          </>
+          </Box>
         )}
       </Box>
 
@@ -245,25 +264,27 @@ const UserShoeCarousel: React.FC<Props> = ({ username }) => {
                 <img src={uploadPreview} alt="Preview" style={{ width: 180, height: 120, objectFit: 'cover', borderRadius: 8, marginBottom: 8 }} />
               )}
               <Button variant="outlined" color="secondary" onClick={() => { setUploadImage(null); setUploadPreview(null); }} style={{ marginBottom: 8 }}>
-                Cambia immagine
+                Change image
               </Button>
             </Box>
           )}
           {uploading ? (
             <Box display="flex" flexDirection="column" alignItems="center" justifyContent="center" style={{ minHeight: 120 }}>
               <CircularProgress size={48} style={{ marginBottom: 12 }} />
-              <Typography variant="body2" style={{ color: '#8b7355' }}>Caricamento in corso...</Typography>
+              <Typography variant="body2" style={{ color: '#8b7355' }}>Uploading...</Typography>
             </Box>
           ) : (
-            <Button
-              variant="contained"
-              color="primary"
-              disabled={!uploadImage || uploading}
-              onClick={handleUpload}
-              style={{ backgroundColor: '#8b7355', color: 'white', borderRadius: 8 }}
-            >
-              Upload
-            </Button>
+            <Box display="flex" justifyContent="center" alignItems="center" width="100%">
+              <Button
+                variant="contained"
+                color="primary"
+                disabled={!uploadImage || uploading}
+                onClick={handleUpload}
+                style={{ backgroundColor: '#8b7355', color: 'white', borderRadius: 8, minWidth: 120 }}
+              >
+                Upload
+              </Button>
+            </Box>
           )}
         </DialogContent>
       </Dialog>
