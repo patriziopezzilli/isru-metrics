@@ -850,9 +850,38 @@ export const UserProfile: React.FC<UserProfileProps> = ({
   const content = (
     <>
       {console.log('🎭 Rendering content:', { isFirstTime, loading, error: !!error, profileData: !!profileData, inline })}
+      {/* Fallback errore visivo: se c'è errore e non loading, mostra sempre un messaggio */}
+      {error && !loading && (
+        <Box
+          style={{
+            margin: '32px auto',
+            maxWidth: 400,
+            padding: '24px',
+            backgroundColor: '#fff3cd',
+            border: '2px solid #ffeaa7',
+            borderRadius: '12px',
+            color: '#856404',
+            textAlign: 'center',
+            fontWeight: 500,
+            fontSize: '1.1rem',
+            boxShadow: '0 4px 12px rgba(0,0,0,0.08)',
+          }}
+        >
+          <Typography variant="h6" style={{ color: '#d32f2f', marginBottom: 12 }}>
+            Errore profilo
+          </Typography>
+          <Typography variant="body1">{error}</Typography>
+          <Button
+            onClick={handleChangeUsername}
+            className={classes.secondaryButton}
+            style={{ marginTop: 24 }}
+          >
+            Cambia username
+          </Button>
+        </Box>
+      )}
       {/* In modalità inline con username, salta il renderProfileView e vai direttamente al layout inline */}
-      {(inline && username) ? null : (isFirstTime ? renderFirstTimeSetup() : renderProfileView())}
-      
+      {(!error || loading) && ((inline && username) ? null : (isFirstTime ? renderFirstTimeSetup() : renderProfileView()))}
       {/* Notification Snackbar */}
       <Snackbar
         open={notification.open}
@@ -1064,7 +1093,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                               const streak = streakData.get(activityIdentifier);
                               const currentStreak = streak?.participation?.currentStreak ?? 0; // Use correct path to streak data
                               const streakProgress = getStreakProgress(currentStreak);
-                              
+                              const entries = streak?.submissions?.length ?? 0;
                               return (
                                 <Box key={activity.activityId} mb={1} p={1} style={{ backgroundColor: '#f9f8f6', borderRadius: 8 }}>
                                   <Box display="flex" justifyContent="space-between" alignItems="flex-start">
@@ -1089,6 +1118,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                                             <CircularProgress size={10} style={{ color: '#d4c4a8' }} />
                                           ) : (
                                             <Box display="flex" alignItems="center" style={{ gap: '2px' }}>
+                                              {/* Streak */}
                                               <StreakIcon style={{ 
                                                 fontSize: '0.9rem', 
                                                 color: currentStreak > 0 ? '#ff7043' : '#d4c4a8'
@@ -1099,7 +1129,7 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                                                   color: currentStreak > 0 ? '#ff7043' : '#999', 
                                                   fontSize: '0.7rem', 
                                                   fontWeight: 'bold',
-                                                  marginRight: '2px'
+                                                  marginRight: '6px'
                                                 }}
                                               >
                                                 {currentStreak}
@@ -1108,10 +1138,32 @@ export const UserProfile: React.FC<UserProfileProps> = ({
                                                 variant="caption" 
                                                 style={{ 
                                                   color: currentStreak > 0 ? '#ff7043' : '#999', 
-                                                  fontSize: '0.65rem'
+                                                  fontSize: '0.65rem',
+                                                  marginRight: '10px'
                                                 }}
                                               >
                                                 streak
+                                              </Typography>
+                                              {/* Entries */}
+                                              <Typography 
+                                                variant="caption" 
+                                                style={{ 
+                                                  color: '#3a6cff', 
+                                                  fontSize: '0.7rem', 
+                                                  fontWeight: 'bold',
+                                                  marginRight: '4px'
+                                                }}
+                                              >
+                                                {entries}
+                                              </Typography>
+                                              <Typography 
+                                                variant="caption" 
+                                                style={{ 
+                                                  color: '#3a6cff', 
+                                                  fontSize: '0.65rem'
+                                                }}
+                                              >
+                                                entries
                                               </Typography>
                                             </Box>
                                           )}

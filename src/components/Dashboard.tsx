@@ -75,8 +75,7 @@ const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps) => {
   return (
     <Box>
       {/* Mars Yard Countdown (presumibilmente già presente sopra) */}
-      {/* User Shoe Carousel sotto il countdown: visibile solo per patriziopezzilli */}
-      <UserShoeCarousel username={currentUsername || ''} />
+      {/* User Shoe Carousel rimosso su richiesta */}
       {/* Current User Activities */}
       {currentUsername && (
         <CurrentUserActivities username={currentUsername} cardMarginBottom={cardMarginBottom} />
