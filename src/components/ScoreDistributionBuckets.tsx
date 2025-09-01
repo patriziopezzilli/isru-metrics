@@ -272,23 +272,13 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
               </Box>
             )}
             
-            {/* Loading state for position */}
+            {/* Loading state for position - Only progress bar */}
             {currentUsername && positionLoading && (
               <Box mb={3} p={3} style={{ 
                 borderRadius: 16, 
                 background: 'linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%)', 
                 border: '2px solid #ff7043'
               }}>
-                <Box display="flex" alignItems="center" mb={2}>
-                  <Avatar style={{ backgroundColor: '#ff7043', marginRight: 12, width: 40, height: 40 }}>
-                    <EmojiEvents />
-                  </Avatar>
-                  <Box style={{ flex: 1 }}>
-                    <Typography variant="h6" style={{ color: '#ff7043', fontWeight: 700, marginBottom: 4 }}>
-                      Calculating Your Position...
-                    </Typography>
-                  </Box>
-                </Box>
                 <LinearProgress 
                   style={{ 
                     height: 8, 
@@ -299,10 +289,6 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
               </Box>
             )}
 
-            {/* Distribution Title */}
-            <Typography variant="h6" style={{ fontWeight: 600, color: '#3c3530', marginBottom: 16 }}>
-              Score Distribution (Top 2000 Users)
-            </Typography>
         {buckets.map((bucket, idx) => (
           <Box key={idx} mb={2} p={2} style={{ 
             borderRadius: 12, 
