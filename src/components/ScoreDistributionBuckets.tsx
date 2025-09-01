@@ -27,7 +27,7 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [expanded, setExpanded] = useState(false);
+  const [expanded, setExpanded] = useState(true);
 
   useEffect(() => {
     let isMounted = true;
@@ -36,25 +36,38 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
       setError(null);
       let allUsers: User[] = [];
       try {
-        // Fetch first 2000 users
-        for (let page = 1; page <= MAX_PAGES; page++) {
-          const res = await fetch(`/api/universal-proxy?api=isru-leaderboard-pages&page=${page}&limit=${PAGE_SIZE}`);
-          if (!res.ok) break;
-          const data = await res.json();
+        // Use the same API as rank finder - fetch users ordered by score
+        const limit = 100;
+        let page = 1;
+        
+        // Fetch first 2000 users using the rank finder API
+        while (allUsers.length < MAX_USERS) {
+          const response = await fetch(`/api/universal-proxy?api=isru-leaderboard&page=${page}&limit=${limit}`);
+          if (!response.ok) break;
+          
+          const data = await response.json();
           if (!data.results || data.results.length === 0) break;
-          allUsers = allUsers.concat(data.results.map((u: any) => ({ username: u.username, totalPoints: u.totalPoints })));
-          if (allUsers.length >= MAX_USERS || data.results.length < PAGE_SIZE) break;
+          
+          // Map the results to our User interface
+          const pageUsers = data.results.map((user: any) => ({
+            username: user.username,
+            totalPoints: user.totalPoints
+          }));
+          
+          allUsers = allUsers.concat(pageUsers);
+          
+          // Stop if we got less than expected or reached our limit
+          if (data.results.length < limit || allUsers.length >= MAX_USERS) break;
+          page++;
         }
         
-        // Limit to first 2000 users
+        // Limit to exactly 2000 users
         allUsers = allUsers.slice(0, MAX_USERS);
         
         // Group users by score ranges
         const scoreMap = new Map<number, User[]>();
-        let maxScore = 0;
         
         allUsers.forEach(user => {
-          maxScore = Math.max(maxScore, user.totalPoints);
           const bucketKey = Math.floor(user.totalPoints / SCORE_RANGE) * SCORE_RANGE;
           if (!scoreMap.has(bucketKey)) {
             scoreMap.set(bucketKey, []);
