@@ -186,21 +186,21 @@ interface StockScenario {
 
 const STOCK_SCENARIOS: StockScenario[] = [
   {
-    name: "Limited Edition",
+    name: "Extremely Limited",
     totalStock: 1000,
     piecesPerSize: {min: 80, max: 130, avg: 105},
     color: "#d32f2f",
     bgColor: "#ffebee"
   },
   {
-    name: "Regular Release", 
+    name: "Normal Stock", 
     totalStock: 2000,
     piecesPerSize: {min: 130, max: 200, avg: 165},
     color: "#f57c00",
     bgColor: "#fff3e0"
   },
   {
-    name: "General Release",
+    name: "Best Case",
     totalStock: 3000,
     piecesPerSize: {min: 200, max: 300, avg: 250},
     color: "#388e3c",
@@ -210,32 +210,25 @@ const STOCK_SCENARIOS: StockScenario[] = [
 
 // Calculate probability of getting the shoe based on position and stock
 const calculateShoeChance = (position: number, stock: number, avgPiecesPerSize: number): number => {
-  // Each person can buy only 1 pair, so position directly relates to queue
+  // Each person can buy only 1 pair, ranking is in assignment order
   const totalAvailableShoes = stock;
   
-  // If your position is within the stock, you have a good chance
+  // If your position is within total stock, you're guaranteed a pair
   if (position <= totalAvailableShoes) {
-    // Even within stock, consider some realistic factors:
-    // - Some people might not complete purchase
-    // - Size availability varies
-    // - Payment issues, cart abandonment, etc.
-    
-    if (position <= totalAvailableShoes * 0.7) {
-      return Math.min(95, 90 + Math.random() * 5); // Very high chance
-    } else if (position <= totalAvailableShoes * 0.9) {
-      return Math.min(85, 70 + Math.random() * 15); // Good chance
-    } else {
-      return Math.min(75, 50 + Math.random() * 25); // Moderate chance
-    }
+    // Position within stock = 100% chance (guaranteed)
+    return 100;
   } else {
-    // Position is beyond total stock
+    // Position beyond total stock - only chance is if people ahead don't buy
     const overflow = position - totalAvailableShoes;
     const overflowPercentage = (overflow / totalAvailableShoes) * 100;
     
-    if (overflowPercentage <= 10) {
-      return Math.max(5, 15 - overflowPercentage); // Small chance due to dropouts
+    // Small chance based on typical dropout rates (payment failures, changed minds, etc.)
+    if (overflowPercentage <= 5) {
+      return Math.max(8, 15 - overflowPercentage); // ~10-15% chance due to dropouts
+    } else if (overflowPercentage <= 15) {
+      return Math.max(3, 8 - (overflowPercentage * 0.3)); // ~3-8% chance
     } else {
-      return Math.max(1, 5 - (overflowPercentage * 0.1)); // Very low chance
+      return Math.max(0.5, 3 - (overflowPercentage * 0.1)); // Very low chance
     }
   }
 };
@@ -617,22 +610,22 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
                 style={{ 
                   cursor: 'pointer',
                   padding: '12px 16px',
-                  backgroundColor: 'rgba(255, 112, 67, 0.05)',
+                  backgroundColor: 'rgba(60, 53, 48, 0.05)',
                   borderRadius: 8,
-                  border: '1px solid rgba(255, 112, 67, 0.2)',
+                  border: '1px solid rgba(60, 53, 48, 0.15)',
                   marginBottom: 8
                 }}
               >
                 <Box display="flex" alignItems="center">
-                  <ShoeIcon style={{ color: '#ff7043', marginRight: 8, fontSize: 20 }} />
-                  <Typography variant="subtitle1" style={{ color: '#ff7043', fontWeight: 600 }}>
+                  <ShoeIcon style={{ color: '#3c3530', marginRight: 8, fontSize: 20 }} />
+                  <Typography variant="subtitle1" style={{ color: '#3c3530', fontWeight: 600 }}>
                     👟 Shoe Drop Probability
                   </Typography>
                 </Box>
                 <IconButton 
                   size="small"
                   style={{ 
-                    color: '#ff7043',
+                    color: '#3c3530',
                     transform: probabilityExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
                     transition: 'transform 0.3s ease'
                   }}
@@ -734,15 +727,15 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
                     mt={3} 
                     p={2} 
                     style={{ 
-                      backgroundColor: 'rgba(255, 112, 67, 0.05)', 
+                      backgroundColor: 'rgba(60, 53, 48, 0.05)', 
                       borderRadius: 8,
-                      borderLeft: '4px solid #ff7043'
+                      borderLeft: '4px solid #3c3530'
                     }}
                   >
                     <Typography 
                       variant="body2" 
                       style={{ 
-                        color: '#666',
+                        color: '#555',
                         fontSize: '0.85rem',
                         lineHeight: 1.4
                       }}
