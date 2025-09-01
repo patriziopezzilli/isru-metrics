@@ -7,8 +7,8 @@ interface User {
 }
 
 interface Bucket {
-  start: number;
-  end: number;
+  minScore: number;
+  maxScore: number;
   users: User[];
   isCurrentUserBucket: boolean;
 }
@@ -17,8 +17,9 @@ interface ScoreDistributionBucketsProps {
   currentUsername?: string;
 }
 
-const USERS_PER_BUCKET = 200;
-const MAX_PAGES = 50; // Safety limit
+const SCORE_RANGE = 70; // Points per bucket
+const MAX_USERS = 2000; // Only show first 2000 users
+const MAX_PAGES = 10; // Safety limit
 const PAGE_SIZE = 200;
 
 export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> = ({ currentUsername }) => {
@@ -32,27 +33,47 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
       setLoading(true);
       setError(null);
       let allUsers: User[] = [];
-      let foundUserBucket = -1;
       try {
+        // Fetch first 2000 users
         for (let page = 1; page <= MAX_PAGES; page++) {
           const res = await fetch(`/api/universal-proxy?api=isru-leaderboard-pages&page=${page}&limit=${PAGE_SIZE}`);
           if (!res.ok) break;
           const data = await res.json();
           if (!data.results || data.results.length === 0) break;
           allUsers = allUsers.concat(data.results.map((u: any) => ({ username: u.username, totalPoints: u.totalPoints })));
-          if (data.results.length < PAGE_SIZE) break;
+          if (allUsers.length >= MAX_USERS || data.results.length < PAGE_SIZE) break;
         }
-        // Bucket users
+        
+        // Limit to first 2000 users
+        allUsers = allUsers.slice(0, MAX_USERS);
+        
+        // Group users by score ranges
+        const scoreMap = new Map<number, User[]>();
+        let maxScore = 0;
+        
+        allUsers.forEach(user => {
+          maxScore = Math.max(maxScore, user.totalPoints);
+          const bucketKey = Math.floor(user.totalPoints / SCORE_RANGE) * SCORE_RANGE;
+          if (!scoreMap.has(bucketKey)) {
+            scoreMap.set(bucketKey, []);
+          }
+          scoreMap.get(bucketKey)!.push(user);
+        });
+        
+        // Create buckets from highest to lowest score
         const buckets: Bucket[] = [];
-        for (let i = 0; i < allUsers.length; i += USERS_PER_BUCKET) {
-          const usersInBucket = allUsers.slice(i, i + USERS_PER_BUCKET);
-          const start = i + 1;
-          const end = i + usersInBucket.length;
+        const sortedKeys = Array.from(scoreMap.keys()).sort((a, b) => b - a);
+        
+        sortedKeys.forEach(bucketKey => {
+          const users = scoreMap.get(bucketKey)!;
+          const minScore = bucketKey;
+          const maxScore = bucketKey + SCORE_RANGE - 1;
           const isCurrentUserBucket = currentUsername
-            ? usersInBucket.some(u => u.username.toLowerCase() === currentUsername.toLowerCase())
+            ? users.some(u => u.username.toLowerCase() === currentUsername.toLowerCase())
             : false;
-          buckets.push({ start, end, users: usersInBucket, isCurrentUserBucket });
-        }
+          buckets.push({ minScore, maxScore, users, isCurrentUserBucket });
+        });
+        
         if (isMounted) setBuckets(buckets);
       } catch (err) {
         setError('Failed to load leaderboard data');
@@ -68,16 +89,35 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
   if (error) return <Box p={3}><Typography color="error">{error}</Typography></Box>;
 
   return (
-    <Card elevation={0} style={{ marginBottom: 32, background: 'linear-gradient(135deg, #fefdfb 0%, #f5f1eb 100%)', border: '1px solid #e6ddd4' }}>
+    <Card elevation={0} style={{ marginBottom: 32, background: 'linear-gradient(135deg, #fefdfb 0%, #f5f1eb 100%)', border: '2px solid #ff7043', position: 'relative' }}>
+      {/* Badge NEW */}
+      <Box 
+        style={{
+          position: 'absolute',
+          top: -8,
+          right: 16,
+          backgroundColor: '#ff7043',
+          color: 'white',
+          padding: '4px 12px',
+          borderRadius: '12px',
+          fontSize: '0.75rem',
+          fontWeight: 'bold',
+          textTransform: 'uppercase',
+          boxShadow: '0 2px 4px rgba(255, 112, 67, 0.3)',
+          zIndex: 1
+        }}
+      >
+        NEW
+      </Box>
       <CardContent>
         <Typography variant="h5" style={{ fontWeight: 600, color: '#3c3530', marginBottom: 16 }}>
-          Score Distribution (by groups of 200)
+          Score Distribution
         </Typography>
         {buckets.map((bucket, idx) => (
           <Box key={idx} mb={2} p={2} style={{ borderRadius: 12, background: bucket.isCurrentUserBucket ? '#e0dfca' : '#fff', border: bucket.isCurrentUserBucket ? '2px solid #8b7355' : '1px solid #e6ddd4' }}>
             <Box display="flex" alignItems="center" justifyContent="space-between">
               <Typography variant="subtitle1" style={{ fontWeight: 500, color: bucket.isCurrentUserBucket ? '#8b7355' : '#3c3530' }}>
-                Users {bucket.start} - {bucket.end}
+                {bucket.minScore} - {bucket.maxScore} points
               </Typography>
               <Chip label={`${bucket.users.length} users`} size="small" style={{ backgroundColor: '#a0916c', color: 'white', fontWeight: 600, borderRadius: 8 }} />
             </Box>
@@ -86,7 +126,7 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
                 You are in this group!
               </Typography>
             )}
-            <LinearProgress variant="determinate" value={Math.min(100, (bucket.users.length / USERS_PER_BUCKET) * 100)} style={{ height: 8, borderRadius: 8, marginTop: 8, backgroundColor: '#e6ddd4' }} />
+            <LinearProgress variant="determinate" value={Math.min(100, (bucket.users.length / 50) * 100)} style={{ height: 8, borderRadius: 8, marginTop: 8, backgroundColor: '#e6ddd4' }} />
           </Box>
         ))}
       </CardContent>

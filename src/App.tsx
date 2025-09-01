@@ -26,7 +26,6 @@ import Dashboard from './components/Dashboard';
 import UserSearch from './components/UserSearch';
 import { UserProfile } from './components/UserProfile';
 import { UserProfileIcon } from './components/UserProfileIcon';
-import { GoalTracker } from './components/GoalTracker';
 import { OfflineIndicator } from './components/OfflineIndicator';
 import { MarsYardCountdown } from './components/MarsYardCountdown';
 // import { ChangelogDisclaimer } from './components/ChangelogDisclaimer';
@@ -245,7 +244,6 @@ const AppContent = ({
   const [feedbackSent, setFeedbackSent] = useState(false);
   const materialTheme = useTheme();
   const isMobile = useMediaQuery(materialTheme.breakpoints.down('sm'));
-  const [showGoalTracker, setShowGoalTracker] = useState(false);
   const [userStats, setUserStats] = useState<UserStats | null>(null);
 
   // Debug wrapper per tab change
@@ -541,37 +539,12 @@ const AppContent = ({
         )}
   </Box>
 
-      {/* Goal Tracker Dialog */}
-      {username && (
-        <GoalTracker
-          open={showGoalTracker}
-          onClose={() => setShowGoalTracker(false)}
-          username={username}
-          currentStats={userStats || undefined}
-        />
-      )}
-
       <UserProfile
         open={profileDialogOpen}
         onClose={onProfileDialogClose}
         username={username}
         onUsernameSet={onUsernameSet}
       />
-
-      {/* Goal Tracker Button - Moved to bottom */}
-      {username && (
-        <Box style={{ marginTop: 32, marginBottom: 32, textAlign: 'center' }}>
-          <Button
-            variant="outlined"
-            color="primary"
-            onClick={() => setShowGoalTracker(true)}
-            startIcon={<SportsSoccerIcon />}
-            style={{ marginRight: 8 }}
-          >
-            Open Goal Tracker
-          </Button>
-        </Box>
-      )}
 
       <Box
         component="footer"

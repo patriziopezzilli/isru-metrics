@@ -431,7 +431,7 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
           >
             <Box display="flex" alignItems="center">
               <StreakIcon style={{ fontSize: '1.1rem', color: '#ff7043', marginRight: '8px' }} />
-              <Typography variant="body2" style={{ color: '#3a6cff', fontWeight: 'bold' }}>
+              <Typography variant="body2" style={{ color: '#ff7043', fontWeight: 'bold' }}>
                 Activities Details
               </Typography>
             </Box>
