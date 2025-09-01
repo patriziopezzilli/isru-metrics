@@ -36,35 +36,38 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
       setError(null);
       let allUsers: User[] = [];
       try {
-        // Use the same API as rank finder - fetch users ordered by score
-        const limit = 100;
-        let page = 1;
-        
-        // Fetch first 2000 users using the rank finder API
-        while (allUsers.length < MAX_USERS) {
-          const response = await fetch(`/api/universal-proxy?api=isru-leaderboard&page=${page}&limit=${limit}`);
-          if (!response.ok) break;
-          
-          const data = await response.json();
-          if (!data.results || data.results.length === 0) break;
-          
-          // Map the results to our User interface
-          const pageUsers = data.results.map((user: any) => ({
-            username: user.username,
-            totalPoints: user.totalPoints
-          }));
-          
-          allUsers = allUsers.concat(pageUsers);
-          
-          // Stop if we got less than expected or reached our limit
-          if (data.results.length < limit || allUsers.length >= MAX_USERS) break;
-          page++;
+        // Fetch the score distribution data
+        const response = await fetch(`/api/universal-proxy?api=isru-leaderboard`);
+        if (!response.ok) {
+          throw new Error('Failed to fetch leaderboard data');
         }
         
-        // Limit to exactly 2000 users
+        const data = await response.json();
+        console.log('API response:', data);
+        
+        if (!data.scoreDistribution || !Array.isArray(data.scoreDistribution)) {
+          throw new Error('Invalid API response structure');
+        }
+        
+        // Extract all users from the score distribution
+        data.scoreDistribution.forEach((scoreItem: any) => {
+          if (scoreItem.users && Array.isArray(scoreItem.users)) {
+            scoreItem.users.forEach((user: any) => {
+              allUsers.push({
+                username: user.username,
+                totalPoints: scoreItem.score
+              });
+            });
+          }
+        });
+        
+        // Limit to first 2000 users (they should already be sorted by score desc)
         allUsers = allUsers.slice(0, MAX_USERS);
         
-        // Group users by score ranges
+        console.log('Total users extracted:', allUsers.length);
+        console.log('Sample users:', allUsers.slice(0, 5));
+        
+        // Group users by score ranges (buckets of 70 points)
         const scoreMap = new Map<number, User[]>();
         
         allUsers.forEach(user => {
@@ -74,6 +77,9 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
           }
           scoreMap.get(bucketKey)!.push(user);
         });
+        
+        console.log('Score buckets created:', scoreMap.size);
+        console.log('Bucket keys:', Array.from(scoreMap.keys()).sort((a, b) => b - a));
         
         // Create buckets from highest to lowest score
         const buckets: Bucket[] = [];
@@ -89,6 +95,9 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
           buckets.push({ minScore, maxScore, users, isCurrentUserBucket });
         });
         
+        console.log('Final buckets created:', buckets.length);
+        console.log('Buckets:', buckets);
+        
         if (isMounted) setBuckets(buckets);
       } catch (err) {
         setError('Failed to load leaderboard data');
@@ -102,6 +111,7 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
 
   if (loading) return <Box p={3}><Typography>Loading score distribution...</Typography></Box>;
   if (error) return <Box p={3}><Typography color="error">{error}</Typography></Box>;
+  if (buckets.length === 0) return <Box p={3}><Typography>No score distribution data available</Typography></Box>;
 
   return (
     <Card elevation={0} style={{ marginBottom: 32, background: 'linear-gradient(135deg, #fefdfb 0%, #f5f1eb 100%)', border: '2px solid #ff7043', position: 'relative' }}>
