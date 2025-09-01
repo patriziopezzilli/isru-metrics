@@ -64,8 +64,7 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
         // Limit to first 2000 users (they should already be sorted by score desc)
         allUsers = allUsers.slice(0, MAX_USERS);
         
-        console.log('Total users extracted:', allUsers.length);
-        console.log('Sample users:', allUsers.slice(0, 5));
+        console.log('Current username for comparison:', currentUsername);
         
         // Group users by score ranges (buckets of 70 points)
         const scoreMap = new Map<number, User[]>();
@@ -90,7 +89,13 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
           const minScore = bucketKey;
           const maxScore = bucketKey + SCORE_RANGE - 1;
           const isCurrentUserBucket = currentUsername
-            ? users.some(u => u.username.toLowerCase() === currentUsername.toLowerCase())
+            ? users.some(u => {
+                const match = u.username.toLowerCase() === currentUsername.toLowerCase();
+                if (match) {
+                  console.log('Found current user in bucket:', bucketKey, 'username:', u.username);
+                }
+                return match;
+              })
             : false;
           buckets.push({ minScore, maxScore, users, isCurrentUserBucket });
         });
@@ -153,19 +158,43 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
         <Collapse in={expanded}>
           <Box style={{ marginTop: 16 }}>
         {buckets.map((bucket, idx) => (
-          <Box key={idx} mb={2} p={2} style={{ borderRadius: 12, background: bucket.isCurrentUserBucket ? '#e0dfca' : '#fff', border: bucket.isCurrentUserBucket ? '2px solid #8b7355' : '1px solid #e6ddd4' }}>
+          <Box key={idx} mb={2} p={2} style={{ 
+            borderRadius: 12, 
+            background: bucket.isCurrentUserBucket ? '#fff3e0' : '#fff', 
+            border: bucket.isCurrentUserBucket ? '2px solid #ff7043' : '1px solid #e6ddd4',
+            boxShadow: bucket.isCurrentUserBucket ? '0 4px 12px rgba(255, 112, 67, 0.15)' : 'none'
+          }}>
             <Box display="flex" alignItems="center" justifyContent="space-between">
-              <Typography variant="subtitle1" style={{ fontWeight: 500, color: bucket.isCurrentUserBucket ? '#8b7355' : '#3c3530' }}>
+              <Typography variant="subtitle1" style={{ fontWeight: 500, color: bucket.isCurrentUserBucket ? '#ff7043' : '#3c3530' }}>
                 {bucket.minScore} - {bucket.maxScore} points
               </Typography>
-              <Chip label={`${bucket.users.length} users`} size="small" style={{ backgroundColor: '#a0916c', color: 'white', fontWeight: 600, borderRadius: 8 }} />
+              <Chip 
+                label={`${bucket.users.length} users`} 
+                size="small" 
+                style={{ 
+                  backgroundColor: bucket.isCurrentUserBucket ? '#ff7043' : '#a0916c', 
+                  color: 'white', 
+                  fontWeight: 600, 
+                  borderRadius: 8 
+                }} 
+              />
             </Box>
             {bucket.isCurrentUserBucket && currentUsername && (
-              <Typography variant="body2" style={{ color: '#8b7355', marginTop: 8 }}>
-                You are in this group!
+              <Typography variant="body2" style={{ color: '#ff7043', marginTop: 8, fontWeight: 600 }}>
+                🎯 You are in this group!
               </Typography>
             )}
-            <LinearProgress variant="determinate" value={Math.min(100, (bucket.users.length / 50) * 100)} style={{ height: 8, borderRadius: 8, marginTop: 8, backgroundColor: '#e6ddd4' }} />
+            <Box style={{ position: 'relative', height: 8, borderRadius: 8, marginTop: 8, backgroundColor: '#e6ddd4' }}>
+              <Box 
+                style={{ 
+                  height: '100%', 
+                  borderRadius: 8,
+                  backgroundColor: bucket.isCurrentUserBucket ? '#ff7043' : '#a0916c',
+                  width: `${Math.min(100, (bucket.users.length / 50) * 100)}%`,
+                  transition: 'width 0.3s ease'
+                }} 
+              />
+            </Box>
           </Box>
         ))}
           </Box>
