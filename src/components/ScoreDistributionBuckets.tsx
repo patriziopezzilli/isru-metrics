@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, Typography, Box, Chip, LinearProgress, IconButton, Collapse } from '@material-ui/core';
-import { ExpandMore as ExpandMoreIcon } from '@material-ui/icons';
+import { Card, CardContent, Typography, Box, Chip, LinearProgress, IconButton, Collapse, Avatar } from '@material-ui/core';
+import { ExpandMore as ExpandMoreIcon, TrendingUp, EmojiEvents, Group } from '@material-ui/icons';
+import { PositionCalculatorService, AccurateRanking } from '../services/positionCalculator';
 
 interface User {
   username: string;
@@ -28,6 +29,8 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [expanded, setExpanded] = useState(true);
+  const [userPosition, setUserPosition] = useState<AccurateRanking | null>(null);
+  const [positionLoading, setPositionLoading] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -107,6 +110,27 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
         console.log('Buckets:', buckets);
         
         if (isMounted) setBuckets(buckets);
+        
+        // Calculate user position if currentUsername is provided
+        if (currentUsername && allUsers.length > 0) {
+          const currentUser = allUsers.find(u => u.username.toLowerCase() === currentUsername.toLowerCase());
+          if (currentUser) {
+            setPositionLoading(true);
+            try {
+              const position = await PositionCalculatorService.calculateAccuratePosition(
+                currentUser.username, 
+                currentUser.totalPoints
+              );
+              if (isMounted && position) {
+                setUserPosition(position);
+              }
+            } catch (posErr) {
+              console.log('Failed to calculate position:', posErr);
+            } finally {
+              setPositionLoading(false);
+            }
+          }
+        }
       } catch (err) {
         setError('Failed to load leaderboard data');
       } finally {
@@ -160,6 +184,94 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
         </Box>
         <Collapse in={expanded}>
           <Box style={{ marginTop: 16 }}>
+            {/* User Position Card - if user is found */}
+            {currentUsername && userPosition && (
+              <Box mb={3} p={3} style={{ 
+                borderRadius: 16, 
+                background: 'linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%)', 
+                border: '2px solid #ff7043',
+                boxShadow: '0 6px 20px rgba(255, 112, 67, 0.15)'
+              }}>
+                <Box display="flex" alignItems="center" mb={2}>
+                  <Avatar style={{ backgroundColor: '#ff7043', marginRight: 12, width: 40, height: 40 }}>
+                    <EmojiEvents />
+                  </Avatar>
+                  <Box>
+                    <Typography variant="h6" style={{ color: '#ff7043', fontWeight: 700, marginBottom: 4 }}>
+                      Your Leaderboard Position
+                    </Typography>
+                    <Typography variant="body2" style={{ color: '#8b7355' }}>
+                      {userPosition.username} • {userPosition.totalPoints} points
+                    </Typography>
+                  </Box>
+                </Box>
+                
+                <Box display="flex" justifyContent="space-between" alignItems="center">
+                  <Box display="flex" alignItems="center" style={{ flex: 1 }}>
+                    <TrendingUp style={{ color: '#ff7043', marginRight: 8 }} />
+                    <Box>
+                      <Typography variant="h4" style={{ color: '#ff7043', fontWeight: 800, lineHeight: 1 }}>
+                        #{userPosition.position}
+                      </Typography>
+                      <Typography variant="caption" style={{ color: '#8b7355' }}>
+                        Position
+                      </Typography>
+                    </Box>
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" style={{ flex: 1 }}>
+                    <Group style={{ color: '#ff7043', marginRight: 8 }} />
+                    <Box>
+                      <Typography variant="h5" style={{ color: '#ff7043', fontWeight: 700, lineHeight: 1 }}>
+                        {userPosition.usersAbove}
+                      </Typography>
+                      <Typography variant="caption" style={{ color: '#8b7355' }}>
+                        Users ahead
+                      </Typography>
+                    </Box>
+                  </Box>
+                  
+                  <Box display="flex" alignItems="center" style={{ flex: 1 }}>
+                    <Box>
+                      <Typography variant="h5" style={{ color: '#ff7043', fontWeight: 700, lineHeight: 1 }}>
+                        {userPosition.percentageAbove}%
+                      </Typography>
+                      <Typography variant="caption" style={{ color: '#8b7355' }}>
+                        Ahead of you
+                      </Typography>
+                    </Box>
+                  </Box>
+                </Box>
+                
+                {userPosition.usersWithSameScore && userPosition.usersWithSameScore > 1 && (
+                  <Box mt={2} p={2} style={{ backgroundColor: 'rgba(255, 112, 67, 0.1)', borderRadius: 8 }}>
+                    <Typography variant="body2" style={{ color: '#8b7355', textAlign: 'center' }}>
+                      🤝 You share this score with {userPosition.usersWithSameScore - 1} other user(s)
+                    </Typography>
+                  </Box>
+                )}
+              </Box>
+            )}
+            
+            {/* Loading state for position */}
+            {currentUsername && positionLoading && (
+              <Box mb={3} p={3} style={{ 
+                borderRadius: 16, 
+                background: '#f5f5f5', 
+                border: '1px solid #e0e0e0',
+                textAlign: 'center'
+              }}>
+                <Typography variant="body2" style={{ color: '#8b7355' }}>
+                  🔍 Calculating your position...
+                </Typography>
+                <LinearProgress style={{ marginTop: 8, borderRadius: 4 }} />
+              </Box>
+            )}
+
+            {/* Distribution Title */}
+            <Typography variant="h6" style={{ fontWeight: 600, color: '#3c3530', marginBottom: 16 }}>
+              Score Distribution (Top 2000 Users)
+            </Typography>
         {buckets.map((bucket, idx) => (
           <Box key={idx} mb={2} p={2} style={{ 
             borderRadius: 12, 
