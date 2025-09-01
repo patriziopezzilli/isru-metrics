@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, Typography, Box, Chip, LinearProgress, IconButton, Collapse, Avatar } from '@material-ui/core';
+import { Card, CardContent, Typography, Box, Chip, LinearProgress, IconButton, Collapse, Avatar, useMediaQuery, useTheme } from '@material-ui/core';
 import { ExpandMore as ExpandMoreIcon, TrendingUp, EmojiEvents, Group } from '@material-ui/icons';
 import { PositionCalculatorService, AccurateRanking } from '../services/positionCalculator';
 
@@ -25,6 +25,9 @@ const MAX_PAGES = 10; // Safety limit
 const PAGE_SIZE = 200;
 
 export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> = ({ currentUsername }) => {
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
+  
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -196,7 +199,7 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
                   <Avatar style={{ backgroundColor: '#ff7043', marginRight: 12, width: 40, height: 40 }}>
                     <EmojiEvents />
                   </Avatar>
-                  <Box>
+                  <Box style={{ flex: 1 }}>
                     <Typography variant="h6" style={{ color: '#ff7043', fontWeight: 700, marginBottom: 4 }}>
                       Your Leaderboard Position
                     </Typography>
@@ -206,38 +209,54 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
                   </Box>
                 </Box>
                 
-                <Box display="flex" justifyContent="space-between" alignItems="center">
-                  <Box display="flex" alignItems="center" style={{ flex: 1 }}>
+                {/* Mobile-friendly layout - stack vertically on small screens */}
+                <Box 
+                  display="flex" 
+                  style={{ 
+                    flexDirection: isMobile ? 'column' : 'row',
+                    gap: isMobile ? 16 : 24
+                  }}
+                >
+                  <Box 
+                    display="flex" 
+                    alignItems="center" 
+                    style={{ 
+                      flex: 1,
+                      justifyContent: isMobile ? 'center' : 'flex-start',
+                      padding: isMobile ? 16 : 0,
+                      backgroundColor: isMobile ? 'rgba(255, 112, 67, 0.05)' : 'transparent',
+                      borderRadius: isMobile ? 8 : 0
+                    }}
+                  >
                     <TrendingUp style={{ color: '#ff7043', marginRight: 8 }} />
-                    <Box>
+                    <Box style={{ textAlign: isMobile ? 'center' : 'left' }}>
                       <Typography variant="h4" style={{ color: '#ff7043', fontWeight: 800, lineHeight: 1 }}>
                         #{userPosition.position}
                       </Typography>
                       <Typography variant="caption" style={{ color: '#8b7355' }}>
-                        Position
+                        Your Position
                       </Typography>
                     </Box>
                   </Box>
                   
-                  <Box display="flex" alignItems="center" style={{ flex: 1 }}>
+                  <Box 
+                    display="flex" 
+                    alignItems="center" 
+                    style={{ 
+                      flex: 1,
+                      justifyContent: isMobile ? 'center' : 'flex-start',
+                      padding: isMobile ? 16 : 0,
+                      backgroundColor: isMobile ? 'rgba(255, 112, 67, 0.05)' : 'transparent',
+                      borderRadius: isMobile ? 8 : 0
+                    }}
+                  >
                     <Group style={{ color: '#ff7043', marginRight: 8 }} />
-                    <Box>
+                    <Box style={{ textAlign: isMobile ? 'center' : 'left' }}>
                       <Typography variant="h5" style={{ color: '#ff7043', fontWeight: 700, lineHeight: 1 }}>
                         {userPosition.usersAbove}
                       </Typography>
                       <Typography variant="caption" style={{ color: '#8b7355' }}>
                         Users ahead
-                      </Typography>
-                    </Box>
-                  </Box>
-                  
-                  <Box display="flex" alignItems="center" style={{ flex: 1 }}>
-                    <Box>
-                      <Typography variant="h5" style={{ color: '#ff7043', fontWeight: 700, lineHeight: 1 }}>
-                        {userPosition.percentageAbove}%
-                      </Typography>
-                      <Typography variant="caption" style={{ color: '#8b7355' }}>
-                        Ahead of you
                       </Typography>
                     </Box>
                   </Box>
@@ -257,14 +276,26 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
             {currentUsername && positionLoading && (
               <Box mb={3} p={3} style={{ 
                 borderRadius: 16, 
-                background: '#f5f5f5', 
-                border: '1px solid #e0e0e0',
-                textAlign: 'center'
+                background: 'linear-gradient(135deg, #fff8e1 0%, #ffe0b2 100%)', 
+                border: '2px solid #ff7043'
               }}>
-                <Typography variant="body2" style={{ color: '#8b7355' }}>
-                  🔍 Calculating your position...
-                </Typography>
-                <LinearProgress style={{ marginTop: 8, borderRadius: 4 }} />
+                <Box display="flex" alignItems="center" mb={2}>
+                  <Avatar style={{ backgroundColor: '#ff7043', marginRight: 12, width: 40, height: 40 }}>
+                    <EmojiEvents />
+                  </Avatar>
+                  <Box style={{ flex: 1 }}>
+                    <Typography variant="h6" style={{ color: '#ff7043', fontWeight: 700, marginBottom: 4 }}>
+                      Calculating Your Position...
+                    </Typography>
+                  </Box>
+                </Box>
+                <LinearProgress 
+                  style={{ 
+                    height: 8, 
+                    borderRadius: 4, 
+                    backgroundColor: 'rgba(255, 112, 67, 0.2)'
+                  }} 
+                />
               </Box>
             )}
 

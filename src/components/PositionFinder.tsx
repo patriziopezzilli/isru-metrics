@@ -12,7 +12,8 @@ import {
   LinearProgress,
   Collapse,
   IconButton,
-  makeStyles
+  makeStyles,
+  Grid
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
@@ -21,7 +22,8 @@ import {
   TrendingUp as RankIcon,
   Timer as TimerIcon,
   EmojiEvents as TrophyIcon,
-  People as PeopleIcon
+  People as PeopleIcon,
+  LocalMall as ShoeIcon
 } from '@material-ui/icons';
 
 const useStyles = makeStyles((theme) => ({
@@ -172,6 +174,60 @@ const useStyles = makeStyles((theme) => ({
     marginTop: 12,
   },
 }));
+
+// Shoe stock estimation scenarios
+interface StockScenario {
+  name: string;
+  totalStock: number;
+  piecesPerSize: {min: number, max: number, avg: number};
+  color: string;
+  bgColor: string;
+}
+
+const STOCK_SCENARIOS: StockScenario[] = [
+  {
+    name: "Limited Edition",
+    totalStock: 1000,
+    piecesPerSize: {min: 80, max: 130, avg: 105},
+    color: "#d32f2f",
+    bgColor: "#ffebee"
+  },
+  {
+    name: "Regular Release", 
+    totalStock: 2000,
+    piecesPerSize: {min: 130, max: 200, avg: 165},
+    color: "#f57c00",
+    bgColor: "#fff3e0"
+  },
+  {
+    name: "General Release",
+    totalStock: 3000,
+    piecesPerSize: {min: 200, max: 300, avg: 250},
+    color: "#388e3c",
+    bgColor: "#e8f5e8"
+  }
+];
+
+// Calculate probability of getting the shoe based on position and stock
+const calculateShoeChance = (position: number, stock: number, avgPiecesPerSize: number): number => {
+  // Assume average of 9-10 sizes available (EU 38-47)
+  const avgSizes = 9.5;
+  const totalAvailableShoes = stock;
+  
+  // People typically go for 1-2 sizes, so effective competition is lower
+  const sizeCompetitionFactor = 0.7; // 70% of people compete for the same size ranges
+  const effectivePosition = position * sizeCompetitionFactor;
+  
+  // Calculate chance percentage
+  const rawChance = Math.max(0, ((totalAvailableShoes - effectivePosition) / totalAvailableShoes) * 100);
+  
+  // Apply some reality factors
+  if (effectivePosition <= avgPiecesPerSize) return Math.min(95, rawChance);
+  if (effectivePosition <= totalAvailableShoes * 0.3) return Math.min(80, rawChance);
+  if (effectivePosition <= totalAvailableShoes * 0.6) return Math.min(60, rawChance);
+  
+  return Math.max(5, Math.min(40, rawChance));
+};
 
 interface PositionResult {
   position: number;
@@ -418,7 +474,8 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
   };
 
   return (
-    <Card className={classes.positionCard}>
+    <>
+      <Card className={classes.positionCard}>
       <CardContent className={classes.cardContent}>
         <Box className={classes.headerBox}>
           <Typography variant="h6" className={classes.title}>
@@ -538,6 +595,148 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
         </Collapse>
       </CardContent>
     </Card>
+    
+    {/* Shoe Probability Card */}
+    {result && (
+      <Card 
+        elevation={0} 
+        style={{ 
+          marginBottom: 32, 
+          background: 'linear-gradient(135deg, #fafafa 0%, #f5f5f5 100%)', 
+          border: '2px solid #ff7043',
+          borderRadius: 12
+        }}
+      >
+        <CardContent style={{ padding: '24px' }}>
+          <Box display="flex" alignItems="center" mb={2}>
+            <ShoeIcon style={{ color: '#ff7043', marginRight: 12, fontSize: 28 }} />
+            <Box>
+              <Typography variant="h6" style={{ color: '#ff7043', fontWeight: 700 }}>
+                👟 Shoe Drop Probability
+              </Typography>
+              <Typography variant="body2" style={{ color: '#666', marginTop: 2 }}>
+                Your chances based on position #{result.position}
+              </Typography>
+            </Box>
+          </Box>
+          
+          <Grid container spacing={2}>
+            {STOCK_SCENARIOS.map((scenario, index) => {
+              const chance = calculateShoeChance(result.position, scenario.totalStock, scenario.piecesPerSize.avg);
+              const isGoodChance = chance >= 70;
+              const isMediumChance = chance >= 40 && chance < 70;
+              
+              return (
+                <Grid item xs={12} sm={4} key={index}>
+                  <Box 
+                    p={2} 
+                    style={{ 
+                      backgroundColor: scenario.bgColor, 
+                      border: `2px solid ${scenario.color}`,
+                      borderRadius: 12,
+                      textAlign: 'center',
+                      position: 'relative'
+                    }}
+                  >
+                    <Typography 
+                      variant="subtitle2" 
+                      style={{ 
+                        color: scenario.color, 
+                        fontWeight: 700,
+                        marginBottom: 8
+                      }}
+                    >
+                      {scenario.name}
+                    </Typography>
+                    
+                    <Typography 
+                      variant="h4" 
+                      style={{ 
+                        color: scenario.color, 
+                        fontWeight: 800,
+                        marginBottom: 4
+                      }}
+                    >
+                      {Math.round(chance)}%
+                    </Typography>
+                    
+                    <Typography 
+                      variant="caption" 
+                      style={{ 
+                        color: '#666',
+                        display: 'block',
+                        marginBottom: 8
+                      }}
+                    >
+                      {scenario.totalStock.toLocaleString()} pairs
+                    </Typography>
+                    
+                    <Box 
+                      style={{ 
+                        height: 6, 
+                        backgroundColor: 'rgba(0,0,0,0.1)', 
+                        borderRadius: 3,
+                        overflow: 'hidden',
+                        marginBottom: 8
+                      }}
+                    >
+                      <Box 
+                        style={{ 
+                          height: '100%', 
+                          backgroundColor: scenario.color,
+                          width: `${Math.min(100, chance)}%`,
+                          transition: 'width 0.8s ease'
+                        }} 
+                      />
+                    </Box>
+                    
+                    <Typography 
+                      variant="caption" 
+                      style={{ 
+                        color: '#666',
+                        fontSize: '0.7rem'
+                      }}
+                    >
+                      ~{scenario.piecesPerSize.avg} per size
+                    </Typography>
+                    
+                    {/* Emoji indicator */}
+                    <Box style={{ position: 'absolute', top: 8, right: 8 }}>
+                      {isGoodChance ? '🔥' : isMediumChance ? '⚡' : '😅'}
+                    </Box>
+                  </Box>
+                </Grid>
+              );
+            })}
+          </Grid>
+          
+          <Box 
+            mt={3} 
+            p={2} 
+            style={{ 
+              backgroundColor: 'rgba(255, 112, 67, 0.05)', 
+              borderRadius: 8,
+              borderLeft: '4px solid #ff7043'
+            }}
+          >
+            <Typography 
+              variant="body2" 
+              style={{ 
+                color: '#666',
+                fontSize: '0.85rem',
+                lineHeight: 1.4
+              }}
+            >
+              💡 <strong>How it works:</strong> Calculations consider stock levels, size distribution 
+              (~{STOCK_SCENARIOS[0].piecesPerSize.avg}-{STOCK_SCENARIOS[2].piecesPerSize.avg} pairs per size), 
+              and the fact that people typically target 1-2 sizes. Your position #{result.position} is adjusted 
+              for realistic size competition.
+            </Typography>
+          </Box>
+        </CardContent>
+      </Card>
+    )}
+    </>
   );
 };
 
