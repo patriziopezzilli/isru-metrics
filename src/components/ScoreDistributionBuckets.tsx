@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
-import { Card, CardContent, Typography, Box, Chip, LinearProgress } from '@material-ui/core';
+import { Card, CardContent, Typography, Box, Chip, LinearProgress, IconButton, Collapse } from '@material-ui/core';
+import { ExpandMore as ExpandMoreIcon } from '@material-ui/icons';
 
 interface User {
   username: string;
@@ -26,6 +27,7 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
   const [buckets, setBuckets] = useState<Bucket[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [expanded, setExpanded] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -94,7 +96,7 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
       <Box 
         style={{
           position: 'absolute',
-          top: -8,
+          top: 12,
           right: 16,
           backgroundColor: '#ff7043',
           color: 'white',
@@ -110,9 +112,23 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
         NEW
       </Box>
       <CardContent>
-        <Typography variant="h5" style={{ fontWeight: 600, color: '#3c3530', marginBottom: 16 }}>
-          Score Distribution
-        </Typography>
+        <Box display="flex" alignItems="center" justifyContent="space-between" onClick={() => setExpanded(!expanded)} style={{ cursor: 'pointer' }}>
+          <Typography variant="h5" style={{ fontWeight: 600, color: '#3c3530', marginBottom: 0 }}>
+            Score Distribution
+          </Typography>
+          <IconButton 
+            size="small"
+            style={{ 
+              color: '#8b7355',
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.3s ease'
+            }}
+          >
+            <ExpandMoreIcon />
+          </IconButton>
+        </Box>
+        <Collapse in={expanded}>
+          <Box style={{ marginTop: 16 }}>
         {buckets.map((bucket, idx) => (
           <Box key={idx} mb={2} p={2} style={{ borderRadius: 12, background: bucket.isCurrentUserBucket ? '#e0dfca' : '#fff', border: bucket.isCurrentUserBucket ? '2px solid #8b7355' : '1px solid #e6ddd4' }}>
             <Box display="flex" alignItems="center" justifyContent="space-between">
@@ -129,6 +145,8 @@ export const ScoreDistributionBuckets: React.FC<ScoreDistributionBucketsProps> =
             <LinearProgress variant="determinate" value={Math.min(100, (bucket.users.length / 50) * 100)} style={{ height: 8, borderRadius: 8, marginTop: 8, backgroundColor: '#e6ddd4' }} />
           </Box>
         ))}
+          </Box>
+        </Collapse>
       </CardContent>
     </Card>
   );
