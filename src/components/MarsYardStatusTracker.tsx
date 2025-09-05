@@ -316,19 +316,27 @@ export const MarsYardStatusTracker: React.FC = () => {
 
   // Carica lo stato dal sessionStorage
   useEffect(() => {
+    console.log('🚀 MarsYardStatusTracker useEffect triggered');
+    
     const savedStatus = sessionStorage.getItem('marsYardStatus');
+    console.log('📱 Saved status from sessionStorage:', savedStatus);
+    
     if (savedStatus) {
       try {
-        setStatus(JSON.parse(savedStatus));
+        const parsedStatus = JSON.parse(savedStatus);
+        console.log('📱 Parsed status:', parsedStatus);
+        setStatus(parsedStatus);
       } catch (error) {
-        console.error('Error loading Mars Yard status:', error);
+        console.error('❌ Error loading Mars Yard status:', error);
       }
     }
     
     // Carica le statistiche
+    console.log('📊 Calling fetchStats...');
     fetchStats();
     
     // Sincronizza i dati con MongoDB se necessario
+    console.log('🔄 Calling syncUserDataIfNeeded...');
     syncUserDataIfNeeded();
   }, []);
 
@@ -337,40 +345,65 @@ export const MarsYardStatusTracker: React.FC = () => {
     const username = localStorage.getItem('username');
     const savedStatus = sessionStorage.getItem('marsYardStatus');
     
+    console.log('🔄 Sync check - username:', username, 'savedStatus exists:', !!savedStatus);
+    
     if (!username || username === 'anonymous' || !savedStatus) {
+      console.log('⏭️ Skipping sync - no username or saved status');
       return; // Niente da sincronizzare
     }
 
     try {
+      console.log('🔍 Checking if user has existing data on MongoDB...');
       // Verifica se l'utente ha già dati su MongoDB
       const checkResponse = await fetch(`/api/mars-yard-user-status?username=${encodeURIComponent(username)}`);
+      console.log('🔍 User status check response:', checkResponse.status);
       
       if (checkResponse.status === 404) {
         // L'utente non ha dati su MongoDB, sincronizza dal sessionStorage
-        console.log('User data not found on MongoDB, syncing from sessionStorage...');
+        console.log('📤 User data not found on MongoDB, syncing from sessionStorage...');
         
         const localStatus = JSON.parse(savedStatus);
+        console.log('📤 Local status to sync:', localStatus);
+        
         await saveStatusToMongoDB(localStatus);
         
-        console.log('User data synced successfully');
+        console.log('✅ User data synced successfully');
+      } else if (checkResponse.ok) {
+        console.log('✅ User data already exists on MongoDB');
+      } else {
+        console.error('❌ Error checking user status:', checkResponse.status, checkResponse.statusText);
+        const errorText = await checkResponse.text();
+        console.error('❌ Error response body:', errorText);
       }
     } catch (error) {
-      console.error('Error syncing user data:', error);
+      console.error('❌ Error syncing user data:', error);
     }
   };
 
   // Funzione per recuperare le statistiche
   const fetchStats = async () => {
     try {
+      console.log('🔄 Fetching Mars Yard statistics...');
       const response = await fetch('/api/mars-yard-stats');
+      console.log('📊 Stats API response status:', response.status);
+      
       if (response.ok) {
         const data = await response.json();
+        console.log('📊 Stats API response data:', data);
+        
         if (data.success) {
           setStats(data.stats);
+          console.log('✅ Stats updated successfully:', data.stats);
+        } else {
+          console.error('❌ Stats API returned success: false');
         }
+      } else {
+        console.error('❌ Stats API response not ok:', response.status, response.statusText);
+        const errorText = await response.text();
+        console.error('❌ Error response body:', errorText);
       }
     } catch (error) {
-      console.error('Error fetching Mars Yard stats:', error);
+      console.error('❌ Error fetching Mars Yard stats:', error);
     }
   };
 

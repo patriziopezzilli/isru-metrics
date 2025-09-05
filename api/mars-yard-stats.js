@@ -48,6 +48,11 @@ export default async function handler(req, res) {
 
     // Aggrega le statistiche per ogni status
     const collection = mongoService.db.collection('marsYardStatus');
+    console.log('Collection object created:', !!collection);
+    
+    // Controlla se ci sono documenti nella collezione
+    const documentCount = await collection.countDocuments();
+    console.log('Total documents in marsYardStatus collection:', documentCount);
     
     const pipeline = [
       {
@@ -73,17 +78,29 @@ export default async function handler(req, res) {
     console.log('Running aggregation pipeline...');
     const stats = await collection.aggregate(pipeline).toArray();
     console.log('Aggregation completed, results:', stats);
+    console.log('Stats array length:', stats.length);
 
-    const result = stats.length > 0 ? stats[0] : {
-      totalUsers: 0,
-      waitingRoom: 0,
-      checkoutReceived: 0,
-      orderShipped: 0,
-      orderReceived: 0
-    };
+    let result;
+    if (stats.length > 0) {
+      result = stats[0];
+      console.log('Using aggregation result:', result);
+    } else {
+      result = {
+        totalUsers: 0,
+        waitingRoom: 0,
+        checkoutReceived: 0,
+        orderShipped: 0,
+        orderReceived: 0
+      };
+      console.log('Using default empty result:', result);
+    }
 
-    // Rimuovi l'_id dal risultato
-    delete result._id;
+    // Rimuovi l'_id dal risultato se presente
+    if (result._id) {
+      delete result._id;
+    }
+
+    console.log('Final result before sending:', result);
 
     // Disconnetti dopo l'operazione
     await mongoService.disconnect();
