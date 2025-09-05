@@ -1,24 +1,14 @@
-const { MongoClient } = require('mongodb');
+// =====================================================
+// MARS YARD STATUS ENDPOINT - MongoDB Atlas Version
+// API endpoint per salvare Mars Yard status in MongoDB Atlas
+// =====================================================
 
-const MONGODB_URI = process.env.MONGODB_URI;
-const DB_NAME = process.env.MONGODB_DB_NAME || 'isru-metrics';
+import { createMongoDBService } from '../scripts/mongodbService.js';
+import dotenv from 'dotenv';
 
-let cachedClient = null;
-
-async function connectToDatabase() {
-  if (cachedClient) {
-    return cachedClient;
-  }
-
-  try {
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    cachedClient = client;
-    return client;
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
+// Load environment variables in development
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config({ path: '.env.local' });
 }
 
 export default async function handler(req, res) {
@@ -33,10 +23,15 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'POST') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ 
+      error: 'Method not allowed',
+      message: 'Only POST requests are accepted'
+    });
   }
 
   try {
+    console.log('🚀 Mars Yard status request received');
+    
     const { username, status, timestamp } = req.body;
 
     console.log('Mars Yard API received:', {
@@ -47,32 +42,74 @@ export default async function handler(req, res) {
     });
 
     if (!username || !status || !timestamp) {
-      console.error('Missing required fields:', { username: !!username, status: !!status, timestamp: !!timestamp });
-      return res.status(400).json({ error: 'Missing required fields' });
+      return res.status(400).json({
+        error: 'Missing required fields',
+        message: 'username, status, and timestamp are required'
+      });
     }
 
-    const client = await connectToDatabase();
-    const db = client.db(DB_NAME);
-    const collection = db.collection('marsYardStatus');
+    // Validazione aggiuntiva per il campo status
+    if (typeof status !== 'object' || status === null) {
+      return res.status(400).json({
+        error: 'Invalid status object',
+        message: 'Status must be a valid object'
+      });
+    }
+
+    // Crea servizio MongoDB
+    const mongoService = createMongoDBService();
+    
+    // Connetti al database
+    await mongoService.connect();
+
+    // Prepara i dati per MongoDB
+    const serverTimestamp = new Date();
+    const statusId = `mars_yard_${username}_${Date.now()}`;
+    
+    const mongoStatusData = {
+      status_id: statusId,
+      username: username,
+      username_lower: username.toLowerCase(),
+      status: status,
+      timestamp: timestamp,
+      server_timestamp: serverTimestamp,
+      created_at: serverTimestamp,
+      last_updated: serverTimestamp
+    };
+
+    console.log('Saving Mars Yard status to MongoDB...');
 
     // Upsert: aggiorna se esiste, crea se non esiste
-    const result = await collection.updateOne(
-      { username },
+    const result = await mongoService.upsertDocument(
+      'marsYardStatus',
+      { username_lower: username.toLowerCase() },
       {
         $set: {
-          username,
-          status,
-          timestamp,
-          lastUpdated: new Date(),
+          username: username,
+          username_lower: username.toLowerCase(),
+          status: status,
+          timestamp: timestamp,
+          server_timestamp: serverTimestamp,
+          last_updated: serverTimestamp
         },
         $setOnInsert: {
-          createdAt: new Date(),
+          status_id: statusId,
+          created_at: serverTimestamp
         }
-      },
-      { upsert: true }
+      }
     );
 
-    console.log(`Mars Yard status saved for user ${username}:`, status);
+    console.log('Mars Yard status operation result:', {
+      acknowledged: result.acknowledged,
+      matchedCount: result.matchedCount,
+      modifiedCount: result.modifiedCount,
+      upsertedCount: result.upsertedCount
+    });
+
+    // Disconnetti dopo l'operazione
+    await mongoService.disconnect();
+
+    console.log(`✅ Mars Yard status saved successfully for user ${username}`);
 
     res.status(200).json({ 
       success: true, 
@@ -82,9 +119,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Error saving Mars Yard status:', error);
+    console.error('❌ Error saving Mars Yard status:', error);
     res.status(500).json({ 
       error: 'Internal server error',
+      message: 'Failed to save Mars Yard status',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }

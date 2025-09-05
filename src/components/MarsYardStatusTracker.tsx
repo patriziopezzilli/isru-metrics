@@ -327,7 +327,37 @@ export const MarsYardStatusTracker: React.FC = () => {
     
     // Carica le statistiche
     fetchStats();
+    
+    // Sincronizza i dati con MongoDB se necessario
+    syncUserDataIfNeeded();
   }, []);
+
+  // Funzione per sincronizzare i dati utente se non esistono su MongoDB
+  const syncUserDataIfNeeded = async () => {
+    const username = localStorage.getItem('username');
+    const savedStatus = sessionStorage.getItem('marsYardStatus');
+    
+    if (!username || username === 'anonymous' || !savedStatus) {
+      return; // Niente da sincronizzare
+    }
+
+    try {
+      // Verifica se l'utente ha già dati su MongoDB
+      const checkResponse = await fetch(`/api/mars-yard-user-status?username=${encodeURIComponent(username)}`);
+      
+      if (checkResponse.status === 404) {
+        // L'utente non ha dati su MongoDB, sincronizza dal sessionStorage
+        console.log('User data not found on MongoDB, syncing from sessionStorage...');
+        
+        const localStatus = JSON.parse(savedStatus);
+        await saveStatusToMongoDB(localStatus);
+        
+        console.log('User data synced successfully');
+      }
+    } catch (error) {
+      console.error('Error syncing user data:', error);
+    }
+  };
 
   // Funzione per recuperare le statistiche
   const fetchStats = async () => {
@@ -344,6 +374,34 @@ export const MarsYardStatusTracker: React.FC = () => {
     }
   };
 
+  // Funzione separata per salvare su MongoDB
+  const saveStatusToMongoDB = async (statusToSave: MarsYardStatus) => {
+    const username = localStorage.getItem('username') || 'anonymous';
+    const payload = {
+      username,
+      status: statusToSave,
+      timestamp: new Date().toISOString(),
+    };
+    
+    console.log('Sending Mars Yard status:', payload);
+    
+    const response = await fetch('/api/mars-yard-status', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+    
+    if (!response.ok) {
+      const errorData = await response.text();
+      console.error('Failed to save Mars Yard status to MongoDB:', response.status, errorData);
+      throw new Error(`Failed to save status: ${response.status}`);
+    } else {
+      console.log('Mars Yard status saved successfully');
+    }
+  };
+
   // Salva lo stato nel sessionStorage e invia a MongoDB
   const updateStatus = async (newStatus: MarsYardStatus) => {
     setStatus(newStatus);
@@ -351,31 +409,9 @@ export const MarsYardStatusTracker: React.FC = () => {
     
     // Invia a MongoDB
     try {
-      const username = localStorage.getItem('username') || 'anonymous';
-      const payload = {
-        username,
-        status: newStatus,
-        timestamp: new Date().toISOString(),
-      };
-      
-      console.log('Sending Mars Yard status:', payload);
-      
-      const response = await fetch('/api/mars-yard-status', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify(payload),
-      });
-      
-      if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Failed to save Mars Yard status to MongoDB:', response.status, errorData);
-      } else {
-        console.log('Mars Yard status saved successfully');
-        // Ricarica le statistiche dopo aver salvato
-        fetchStats();
-      }
+      await saveStatusToMongoDB(newStatus);
+      // Ricarica le statistiche dopo aver salvato
+      fetchStats();
     } catch (error) {
       console.error('Error saving Mars Yard status:', error);
     }

@@ -1,24 +1,14 @@
-const { MongoClient } = require('mongodb');
+// =====================================================
+// MARS YARD STATS ENDPOINT - MongoDB Atlas Version
+// API endpoint per recuperare statistiche Mars Yard da MongoDB Atlas
+// =====================================================
 
-const MONGODB_URI = process.env.MONGODB_URI;
-const DB_NAME = process.env.MONGODB_DB_NAME || 'isru-metrics';
+import { createMongoDBService } from '../scripts/mongodbService.js';
+import dotenv from 'dotenv';
 
-let cachedClient = null;
-
-async function connectToDatabase() {
-  if (cachedClient) {
-    return cachedClient;
-  }
-
-  try {
-    const client = new MongoClient(MONGODB_URI);
-    await client.connect();
-    cachedClient = client;
-    return client;
-  } catch (error) {
-    console.error('MongoDB connection error:', error);
-    throw error;
-  }
+// Load environment variables in development
+if (process.env.NODE_ENV !== 'production') {
+    dotenv.config({ path: '.env.local' });
 }
 
 export default async function handler(req, res) {
@@ -33,16 +23,25 @@ export default async function handler(req, res) {
   }
 
   if (req.method !== 'GET') {
-    return res.status(405).json({ error: 'Method not allowed' });
+    return res.status(405).json({ 
+      error: 'Method not allowed',
+      message: 'Only GET requests are accepted'
+    });
   }
 
   try {
-    const client = await connectToDatabase();
-    const db = client.db(DB_NAME);
-    const collection = db.collection('marsYardStatus');
+    console.log('📊 Mars Yard stats request received');
+
+    // Crea servizio MongoDB
+    const mongoService = createMongoDBService();
+    
+    // Connetti al database
+    await mongoService.connect();
+
+    console.log('Fetching Mars Yard statistics...');
 
     // Aggrega le statistiche per ogni status
-    const stats = await collection.aggregate([
+    const pipeline = [
       {
         $group: {
           _id: null,
@@ -61,7 +60,9 @@ export default async function handler(req, res) {
           }
         }
       }
-    ]).toArray();
+    ];
+
+    const stats = await mongoService.aggregate('marsYardStatus', pipeline);
 
     const result = stats.length > 0 ? stats[0] : {
       totalUsers: 0,
@@ -74,7 +75,10 @@ export default async function handler(req, res) {
     // Rimuovi l'_id dal risultato
     delete result._id;
 
-    console.log('Mars Yard statistics:', result);
+    // Disconnetti dopo l'operazione
+    await mongoService.disconnect();
+
+    console.log('✅ Mars Yard statistics retrieved:', result);
 
     res.status(200).json({
       success: true,
@@ -82,9 +86,10 @@ export default async function handler(req, res) {
     });
 
   } catch (error) {
-    console.error('Error fetching Mars Yard statistics:', error);
+    console.error('❌ Error fetching Mars Yard statistics:', error);
     res.status(500).json({
       error: 'Internal server error',
+      message: 'Failed to fetch Mars Yard statistics',
       details: process.env.NODE_ENV === 'development' ? error.message : undefined
     });
   }
