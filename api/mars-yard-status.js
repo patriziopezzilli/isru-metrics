@@ -39,7 +39,15 @@ export default async function handler(req, res) {
   try {
     const { username, status, timestamp } = req.body;
 
+    console.log('Mars Yard API received:', {
+      username,
+      status,
+      timestamp,
+      bodyKeys: Object.keys(req.body || {})
+    });
+
     if (!username || !status || !timestamp) {
+      console.error('Missing required fields:', { username: !!username, status: !!status, timestamp: !!timestamp });
       return res.status(400).json({ error: 'Missing required fields' });
     }
 

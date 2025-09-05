@@ -351,21 +351,28 @@ export const MarsYardStatusTracker: React.FC = () => {
     
     // Invia a MongoDB
     try {
+      const username = localStorage.getItem('username') || 'anonymous';
+      const payload = {
+        username,
+        status: newStatus,
+        timestamp: new Date().toISOString(),
+      };
+      
+      console.log('Sending Mars Yard status:', payload);
+      
       const response = await fetch('/api/mars-yard-status', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          username: localStorage.getItem('username') || 'anonymous',
-          status: newStatus,
-          timestamp: new Date().toISOString(),
-        }),
+        body: JSON.stringify(payload),
       });
       
       if (!response.ok) {
-        console.error('Failed to save Mars Yard status to MongoDB');
+        const errorData = await response.text();
+        console.error('Failed to save Mars Yard status to MongoDB:', response.status, errorData);
       } else {
+        console.log('Mars Yard status saved successfully');
         // Ricarica le statistiche dopo aver salvato
         fetchStats();
       }
