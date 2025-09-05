@@ -316,28 +316,51 @@ class ApiService {
       }
     }
 
-    // If all proxies fail, try offline data as fallback
+
+    // If all proxies fail, try direct API call as fallback
+    try {
+      console.log('🌐 All proxies failed, trying direct API call to isrucamp.com');
+      const directResponse = await this.makeRequest('https://isrucamp.com/api/score-distribution');
+      if (directResponse.ok) {
+        const directData = await directResponse.json();
+        if (directData.scoreDistribution) {
+          console.log('✅ Direct API Data parsed successfully:', {
+            hasScoreDistribution: !!directData.scoreDistribution,
+            itemCount: directData.scoreDistribution?.length || 0
+          });
+          // Save to offline storage
+          OfflineService.saveOfflineData(directData);
+          return directData;
+        }
+      } else {
+        console.warn('❌ Direct API call failed with status:', directResponse.status);
+      }
+    } catch (directError) {
+      console.error('❌ Direct API call to isrucamp.com failed:', directError);
+    }
+
+    // Se anche la chiamata diretta fallisce, prova offline data
     if (offlineData) {
-      console.log('📱 All proxies failed, using offline data as fallback');
+      console.log('📱 All proxies and direct API failed, using offline data as fallback');
       return offlineData.scoreDistribution;
     }
 
-    // If both fail, use fallback data
+    // If all else fails, use fallback data
     const isMobile = /iPhone|iPad|iPod|Android/.test(navigator.userAgent);
     const isSafari = /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
-    
+
     console.error('❌ All API attempts failed. Using fallback data.');
-    
+
     if (isMobile) {
       alert('📡 I.S.R.U API temporarily unavailable (403 error). Showing sample data. Please try again later or check with I.S.R.U support.');
     }
-    
+
     console.warn('🔄 Using fallback data due to API errors');
     const fallbackData = this.getFallbackData();
-    
+
     // Save fallback data to offline storage
     OfflineService.saveOfflineData(fallbackData);
-    
+
     return fallbackData;
   }
 

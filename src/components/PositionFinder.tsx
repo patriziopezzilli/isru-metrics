@@ -12,7 +12,8 @@ import {
   LinearProgress,
   Collapse,
   IconButton,
-  makeStyles
+  makeStyles,
+  Grid
 } from '@material-ui/core';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import ExpandLessIcon from '@material-ui/icons/ExpandLess';
@@ -21,7 +22,8 @@ import {
   TrendingUp as RankIcon,
   Timer as TimerIcon,
   EmojiEvents as TrophyIcon,
-  People as PeopleIcon
+  People as PeopleIcon,
+  LocalMall as ShoeIcon
 } from '@material-ui/icons';
 
 const useStyles = makeStyles((theme) => ({
@@ -173,6 +175,64 @@ const useStyles = makeStyles((theme) => ({
   },
 }));
 
+// Shoe stock estimation scenarios
+interface StockScenario {
+  name: string;
+  totalStock: number;
+  piecesPerSize: {min: number, max: number, avg: number};
+  color: string;
+  bgColor: string;
+}
+
+const STOCK_SCENARIOS: StockScenario[] = [
+  {
+    name: "Extremely Limited",
+    totalStock: 1000,
+    piecesPerSize: {min: 80, max: 130, avg: 105},
+    color: "#d32f2f",
+    bgColor: "#ffebee"
+  },
+  {
+    name: "Normal Stock", 
+    totalStock: 2000,
+    piecesPerSize: {min: 130, max: 200, avg: 165},
+    color: "#f57c00",
+    bgColor: "#fff3e0"
+  },
+  {
+    name: "Best Case",
+    totalStock: 3000,
+    piecesPerSize: {min: 200, max: 300, avg: 250},
+    color: "#388e3c",
+    bgColor: "#e8f5e8"
+  }
+];
+
+// Calculate probability of getting the shoe based on position and stock
+const calculateShoeChance = (position: number, stock: number, avgPiecesPerSize: number): number => {
+  // Each person can buy only 1 pair, ranking is in assignment order
+  const totalAvailableShoes = stock;
+  
+  // If your position is within total stock, you're guaranteed a pair
+  if (position <= totalAvailableShoes) {
+    // Position within stock = 100% chance (guaranteed)
+    return 100;
+  } else {
+    // Position beyond total stock - only chance is if people ahead don't buy
+    const overflow = position - totalAvailableShoes;
+    const overflowPercentage = (overflow / totalAvailableShoes) * 100;
+    
+    // Small chance based on typical dropout rates (payment failures, changed minds, etc.)
+    if (overflowPercentage <= 5) {
+      return Math.max(8, 15 - overflowPercentage); // ~10-15% chance due to dropouts
+    } else if (overflowPercentage <= 15) {
+      return Math.max(3, 8 - (overflowPercentage * 0.3)); // ~3-8% chance
+    } else {
+      return Math.max(0.5, 3 - (overflowPercentage * 0.1)); // Very low chance
+    }
+  }
+};
+
 interface PositionResult {
   position: number;
   totalPages: number;
@@ -190,6 +250,7 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
   const classes = useStyles();
   
   const [expanded, setExpanded] = useState(false);
+  const [probabilityExpanded, setProbabilityExpanded] = useState(false);
   const [username, setUsername] = useState(currentUsername || '');
   const [loading, setLoading] = useState(false);
   const [result, setResult] = useState<PositionResult | null>(null);
@@ -418,7 +479,8 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
   };
 
   return (
-    <Card className={classes.positionCard}>
+    <>
+      <Card className={classes.positionCard}>
       <CardContent className={classes.cardContent}>
         <Box className={classes.headerBox}>
           <Typography variant="h6" className={classes.title}>
@@ -535,9 +597,164 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
             </Box>
           </Fade>
         )}
+        
+        {/* Shoe Drop Probability - Collapsible Section within same card */}
+        {result && (
+          <Fade in={!!result}>
+            <Box mt={2}>
+              <Box 
+                display="flex" 
+                alignItems="center" 
+                justifyContent="space-between" 
+                onClick={() => setProbabilityExpanded(!probabilityExpanded)}
+                style={{ 
+                  cursor: 'pointer',
+                  padding: '12px 16px',
+                  backgroundColor: 'rgba(60, 53, 48, 0.05)',
+                  borderRadius: 8,
+                  border: '1px solid rgba(60, 53, 48, 0.15)',
+                  marginBottom: 8
+                }}
+              >
+                <Box display="flex" alignItems="center">
+                  <ShoeIcon style={{ color: '#3c3530', marginRight: 8, fontSize: 20 }} />
+                  <Typography variant="subtitle1" style={{ color: '#3c3530', fontWeight: 600 }}>
+                    👟 Shoe Drop Probability
+                  </Typography>
+                </Box>
+                <IconButton 
+                  size="small"
+                  style={{ 
+                    color: '#3c3530',
+                    transform: probabilityExpanded ? 'rotate(180deg)' : 'rotate(0deg)',
+                    transition: 'transform 0.3s ease'
+                  }}
+                >
+                  <ExpandMoreIcon />
+                </IconButton>
+              </Box>
+              
+              <Collapse in={probabilityExpanded}>
+                <Box p={2} style={{ backgroundColor: 'rgba(255, 255, 255, 0.5)', borderRadius: 8 }}>
+                  <Typography variant="body2" style={{ color: '#666', marginBottom: 16, textAlign: 'center' }}>
+                    Your chances based on position #{result.position}
+                  </Typography>
+                  
+                  {/* Mobile-first: Single column layout */}
+                  <Box display="flex" flexDirection="column">
+                    {STOCK_SCENARIOS.map((scenario, index) => {
+                      const chance = calculateShoeChance(result.position, scenario.totalStock, scenario.piecesPerSize.avg);
+                      const isGoodChance = chance >= 70;
+                      const isMediumChance = chance >= 40 && chance < 70;
+                      
+                      return (
+                        <Box 
+                          key={index}
+                          p={2} 
+                          mb={2}
+                          style={{ 
+                            backgroundColor: scenario.bgColor, 
+                            border: `2px solid ${scenario.color}`,
+                            borderRadius: 12,
+                            position: 'relative'
+                          }}
+                        >
+                          <Box display="flex" justifyContent="space-between" alignItems="center" mb={1}>
+                            <Typography 
+                              variant="subtitle2" 
+                              style={{ 
+                                color: scenario.color, 
+                                fontWeight: 700
+                              }}
+                            >
+                              {scenario.name}
+                            </Typography>
+                            <Box style={{ fontSize: '18px' }}>
+                              {isGoodChance ? '🔥' : isMediumChance ? '⚡' : '😅'}
+                            </Box>
+                          </Box>
+                          
+                          <Box display="flex" justifyContent="space-between" alignItems="center">
+                            <Box>
+                              <Typography 
+                                variant="h4" 
+                                style={{ 
+                                  color: scenario.color, 
+                                  fontWeight: 800,
+                                  lineHeight: 1
+                                }}
+                              >
+                                {Math.round(chance)}%
+                              </Typography>
+                              <Typography 
+                                variant="caption" 
+                                style={{ 
+                                  color: '#666',
+                                  fontSize: '0.7rem'
+                                }}
+                              >
+                                {scenario.totalStock.toLocaleString()} pairs total
+                              </Typography>
+                            </Box>
+                            
+                            <Box style={{ width: '40%' }}>
+                              <Box 
+                                style={{ 
+                                  height: 8, 
+                                  backgroundColor: 'rgba(0,0,0,0.1)', 
+                                  borderRadius: 4,
+                                  overflow: 'hidden'
+                                }}
+                              >
+                                <Box 
+                                  style={{ 
+                                    height: '100%', 
+                                    backgroundColor: scenario.color,
+                                    width: `${Math.min(100, chance)}%`,
+                                    transition: 'width 0.8s ease'
+                                  }} 
+                                />
+                              </Box>
+                            </Box>
+                          </Box>
+                        </Box>
+                      );
+                    })}
+                  </Box>
+                  
+                  {/* How it works section - same width as cards */}
+                  <Box 
+                    mt={3} 
+                    p={2} 
+                    style={{ 
+                      backgroundColor: 'rgba(60, 53, 48, 0.05)', 
+                      borderRadius: 8,
+                      borderLeft: '4px solid #3c3530'
+                    }}
+                  >
+                    <Typography 
+                      variant="body2" 
+                      style={{ 
+                        color: '#555',
+                        fontSize: '0.85rem',
+                        lineHeight: 1.4
+                      }}
+                    >
+                      💡 <strong>How it works:</strong> Calculations assume each person buys exactly 1 pair. 
+                      Your position #{result.position} is compared directly to stock levels. Higher positions 
+                      account for potential dropouts (payment issues, size unavailability, etc.).
+                    </Typography>
+                  </Box>
+                </Box>
+              </Collapse>
+            </Box>
+          </Fade>
+        )}
         </Collapse>
       </CardContent>
     </Card>
+    
+    </>
   );
 };
 

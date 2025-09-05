@@ -431,8 +431,8 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
           >
             <Box display="flex" alignItems="center">
               <StreakIcon style={{ fontSize: '1.1rem', color: '#ff7043', marginRight: '8px' }} />
-              <Typography variant="body2" style={{ color: '#8b7355', fontWeight: 'bold' }}>
-                Activity Streaks
+              <Typography variant="body2" style={{ color: '#ff7043', fontWeight: 'bold' }}>
+                Activities Details
               </Typography>
             </Box>
             <IconButton 
@@ -456,10 +456,10 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
                     const streak = streakData.get(activity.activityId);
                     const currentStreak = streak?.participation?.currentStreak ?? 0;
                     const streakProgress = getStreakProgress(currentStreak);
-                    
+                    const entries = streak?.submissions?.length ?? 0;
                     return (
                       <Box key={activity.activityId} style={{ marginBottom: '16px' }}>
-                        {/* Activity name and streak value */}
+                        {/* Activity name, streak, entries */}
                         <Box display="flex" alignItems="center" justifyContent="space-between" style={{ marginBottom: '6px' }}>
                           <Typography 
                             variant="body2" 
@@ -472,35 +472,60 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
                           >
                             {activity.activityTitle}
                           </Typography>
-                          <Box display="flex" alignItems="center">
-                            <StreakIcon style={{ 
-                              fontSize: '1rem', 
-                              color: currentStreak > 0 ? '#ff7043' : '#d4c4a8',
-                              marginRight: '4px' 
-                            }} />
-                            <Typography 
-                              variant="body2" 
-                              style={{ 
-                                color: currentStreak > 0 ? '#ff7043' : '#999', 
-                                fontSize: '0.85rem', 
-                                fontWeight: 'bold',
-                                marginRight: '4px'
-                              }}
-                            >
-                              {currentStreak}
-                            </Typography>
-                            <Typography 
-                              variant="caption" 
-                              style={{ 
-                                color: currentStreak > 0 ? '#ff7043' : '#999', 
-                                fontSize: '0.75rem'
-                              }}
-                            >
-                              streak
-                            </Typography>
+                          <Box display="flex" alignItems="center" style={{ gap: '8px' }}>
+                            {/* Streak */}
+                            <Box display="flex" alignItems="center">
+                              <StreakIcon style={{ 
+                                fontSize: '1rem', 
+                                color: currentStreak > 0 ? '#ff7043' : '#d4c4a8',
+                                marginRight: '4px' 
+                              }} />
+                              <Typography 
+                                variant="body2" 
+                                style={{ 
+                                  color: currentStreak > 0 ? '#ff7043' : '#999', 
+                                  fontSize: '0.85rem', 
+                                  fontWeight: 'bold',
+                                  marginRight: '4px'
+                                }}
+                              >
+                                {currentStreak}
+                              </Typography>
+                              <Typography 
+                                variant="caption" 
+                                style={{ 
+                                  color: currentStreak > 0 ? '#ff7043' : '#999', 
+                                  fontSize: '0.75rem'
+                                }}
+                              >
+                                streak
+                              </Typography>
+                            </Box>
+                            {/* Entries */}
+                            <Box display="flex" alignItems="center">
+                              <Typography 
+                                variant="body2" 
+                                style={{ 
+                                  color: '#3a6cff', 
+                                  fontSize: '0.85rem', 
+                                  fontWeight: 'bold',
+                                  marginRight: '4px'
+                                }}
+                              >
+                                {entries}
+                              </Typography>
+                              <Typography 
+                                variant="caption" 
+                                style={{ 
+                                  color: '#3a6cff', 
+                                  fontSize: '0.75rem'
+                                }}
+                              >
+                                entries
+                              </Typography>
+                            </Box>
                           </Box>
                         </Box>
-                        
                         {/* Progress bar - show always for better UX */}
                         <Box style={{ marginBottom: '4px' }}>
                           <Box 
