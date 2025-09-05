@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Box, Typography, useMediaQuery, useTheme } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import { CountdownTime } from '../types';
+import MarsYardStatusTracker from './MarsYardStatusTracker';
 
 const useStyles = makeStyles((theme) => ({
   countdownContainer: {
@@ -173,16 +174,7 @@ export const MarsYardCountdown: React.FC = () => {
   if (countdown.isExpired) {
     return (
       <Box className={`${classes.countdownContainer} ${classes.expired}`}>
-        <Typography 
-          variant={isMobile ? "h6" : "h5"} 
-          className={`${classes.title} ${classes.expiredTitle}`}
-          align="center"
-        >
-          🚀 Mars Yard 3.0 - Mission Launched! 🚀
-        </Typography>
-        <Typography className={classes.launchedMessage}>
-          *** MISSION ACTIVE - EXPLORE THE RED PLANET ***
-        </Typography>
+        <MarsYardStatusTracker />
       </Box>
     );
   }

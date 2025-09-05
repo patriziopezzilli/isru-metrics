@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
+// import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts';
 import {
   Container,
   Paper,
@@ -807,26 +807,12 @@ const AdminDashboard: React.FC = () => {
           <Typography variant="h6" align="center" gutterBottom>
             Uploads & Activities Over Time
           </Typography>
-          {/* @ts-ignore: Recharts type workaround */}
-          <ResponsiveContainer width="100%" height={300}>
-            {/* @ts-ignore: Recharts type workaround */}
-            <LineChart data={chartData}>
-              {/* @ts-ignore: Recharts type workaround */}
-              <CartesianGrid strokeDasharray="3 3" />
-              {/* @ts-ignore: Recharts type workaround */}
-              <XAxis dataKey="name" />
-              {/* @ts-ignore: Recharts type workaround */}
-              <YAxis />
-              {/* @ts-ignore: Recharts type workaround */}
-              <Tooltip />
-              {/* @ts-ignore: Recharts type workaround */}
-              <Legend />
-              {/* @ts-ignore: Recharts type workaround */}
-              <Line type="monotone" dataKey="uploads" stroke="#8884d8" activeDot={{ r: 8 }} />
-              {/* @ts-ignore: Recharts type workaround */}
-              <Line type="monotone" dataKey="activities" stroke="#82ca9d" />
-            </LineChart>
-          </ResponsiveContainer>
+          {/* Chart temporarily disabled - recharts removed */}
+          <Box style={{ height: 300, display: 'flex', alignItems: 'center', justifyContent: 'center', backgroundColor: '#f5f5f5', border: '1px dashed #ccc' }}>
+            <Typography variant="body1" color="textSecondary">
+              Chart component temporarily unavailable
+            </Typography>
+          </Box>
         </Box>
       </Container>
       <Container maxWidth="lg" className={classes.contentWrapper}>
