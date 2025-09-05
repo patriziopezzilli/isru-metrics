@@ -342,7 +342,7 @@ export const MarsYardStatusTracker: React.FC = () => {
 
   // Funzione per sincronizzare i dati utente se non esistono su MongoDB
   const syncUserDataIfNeeded = async () => {
-    const username = localStorage.getItem('username');
+    const username = localStorage.getItem('isru-username');
     const savedStatus = sessionStorage.getItem('marsYardStatus');
     
     console.log('🔄 Sync check - username:', username, 'savedStatus exists:', !!savedStatus);
@@ -409,14 +409,15 @@ export const MarsYardStatusTracker: React.FC = () => {
 
   // Funzione separata per salvare su MongoDB
   const saveStatusToMongoDB = async (statusToSave: MarsYardStatus) => {
-    const username = localStorage.getItem('username') || 'anonymous';
+    const username = localStorage.getItem('isru-username') || 'anonymous';
     const payload = {
       username,
       status: statusToSave,
       timestamp: new Date().toISOString(),
     };
     
-    console.log('Sending Mars Yard status:', payload);
+    console.log('💾 Sending Mars Yard status with username:', username);
+    console.log('💾 Full payload:', payload);
     
     const response = await fetch('/api/mars-yard-status', {
       method: 'POST',

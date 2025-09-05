@@ -112,6 +112,14 @@ const useStyles = makeStyles((theme) => ({
       width: '100%',
     },
   },
+  findButtonContainer: {
+    display: 'flex',
+    gap: 12,
+    [theme.breakpoints.down('sm')]: {
+      flexDirection: 'column',
+      gap: 8,
+    },
+  },
   progressContainer: {
     marginTop: 16,
     padding: 16,
@@ -258,6 +266,14 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
   const [searchedUsers, setSearchedUsers] = useState(0);
 
   const findPosition = async () => {
+    await findPositionInternal(false); // Live position
+  };
+
+  const findEndOfCampPosition = async () => {
+    await findPositionInternal(true); // End of camp position
+  };
+
+  const findPositionInternal = async (isEndOfCamp: boolean) => {
     if (!username.trim()) return;
 
     setLoading(true);
@@ -273,7 +289,7 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
       let position = 0;
       let totalChecked = 0;
       
-      console.log(`🔍 Starting position search for: ${targetUsername}`);
+      console.log(`🔍 Starting ${isEndOfCamp ? 'end of camp' : 'live'} position search for: ${targetUsername}`);
 
       while (!found && page <= 20) { // Max 20 pages for unauthenticated users
         try {
@@ -282,15 +298,16 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
 
           console.log(`📄 Checking page ${page}...`);
           
-          const response = await fetch(
-            `/api/universal-proxy?api=isru-leaderboard-pages&page=${page}&limit=${limit}`,
-            {
-              method: 'GET',
-              headers: {
-                'Accept': 'application/json',
-              },
-            }
-          );
+          // Costruisci l'URL con o senza il parametro eod
+          const baseUrl = `/api/universal-proxy?api=isru-leaderboard-pages&page=${page}&limit=${limit}`;
+          const fullUrl = isEndOfCamp ? `${baseUrl}&eod=true` : baseUrl;
+          
+          const response = await fetch(fullUrl, {
+            method: 'GET',
+            headers: {
+              'Accept': 'application/json',
+            },
+          });
 
           if (!response.ok) {
             console.log(`❌ Page ${page} failed with status: ${response.status}`);
@@ -320,7 +337,7 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
 
               // Count ALL users with the same score across the entire leaderboard
               console.log(`🔍 Counting all users with ${user.totalPoints} points...`);
-              const usersWithSameScore = await countUsersWithSameScore(user.totalPoints);
+              const usersWithSameScore = await countUsersWithSameScore(user.totalPoints, isEndOfCamp);
 
               setResult({
                 position,
@@ -379,7 +396,7 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
   };
 
   // Count all users with the same score across the entire leaderboard
-  const countUsersWithSameScore = async (targetPoints: number): Promise<number> => {
+  const countUsersWithSameScore = async (targetPoints: number, isEndOfCamp: boolean = false): Promise<number> => {
     try {
       console.log(`🔍 Searching for all users with ${targetPoints} points...`);
       const limit = 100; // Same as findPosition function
@@ -389,8 +406,11 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
 
       while (hasMorePages && currentPage <= 50) { // Safety limit: max 50 pages (100k users)
         try {
-          const response = await fetch(
-            `/api/universal-proxy?api=isru-leaderboard-pages&page=${currentPage}&limit=${limit}`,
+          // Costruisci l'URL con o senza il parametro eod
+          const baseUrl = `/api/universal-proxy?api=isru-leaderboard-pages&page=${currentPage}&limit=${limit}`;
+          const fullUrl = isEndOfCamp ? `${baseUrl}&eod=true` : baseUrl;
+          
+          const response = await fetch(fullUrl,
             {
               method: 'GET',
               headers: {
@@ -517,14 +537,24 @@ const PositionFinder: React.FC<PositionFinderProps> = ({ currentUsername }) => {
                 }
               }}
             />
-            <Button
-              className={classes.findButton}
-              onClick={findPosition}
-              disabled={loading || !username.trim()}
-              startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SearchIcon />}
-            >
-              {loading ? 'Searching...' : 'Find Position'}
-            </Button>
+            <Box className={classes.findButtonContainer}>
+              <Button
+                className={classes.findButton}
+                onClick={findPosition}
+                disabled={loading || !username.trim()}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SearchIcon />}
+              >
+                {loading ? 'Searching...' : 'Check Live Position'}
+              </Button>
+              <Button
+                className={classes.findButton}
+                onClick={findEndOfCampPosition}
+                disabled={loading || !username.trim()}
+                startIcon={loading ? <CircularProgress size={20} color="inherit" /> : <SearchIcon />}
+              >
+                {loading ? 'Searching...' : 'Check End of Camp Position'}
+              </Button>
+            </Box>
           </Box>
 
           <Box className={classes.warningText}>

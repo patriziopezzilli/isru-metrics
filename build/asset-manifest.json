@@ -1,14 +1,14 @@
 {
   "files": {
     "main.css": "/static/css/main.94bb61ea.css",
-    "main.js": "/static/js/main.91c16296.js",
+    "main.js": "/static/js/main.0e971385.js",
     "static/media/Rocket.Sharpie.Bold.ttf": "/static/media/Rocket.Sharpie.Bold.cc54487e18a7b763b2b2.ttf",
     "index.html": "/index.html",
     "main.94bb61ea.css.map": "/static/css/main.94bb61ea.css.map",
-    "main.91c16296.js.map": "/static/js/main.91c16296.js.map"
+    "main.0e971385.js.map": "/static/js/main.0e971385.js.map"
   },
   "entrypoints": [
     "static/css/main.94bb61ea.css",
-    "static/js/main.91c16296.js"
+    "static/js/main.0e971385.js"
   ]
 }

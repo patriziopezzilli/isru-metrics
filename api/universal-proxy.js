@@ -25,7 +25,7 @@ export default async function handler(req, res) {
   }
 
   // Estrai parametri
-  const { api, username, activity_id, page, limit } = req.query;
+  const { api, username, activity_id, page, limit, eod } = req.query;
   
   let targetUrl = '';
   let timeoutMs = 10000; // Default 10 secondi
@@ -40,7 +40,11 @@ export default async function handler(req, res) {
     case 'isru-leaderboard-pages':
       const pageNum = page ? parseInt(page) : 1;
       const limitNum = limit ? parseInt(limit) : 100;
-      targetUrl = `https://isrucamp.com/api/users/leaderboard/?limit=${limitNum}&page=${pageNum}`;
+      let leaderboardUrl = `https://isrucamp.com/api/users/leaderboard/?limit=${limitNum}&page=${pageNum}`;
+      if (eod === 'true') {
+        leaderboardUrl += '&eod=true';
+      }
+      targetUrl = leaderboardUrl;
       timeoutMs = 12000; // Più tempo per le pagine
       break;
       
