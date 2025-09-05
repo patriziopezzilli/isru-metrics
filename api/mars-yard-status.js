@@ -31,6 +31,8 @@ export default async function handler(req, res) {
 
   try {
     console.log('🚀 Mars Yard status request received');
+    console.log('Process env NODE_ENV:', process.env.NODE_ENV);
+    console.log('MongoDB URI exists:', !!process.env.MONGODB_URI);
     
     const { username, status, timestamp } = req.body;
 
@@ -57,31 +59,26 @@ export default async function handler(req, res) {
     }
 
     // Crea servizio MongoDB
+    console.log('Creating MongoDB service...');
     const mongoService = createMongoDBService();
+    console.log('MongoDB service created successfully');
     
     // Connetti al database
+    console.log('Connecting to database...');
     await mongoService.connect();
+    console.log('Database connection successful');
 
     // Prepara i dati per MongoDB
     const serverTimestamp = new Date();
     const statusId = `mars_yard_${username}_${Date.now()}`;
-    
-    const mongoStatusData = {
-      status_id: statusId,
-      username: username,
-      username_lower: username.toLowerCase(),
-      status: status,
-      timestamp: timestamp,
-      server_timestamp: serverTimestamp,
-      created_at: serverTimestamp,
-      last_updated: serverTimestamp
-    };
 
     console.log('Saving Mars Yard status to MongoDB...');
 
+    // Accesso diretto alla collection
+    const collection = mongoService.db.collection('marsYardStatus');
+    
     // Upsert: aggiorna se esiste, crea se non esiste
-    const result = await mongoService.upsertDocument(
-      'marsYardStatus',
+    const result = await collection.updateOne(
       { username_lower: username.toLowerCase() },
       {
         $set: {
@@ -96,7 +93,8 @@ export default async function handler(req, res) {
           status_id: statusId,
           created_at: serverTimestamp
         }
-      }
+      },
+      { upsert: true }
     );
 
     console.log('Mars Yard status operation result:', {

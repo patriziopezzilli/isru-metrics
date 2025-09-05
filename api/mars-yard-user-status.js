@@ -48,10 +48,8 @@ export default async function handler(req, res) {
     await mongoService.connect();
 
     // Cerca l'utente nel database
-    const userStatus = await mongoService.findDocument(
-      'marsYardStatus', 
-      { username_lower: username.toLowerCase() }
-    );
+    const collection = mongoService.db.collection('marsYardStatus');
+    const userStatus = await collection.findOne({ username_lower: username.toLowerCase() });
 
     // Disconnetti dopo l'operazione
     await mongoService.disconnect();

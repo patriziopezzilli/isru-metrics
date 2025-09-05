@@ -31,16 +31,24 @@ export default async function handler(req, res) {
 
   try {
     console.log('📊 Mars Yard stats request received');
+    console.log('Process env NODE_ENV:', process.env.NODE_ENV);
+    console.log('MongoDB URI exists:', !!process.env.MONGODB_URI);
 
     // Crea servizio MongoDB
+    console.log('Creating MongoDB service...');
     const mongoService = createMongoDBService();
+    console.log('MongoDB service created successfully');
     
     // Connetti al database
+    console.log('Connecting to database...');
     await mongoService.connect();
+    console.log('Database connection successful');
 
     console.log('Fetching Mars Yard statistics...');
 
     // Aggrega le statistiche per ogni status
+    const collection = mongoService.db.collection('marsYardStatus');
+    
     const pipeline = [
       {
         $group: {
@@ -62,7 +70,9 @@ export default async function handler(req, res) {
       }
     ];
 
-    const stats = await mongoService.aggregate('marsYardStatus', pipeline);
+    console.log('Running aggregation pipeline...');
+    const stats = await collection.aggregate(pipeline).toArray();
+    console.log('Aggregation completed, results:', stats);
 
     const result = stats.length > 0 ? stats[0] : {
       totalUsers: 0,
