@@ -15,9 +15,6 @@ import {
 } from '@material-ui/core';
 import { makeStyles } from '@material-ui/core/styles';
 import {
-  Link as LinkIcon,
-  LocalShipping as ShippingIcon,
-  CheckCircle as ReceivedIcon,
   FlightTakeoff as RocketIcon
 } from '@material-ui/icons';
 
@@ -53,6 +50,13 @@ const useStyles = makeStyles((theme) => ({
     textShadow: '0 0 10px rgba(255, 107, 53, 0.5)',
     marginBottom: theme.spacing(3),
     textAlign: 'center',
+    whiteSpace: 'nowrap',
+    overflow: 'hidden',
+    [theme.breakpoints.down('sm')]: {
+      fontSize: '1rem',
+      letterSpacing: '1px',
+      marginBottom: theme.spacing(2),
+    },
   },
   statusGrid: {
     display: 'flex',
@@ -123,22 +127,14 @@ const useStyles = makeStyles((theme) => ({
       },
     },
     [theme.breakpoints.down('sm')]: {
-      minWidth: '110px',
-      fontSize: '0.9rem',
-      gap: theme.spacing(1),
-    },
-  },
-  statusIcon: {
-    fontSize: '3.5rem',
-    marginBottom: theme.spacing(1.2),
-    filter: 'drop-shadow(0 2px 4px rgba(0, 0, 0, 0.3))',
-    transition: 'all 0.3s ease',
-    display: 'flex',
-    justifyContent: 'center',
-    alignItems: 'center',
-    [theme.breakpoints.down('sm')]: {
-      fontSize: '3rem',
-      marginBottom: theme.spacing(1),
+      minWidth: '85px',
+      maxWidth: '85px',
+      minHeight: '85px',
+      maxHeight: '85px',
+      fontSize: '0.8rem',
+      gap: theme.spacing(0.8),
+      borderRadius: '8px',
+      padding: theme.spacing(1),
     },
   },
   statusLabel: {
@@ -153,7 +149,8 @@ const useStyles = makeStyles((theme) => ({
     alignItems: 'center',
     justifyContent: 'center',
     [theme.breakpoints.down('sm')]: {
-      fontSize: '1.1rem',
+      fontSize: '0.8rem',
+      letterSpacing: '0.2px',
     },
   },
   completedChip: {
@@ -204,8 +201,12 @@ const useStyles = makeStyles((theme) => ({
     fontFamily: '"Courier New", monospace',
     fontSize: '0.9rem',
     textAlign: 'center',
-    marginTop: theme.spacing(2),
+    marginTop: theme.spacing(3),
     opacity: 0.8,
+    [theme.breakpoints.down('sm')]: {
+      fontSize: '0.75rem',
+      marginTop: theme.spacing(2.5),
+    },
   },
 }));
 
@@ -217,7 +218,6 @@ interface MarsYardStatus {
 }
 
 interface StatusButtonProps {
-  icon: React.ReactNode;
   label: string;
   completed: boolean;
   onClick: () => void;
@@ -225,8 +225,10 @@ interface StatusButtonProps {
   count?: number;
 }
 
-const StatusButton: React.FC<StatusButtonProps> = ({ icon, label, completed, onClick, disabled = false, count = 0 }) => {
+const StatusButton: React.FC<StatusButtonProps> = ({ label, completed, onClick, disabled = false, count = 0 }) => {
   const classes = useStyles();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('sm'));
   
   // Dividi il label in due righe se contiene uno spazio
   const labelParts = label.includes(' ') ? label.split(' ') : [label];
@@ -240,7 +242,7 @@ const StatusButton: React.FC<StatusButtonProps> = ({ icon, label, completed, onC
       >
         <Box className={classes.statusLabel}>
           <Box style={{ 
-            height: '60px', 
+            height: isMobile ? '45px' : '60px', 
             display: 'flex', 
             flexDirection: 'column', 
             justifyContent: 'center',
@@ -257,10 +259,10 @@ const StatusButton: React.FC<StatusButtonProps> = ({ icon, label, completed, onC
             ))}
           </Box>
           <Typography component="div" style={{ 
-            fontSize: '0.9rem', 
+            fontSize: isMobile ? '0.75rem' : '0.9rem', 
             fontWeight: 'bold', 
             opacity: 1, 
-            marginTop: '10px',
+            marginTop: isMobile ? '6px' : '10px',
             color: completed ? '#4caf50' : '#ffcc02',
             lineHeight: 1.2,
             textShadow: '0 1px 2px rgba(0, 0, 0, 0.7)'
@@ -427,7 +429,6 @@ export const MarsYardStatusTracker: React.FC = () => {
       
       <Box className={classes.statusGrid}>
         <StatusButton
-          icon={<RocketIcon />}
           label="WAITING ROOM"
           completed={status.waitingRoom}
           onClick={() => handleStatusClick('waitingRoom')}
@@ -435,7 +436,6 @@ export const MarsYardStatusTracker: React.FC = () => {
         />
         
         <StatusButton
-          icon={<LinkIcon />}
           label="CHECKOUT LINK"
           completed={status.checkoutReceived}
           onClick={() => handleStatusClick('checkoutReceived')}
@@ -444,7 +444,6 @@ export const MarsYardStatusTracker: React.FC = () => {
         />
         
         <StatusButton
-          icon={<ShippingIcon />}
           label="SHIPPED"
           completed={status.orderShipped}
           onClick={() => handleStatusClick('orderShipped')}
@@ -453,7 +452,6 @@ export const MarsYardStatusTracker: React.FC = () => {
         />
         
         <StatusButton
-          icon={<ReceivedIcon />}
           label="RECEIVED"
           completed={status.orderReceived}
           onClick={() => handleStatusClick('orderReceived')}
