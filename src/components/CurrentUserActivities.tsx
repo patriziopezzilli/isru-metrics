@@ -117,6 +117,7 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
   const [loading, setLoading] = useState(false);
   const [loadingStreaks, setLoadingStreaks] = useState(false);
   const [streakExpanded, setStreakExpanded] = useState(false); // Stato per il collapsing della sezione streak
+  const [expanded, setExpanded] = useState(false); // Stato per il collapsing dell'intero componente
 
   // Function to load streak data for activities
   const loadStreakData = async (activities: any[], username: string) => {
@@ -341,10 +342,24 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
           {completedActivities.length === totalActivities && (
             <Typography style={{ color: '#6b7d5a', fontSize: '1.2rem' }}>🎉</Typography>
           )}
+          <IconButton
+            onClick={() => setExpanded(!expanded)}
+            style={{
+              transform: expanded ? 'rotate(180deg)' : 'rotate(0deg)',
+              transition: 'transform 0.3s ease',
+              color: '#8b7355',
+              padding: 4,
+              marginLeft: 8,
+            }}
+            size="small"
+          >
+            <ExpandMoreIcon />
+          </IconButton>
         </Box>
       </Box>
 
-      <CardContent style={{ padding: isMobile ? '12px 16px' : '16px 32px', textAlign: 'center' }}>
+      <Collapse in={expanded}>
+        <CardContent style={{ padding: isMobile ? '12px 16px' : '16px 32px', textAlign: 'center' }}>
         <Box display="inline-block" style={{ textAlign: 'left' }}>
           <Box display="flex" style={{ gap: '24px', width: isMobile ? '320px' : '420px' }}>
             {/* Done Column */}
@@ -579,6 +594,7 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
           </Collapse>
         </Box>
       </CardContent>
+      </Collapse>
     </Card>
   );
 };

@@ -75,10 +75,15 @@ export default async function handler(req, res) {
       timeoutMs = 8000; // Timeout più breve per streak
       break;
       
+    case 'hdwatts-leaderboard':
+      targetUrl = 'https://www.hdwatts.com/api/leaderboard';
+      timeoutMs = 10000; // Timeout standard per hdwatts
+      break;
+      
     default:
       res.status(400).json({ 
         error: 'Invalid API type',
-        supportedApis: ['isru-leaderboard', 'isru-leaderboard-pages', 'sneakerdb-profile', 'isru-user-profile', 'activity-streak'] 
+        supportedApis: ['isru-leaderboard', 'isru-leaderboard-pages', 'sneakerdb-profile', 'isru-user-profile', 'activity-streak', 'hdwatts-leaderboard'] 
       });
       return;
   }
@@ -130,6 +135,12 @@ export default async function handler(req, res) {
     if (api === 'isru-user-profile' && (!data.user || typeof data.user !== 'object')) {
       console.error('❌ Invalid ISRU user profile data structure');
       res.status(500).json({ error: 'Invalid ISRU user profile data structure' });
+      return;
+    }
+    
+    if (api === 'hdwatts-leaderboard' && !Array.isArray(data)) {
+      console.error('❌ Invalid HDWatts leaderboard data structure');
+      res.status(500).json({ error: 'Invalid HDWatts leaderboard data structure' });
       return;
     }
     

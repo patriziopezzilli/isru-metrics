@@ -26,9 +26,9 @@ import {
 import { ScoreDistributionResponse } from '../types';
 import { calculateDashboardMetrics } from '../apiService';
 import FriendsLeague from './FriendsLeague';
-import { ScoreDistributionBuckets } from './ScoreDistributionBuckets';
 import { CurrentUserActivities } from './CurrentUserActivities';
 import UserShoeCarousel from './UserShoeCarousel';
+import FinalLeaderboard from './FinalLeaderboard';
 
 interface DashboardProps {
   scoreDistribution: ScoreDistributionResponse;
@@ -73,8 +73,9 @@ export const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps
 
   return (
     <Box>
-      {/* Mars Yard Countdown (presumibilmente già presente sopra) */}
-      {/* User Shoe Carousel rimosso su richiesta */}
+      {/* Final Summer Camp Leaderboard - subito sotto l'header */}
+      <FinalLeaderboard currentUsername={currentUsername} />
+
       {/* Current User Activities */}
       {currentUsername && (
         <CurrentUserActivities username={currentUsername} cardMarginBottom={cardMarginBottom} />
@@ -82,9 +83,6 @@ export const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps
 
       {/* Friends League */}
       <FriendsLeague />
-
-      {/* Score Distribution Buckets (nuova visualizzazione) */}
-      <ScoreDistributionBuckets currentUsername={currentUsername} />
     </Box>
   );
 };

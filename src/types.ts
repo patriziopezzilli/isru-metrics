@@ -261,3 +261,16 @@ export interface UserSession {
   userAgent: string;
   location?: string;
 }
+
+// Final Leaderboard Types (hdwatts.com API)
+export interface FinalLeaderboardEntry {
+  user_id: number;
+  total_points: number;
+  id: number;
+  created_at: string;
+  username: string;
+  isru_id: number;
+  last_checked_on: string;
+}
+
+export interface FinalLeaderboardResponse extends Array<FinalLeaderboardEntry> {}

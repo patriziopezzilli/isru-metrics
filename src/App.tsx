@@ -27,9 +27,7 @@ import UserSearch from './components/UserSearch';
 import { UserProfile } from './components/UserProfile';
 import { UserProfileIcon } from './components/UserProfileIcon';
 import { OfflineIndicator } from './components/OfflineIndicator';
-import { MarsYardCountdown } from './components/MarsYardCountdown';
 // import { ChangelogDisclaimer } from './components/ChangelogDisclaimer';
-import PositionFinder from './components/PositionFinder';
 import AppLoader from './components/AppLoader';
 import OnlineUserCounter from './components/OnlineUserCounter';
 import CollapsibleFeedback from './components/CollapsibleFeedback';
@@ -490,11 +488,6 @@ const AppContent = ({
         </Box>
       </AppBar>
       
-      {/* Mars Yard 3.0 Countdown */}
-      <Box style={{ marginBottom: isMobile ? 16 : 24 }}>
-        <MarsYardCountdown />
-      </Box>
-
       {/* Changelog Disclaimer */}
 
       <Box
@@ -513,9 +506,6 @@ const AppContent = ({
         {console.log('🎭 Rendering content for activeTab:', activeTab, { isMobile, hasUsername: !!username })}
         {activeTab === 0 && (
           <>
-            <Box style={{ marginBottom: isMobile ? 16 : 24 }}>
-              <PositionFinder currentUsername={username} />
-            </Box>
             <Dashboard scoreDistribution={scoreDistribution} currentUsername={username} />
           </>
         )}
