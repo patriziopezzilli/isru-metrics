@@ -71,6 +71,8 @@ export const Dashboard = ({ scoreDistribution, currentUsername }: DashboardProps
     return allUsers.slice(0, 10);
   }, [scoreDistribution]);
 
+  console.log('🏠 Dashboard rendered with currentUsername:', currentUsername);
+
   return (
     <Box>
       {/* Final Summer Camp Leaderboard - subito sotto l'header */}

@@ -290,6 +290,19 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
+  console.log('🎯 FinalLeaderboard component rendered');
+  console.log('📊 Current state:', { 
+    leaderboardLength: leaderboard.length, 
+    loading, 
+    currentUsername,
+    userPosition: userPosition?.position 
+  });
+
+  // Debug: vediamo cosa c'è nel leaderboard
+  if (leaderboard.length > 0) {
+    console.log('🏆 First 3 leaderboard entries:', leaderboard.slice(0, 3));
+  }
+
   // Fetch leaderboard data
   const fetchLeaderboard = async () => {
     setLoading(true);
@@ -357,12 +370,18 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
       
       // Verifica che abbiamo dati validi
       if (!Array.isArray(leaderboardData) || leaderboardData.length === 0) {
-        console.warn('No valid leaderboard data received');
+        console.warn('⚠️ No valid leaderboard data received');
         setLeaderboard([]);
         return;
       }
       
+      console.log('✅ Setting leaderboard with', leaderboardData.length, 'entries');
       setLeaderboard(leaderboardData);
+      
+      // Forzare un re-render per debug
+      setTimeout(() => {
+        console.log('🔄 State after setLeaderboard:', leaderboard.length);
+      }, 100);
       
       // If user is logged in, find their position
       if (currentUsername && leaderboardData && Array.isArray(leaderboardData)) {
@@ -428,10 +447,31 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
     }
   };
 
+  console.log('🎨 About to render FinalLeaderboard');
+  console.log('🎨 Render data check:', { 
+    hasLeaderboard: Array.isArray(leaderboard) && leaderboard.length > 0,
+    isLoading: loading,
+    showFullBoard: showFullLeaderboard
+  });
+
   return (
-    <Card className={classes.card}>
+    <Card className={classes.card} style={{ 
+      minHeight: '200px', 
+      backgroundColor: 'red', 
+      border: '5px solid yellow',
+      margin: '20px 0',
+      display: 'block',
+      visibility: 'visible',
+      opacity: 1,
+      zIndex: 9999
+    } as React.CSSProperties}>
+      {console.log('🃏 Card rendered with classes:', classes.card)}
       <Box className={classes.header}>
+        {console.log('📦 Header rendered')}
         <Box>
+          <div style={{ color: 'white', fontSize: '24px', padding: '20px' }}>
+            🚨 DEBUG: FINAL LEADERBOARD COMPONENT IS HERE! 🚨
+          </div>
           <Box className={classes.title}>
             <TrophyIcon style={{ fontSize: '2rem', color: '#FFD700' }} />
             Final Summer Camp Leaderboard
