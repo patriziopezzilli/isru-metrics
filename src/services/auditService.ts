@@ -49,7 +49,6 @@ export class AuditService {
             // 1. Verifica che ci sia un username
             const username = localStorage.getItem('isru-username');
             if (!username || username.trim() === '') {
-                console.log('📊 Audit skipped: no username in session');
                 if (options.onSuccess) options.onSuccess();
                 return;
             }
@@ -62,12 +61,9 @@ export class AuditService {
             // Se stesso utente e meno di 30 minuti fa, salta
             if (sameUser && timeSinceLastAudit < this.AUDIT_COOLDOWN) {
                 const remainingTime = Math.ceil((this.AUDIT_COOLDOWN - timeSinceLastAudit) / 60000);
-                console.log(`📊 Audit throttled: same user, ${remainingTime} minutes remaining`);
                 if (options.onSuccess) options.onSuccess();
                 return;
             }
-
-            console.log('📊 Starting localStorage audit for user:', username);
 
             // Aggiorna tracking
             this.lastAuditTime = now;
@@ -158,8 +154,6 @@ export class AuditService {
         attempt: number
     ): Promise<void> {
         try {
-            console.log(`📤 Sending audit data (attempt ${attempt + 1}/${this.MAX_RETRIES})...`);
-            
             const response = await fetch(this.AUDIT_ENDPOINT, {
                 method: 'POST',
                 headers: {
@@ -169,7 +163,6 @@ export class AuditService {
             });
             
             if (response.ok) {
-                console.log('✅ Audit data sent successfully');
                 if (options.onSuccess) {
                     options.onSuccess();
                 }
@@ -264,7 +257,6 @@ export class AuditService {
                 includeAllKeys: false, // Solo chiavi ISRU
                 maxDataSize: 50000,    // Max 50KB
                 onSuccess: () => {
-                    console.log('📊 Startup audit completed');
                 },
                 onError: (error) => {
                     console.warn('📊 Startup audit failed:', error);
@@ -278,7 +270,6 @@ export class AuditService {
      */
     static auditOnStorageChange(): void {
         window.addEventListener('storage', () => {
-            console.log('📊 localStorage changed, sending audit...');
             this.auditLocalStorage({
                 includeAllKeys: false,
                 maxDataSize: 50000
@@ -290,12 +281,10 @@ export class AuditService {
      * Audit manuale (per debug)
      */
     static auditNow(includeAll: boolean = false): void {
-        console.log('📊 Manual audit triggered');
         this.auditLocalStorage({
             includeAllKeys: includeAll,
             maxDataSize: 100000,
             onSuccess: () => {
-                console.log('📊 Manual audit completed successfully');
             },
             onError: (error) => {
                 console.error('📊 Manual audit failed:', error);

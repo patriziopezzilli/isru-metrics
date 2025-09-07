@@ -51,7 +51,6 @@ class ProfileExportService {
       // Download del file
       this.downloadBlob(blob, filename);
 
-      console.log(`✅ Profile exported successfully: ${filename}`);
     } catch (error) {
       console.error('❌ Export failed:', error);
       throw error;
@@ -127,7 +126,6 @@ class ProfileExportService {
         files: [file]
       });
 
-      console.log('✅ Profile shared successfully');
     } catch (error) {
       console.error('❌ Share failed:', error);
       // Fallback: export come immagine
@@ -172,7 +170,6 @@ class ProfileExportService {
         })
       ]);
 
-      console.log('✅ Profile copied to clipboard');
     } catch (error) {
       console.error('❌ Copy to clipboard failed:', error);
       throw error;

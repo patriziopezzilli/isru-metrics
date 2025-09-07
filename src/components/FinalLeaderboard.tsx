@@ -290,55 +290,31 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [notFound, setNotFound] = useState(false);
 
-  console.log('🎯 FinalLeaderboard component rendered');
-  console.log('📊 Current state:', { 
-    leaderboardLength: leaderboard.length, 
-    loading, 
-    currentUsername,
-    userPosition: userPosition?.position 
-  });
-
-  // Debug: vediamo cosa c'è nel leaderboard
-  if (leaderboard.length > 0) {
-    console.log('🏆 First 3 leaderboard entries:', leaderboard.slice(0, 3));
-  }
-
   // Fetch leaderboard data
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
-      console.log('🚀 Starting fetch...');
-      
       // Usa il proxy universale
       const response = await fetch('/api/universal-proxy?api=hdwatts-leaderboard');
-      console.log('📡 Response status:', response.status);
       
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const responseData = await response.json();
-      console.log('📦 Raw response data:', responseData);
-      console.log('📦 Response is array?', Array.isArray(responseData));
-      console.log('📦 Response type:', typeof responseData);
       
       // Gestisci sia array diretto che oggetto con proprietà data
       let leaderboardData: FinalLeaderboardResponse;
       
       if (Array.isArray(responseData)) {
         leaderboardData = responseData;
-        console.log('✅ Using response directly as array');
       } else if (responseData && responseData.data && Array.isArray(responseData.data)) {
         leaderboardData = responseData.data;
-        console.log('✅ Using response.data as array');
       } else {
         console.error('❌ Response is not an array and does not have data property:', responseData);
         setLeaderboard([]);
         return;
       }
-      
-      console.log('📊 Final leaderboard data:', leaderboardData);
-      console.log('📊 Data length:', leaderboardData.length);
       
       if (leaderboardData.length === 0) {
         console.warn('⚠️ Leaderboard is empty');
@@ -346,21 +322,17 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
         return;
       }
       
-      console.log('✅ Setting leaderboard state with', leaderboardData.length, 'entries');
       setLeaderboard(leaderboardData);
       
       // If user is logged in, find their position
       if (currentUsername && leaderboardData.length > 0) {
-        console.log('🔍 Looking for user:', currentUsername);
         const userEntry = leaderboardData.find(entry => 
           entry?.username?.toLowerCase() === currentUsername.toLowerCase()
         );
         if (userEntry) {
           const position = leaderboardData.indexOf(userEntry) + 1;
           setUserPosition({ position, entry: userEntry });
-          console.log(`👤 User ${currentUsername} found at position ${position}`);
         } else {
-          console.log(`👤 User ${currentUsername} not found in leaderboard`);
         }
       }
       
@@ -417,31 +389,10 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
     }
   };
 
-  console.log('🎨 About to render FinalLeaderboard');
-  console.log('🎨 Render data check:', { 
-    hasLeaderboard: Array.isArray(leaderboard) && leaderboard.length > 0,
-    isLoading: loading,
-    showFullBoard: showFullLeaderboard
-  });
-
   return (
-    <Card className={classes.card} style={{ 
-      minHeight: '200px', 
-      backgroundColor: 'red', 
-      border: '5px solid yellow',
-      margin: '20px 0',
-      display: 'block',
-      visibility: 'visible',
-      opacity: 1,
-      zIndex: 9999
-    } as React.CSSProperties}>
-      {console.log('🃏 Card rendered with classes:', classes.card)}
+    <Card className={classes.card}>
       <Box className={classes.header}>
-        {console.log('📦 Header rendered')}
         <Box>
-          <div style={{ color: 'white', fontSize: '24px', padding: '20px' }}>
-            🚨 DEBUG: FINAL LEADERBOARD COMPONENT IS HERE! 🚨
-          </div>
           <Box className={classes.title}>
             <TrophyIcon style={{ fontSize: '2rem', color: '#FFD700' }} />
             Final Summer Camp Leaderboard
@@ -462,9 +413,9 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
       <CardContent style={{ padding: isMobile ? '16px' : '24px' }}>
         {/* User's position (if logged in) */}
         {currentUsername && userPosition && (
-          <Box className={classes.userResult}>
+          <Box className={classes.userResult} style={{ marginBottom: '24px' }}>
             <Typography variant="h6" style={{ color: '#ff6b35', marginBottom: 8 }}>
-              Your Final Position
+              Summer Camp Position
             </Typography>
             <Box display="flex" alignItems="center" style={{ gap: '16px' }}>
               <Box className={classes.positionCell}>
@@ -574,30 +525,34 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
               <TableHead>
                 <TableRow>
                   <TableCell>Position</TableCell>
-                  <TableCell>Player</TableCell>
+                  <TableCell>Username</TableCell>
                   <TableCell align="right">Points</TableCell>
-                  <TableCell align="right">Last Updated</TableCell>
                 </TableRow>
               </TableHead>
               <TableBody>
                 {Array.isArray(leaderboard) && leaderboard.slice(0, 50).map((entry, index) => 
                   entry && entry.username ? (
                   <TableRow key={entry.id || index}>
-                    <TableCell>
+                    <TableCell style={{ width: isMobile ? '60px' : 'auto' }}>
                       <Box className={classes.positionCell}>
                         {getMedalEmoji(index + 1) && (
-                          <span style={{ fontSize: '1.2rem' }}>{getMedalEmoji(index + 1)}</span>
+                          <span style={{ fontSize: isMobile ? '1rem' : '1.2rem' }}>{getMedalEmoji(index + 1)}</span>
                         )}
-                        <Typography style={{ fontWeight: index < 3 ? 'bold' : 'normal' }}>
+                        <Typography style={{ 
+                          fontWeight: index < 3 ? 'bold' : 'normal',
+                          fontSize: isMobile ? '0.85rem' : 'inherit'
+                        }}>
                           #{index + 1}
                         </Typography>
                       </Box>
                     </TableCell>
                     <TableCell>
-                      <Box display="flex" alignItems="center" style={{ gap: '8px' }}>
-                        <Avatar style={{ width: 24, height: 24, backgroundColor: '#ff6b35' }}>
-                          <PersonIcon style={{ fontSize: '1rem' }} />
-                        </Avatar>
+                      <Box display="flex" alignItems="center" style={{ gap: isMobile ? '4px' : '8px' }}>
+                        {!isMobile && (
+                          <Avatar style={{ width: 24, height: 24, backgroundColor: '#ff6b35' }}>
+                            <PersonIcon style={{ fontSize: '1rem' }} />
+                          </Avatar>
+                        )}
                         <Typography style={{ 
                           fontWeight: entry.username === currentUsername ? 'bold' : 'normal',
                           color: entry.username === currentUsername ? '#FFD700' : 'inherit'
@@ -606,14 +561,12 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                         </Typography>
                       </Box>
                     </TableCell>
-                    <TableCell align="right">
-                      <Typography style={{ fontWeight: 'bold' }}>
+                    <TableCell align="right" style={{ width: isMobile ? '80px' : 'auto' }}>
+                      <Typography style={{ 
+                        fontWeight: 'bold',
+                        fontSize: isMobile ? '0.85rem' : 'inherit'
+                      }}>
                         {entry.total_points || 0}
-                      </Typography>
-                    </TableCell>
-                    <TableCell align="right">
-                      <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        {entry.last_checked_on ? formatDate(entry.last_checked_on) : 'N/A'}
                       </Typography>
                     </TableCell>
                   </TableRow>
