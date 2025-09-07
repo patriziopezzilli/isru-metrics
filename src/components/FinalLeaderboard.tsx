@@ -307,96 +307,63 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
-      let response, responseData: any;
+      console.log('🚀 Starting fetch...');
       
-      try {
-        // Prima prova con il proxy universale
-        response = await fetch('/api/universal-proxy?api=hdwatts-leaderboard');
-        if (response.ok) {
-          responseData = await response.json();
-          console.log('Proxy response:', responseData);
-        } else {
-          throw new Error(`Proxy failed: ${response.status}`);
-        }
-      } catch (proxyError) {
-        console.warn('Proxy failed, trying direct API:', proxyError);
-        // Fallback: prova chiamata diretta se il proxy fallisce
-        response = await fetch('https://www.hdwatts.com/api/leaderboard');
-        if (response.ok) {
-          responseData = await response.json();
-          console.log('Direct API response:', responseData);
-        } else {
-          throw new Error(`Both proxy and direct API failed`);
-        }
+      // Usa il proxy universale
+      const response = await fetch('/api/universal-proxy?api=hdwatts-leaderboard');
+      console.log('📡 Response status:', response.status);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
       
-      // Gestione semplificata: la risposta dovrebbe essere un array
+      const responseData = await response.json();
+      console.log('📦 Raw response data:', responseData);
+      console.log('📦 Response is array?', Array.isArray(responseData));
+      console.log('📦 Response type:', typeof responseData);
+      
+      // SEMPLIFICATO: Se è array, usalo direttamente
       let leaderboardData: FinalLeaderboardResponse;
       
       if (Array.isArray(responseData)) {
-        // Risposta diretta: è già un array
         leaderboardData = responseData;
-        console.log('Response is array, using directly');
-      } else if (responseData && typeof responseData === 'object') {
-        // Se è un oggetto, potrebbe avere metadata del proxy
-        // Cerca tutte le proprietà che sono array
-        const arrayProps = Object.keys(responseData).filter(key => 
-          key !== '_proxy' && Array.isArray(responseData[key])
-        );
-        
-        if (arrayProps.length > 0) {
-          // Usa il primo array trovato
-          leaderboardData = responseData[arrayProps[0]];
-          console.log(`Found array in property: ${arrayProps[0]}`);
-        } else {
-          // Se non ci sono array nelle proprietà, prova a rimuovere _proxy e vedere se diventa array
-          const { _proxy, ...cleanData } = responseData;
-          if (Array.isArray(cleanData)) {
-            leaderboardData = cleanData;
-          } else {
-            // Ultimo tentativo: prendi tutti i valori e flattenli
-            const values = Object.values(cleanData);
-            const arrayValues = values.filter(val => Array.isArray(val)).flat();
-            leaderboardData = arrayValues.length > 0 ? arrayValues as FinalLeaderboardResponse : [];
-          }
-        }
+        console.log('✅ Using response directly as array');
       } else {
-        console.error('Unexpected response format:', responseData);
-        leaderboardData = [];
-      }
-      
-      console.log('Final processed leaderboard data:', leaderboardData);
-      console.log('Leaderboard data length:', leaderboardData?.length);
-      
-      // Verifica che abbiamo dati validi
-      if (!Array.isArray(leaderboardData) || leaderboardData.length === 0) {
-        console.warn('⚠️ No valid leaderboard data received');
+        console.error('❌ Response is not an array:', responseData);
         setLeaderboard([]);
         return;
       }
       
-      console.log('✅ Setting leaderboard with', leaderboardData.length, 'entries');
+      console.log('📊 Final leaderboard data:', leaderboardData);
+      console.log('📊 Data length:', leaderboardData.length);
+      
+      if (leaderboardData.length === 0) {
+        console.warn('⚠️ Leaderboard is empty');
+        setLeaderboard([]);
+        return;
+      }
+      
+      console.log('✅ Setting leaderboard state with', leaderboardData.length, 'entries');
       setLeaderboard(leaderboardData);
       
-      // Forzare un re-render per debug
-      setTimeout(() => {
-        console.log('🔄 State after setLeaderboard:', leaderboard.length);
-      }, 100);
-      
       // If user is logged in, find their position
-      if (currentUsername && leaderboardData && Array.isArray(leaderboardData)) {
+      if (currentUsername && leaderboardData.length > 0) {
+        console.log('🔍 Looking for user:', currentUsername);
         const userEntry = leaderboardData.find(entry => 
-          entry && entry.username && entry.username.toLowerCase() === currentUsername.toLowerCase()
+          entry?.username?.toLowerCase() === currentUsername.toLowerCase()
         );
         if (userEntry) {
           const position = leaderboardData.indexOf(userEntry) + 1;
           setUserPosition({ position, entry: userEntry });
-          console.log(`User ${currentUsername} found at position ${position}`);
+          console.log(`👤 User ${currentUsername} found at position ${position}`);
+        } else {
+          console.log(`👤 User ${currentUsername} not found in leaderboard`);
         }
       }
+      
     } catch (error) {
-      console.error('Error fetching final leaderboard:', error);
-      setLeaderboard([]); // Set empty array on error
+      console.error('💥 Error fetching leaderboard:', error);
+      setLeaderboard([]);
     } finally {
       setLoading(false);
     }
