@@ -146,7 +146,14 @@ export default async function handler(req, res) {
     
     console.log(`✅ Universal Proxy: Successfully fetched ${api}${username ? ` for ${username}` : ''}${activity_id ? ` (activity: ${activity_id})` : ''}`);
     
-    // Aggiungi metadata del proxy
+    // Per hdwatts-leaderboard, restituisci l'array direttamente senza metadata
+    if (api === 'hdwatts-leaderboard') {
+      console.log('🎯 Returning hdwatts data directly without metadata');
+      res.status(200).json(data);
+      return;
+    }
+    
+    // Aggiungi metadata del proxy per altre API
     const responseData = {
       ...data,
       _proxy: {
