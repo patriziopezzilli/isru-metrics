@@ -316,30 +316,44 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
           throw new Error(`Both proxy and direct API failed`);
         }
       }
-        
-      // Il proxy aggiunge metadata, quindi estraiamo solo i dati effettivi
+      
+      // Gestione semplificata: la risposta dovrebbe essere un array
       let leaderboardData: FinalLeaderboardResponse;
       
       if (Array.isArray(responseData)) {
-        // Risposta diretta (array)
+        // Risposta diretta: è già un array
         leaderboardData = responseData;
-      } else if (responseData._proxy && responseData.length === undefined) {
-        // Risposta con metadata del proxy - rimuoviamo _proxy
-        const { _proxy, ...actualData } = responseData;
-        // Se actualData è un array, usalo direttamente, altrimenti prova a estrarre valori
-        if (Array.isArray(actualData)) {
-          leaderboardData = actualData;
+        console.log('Response is array, using directly');
+      } else if (responseData && typeof responseData === 'object') {
+        // Se è un oggetto, potrebbe avere metadata del proxy
+        // Cerca tutte le proprietà che sono array
+        const arrayProps = Object.keys(responseData).filter(key => 
+          key !== '_proxy' && Array.isArray(responseData[key])
+        );
+        
+        if (arrayProps.length > 0) {
+          // Usa il primo array trovato
+          leaderboardData = responseData[arrayProps[0]];
+          console.log(`Found array in property: ${arrayProps[0]}`);
         } else {
-          // Cerca il primo array nei valori
-          const arrayValues = Object.values(actualData).find(value => Array.isArray(value));
-          leaderboardData = arrayValues as FinalLeaderboardResponse || [];
+          // Se non ci sono array nelle proprietà, prova a rimuovere _proxy e vedere se diventa array
+          const { _proxy, ...cleanData } = responseData;
+          if (Array.isArray(cleanData)) {
+            leaderboardData = cleanData;
+          } else {
+            // Ultimo tentativo: prendi tutti i valori e flattenli
+            const values = Object.values(cleanData);
+            const arrayValues = values.filter(val => Array.isArray(val)).flat();
+            leaderboardData = arrayValues.length > 0 ? arrayValues as FinalLeaderboardResponse : [];
+          }
         }
       } else {
-        // Fallback: se non c'è _proxy ma non è array, potrebbe essere la struttura dell'API
-        leaderboardData = responseData;
+        console.error('Unexpected response format:', responseData);
+        leaderboardData = [];
       }
       
-      console.log('Processed leaderboard data:', leaderboardData);
+      console.log('Final processed leaderboard data:', leaderboardData);
+      console.log('Leaderboard data length:', leaderboardData?.length);
       
       // Verifica che abbiamo dati validi
       if (!Array.isArray(leaderboardData) || leaderboardData.length === 0) {
@@ -353,11 +367,12 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
       // If user is logged in, find their position
       if (currentUsername && leaderboardData && Array.isArray(leaderboardData)) {
         const userEntry = leaderboardData.find(entry => 
-          entry.username?.toLowerCase() === currentUsername.toLowerCase()
+          entry && entry.username && entry.username.toLowerCase() === currentUsername.toLowerCase()
         );
         if (userEntry) {
           const position = leaderboardData.indexOf(userEntry) + 1;
           setUserPosition({ position, entry: userEntry });
+          console.log(`User ${currentUsername} found at position ${position}`);
         }
       }
     } catch (error) {
@@ -400,11 +415,17 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
   };
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('it-IT', {
-      day: '2-digit',
-      month: '2-digit',
-      year: 'numeric'
-    });
+    try {
+      if (!dateString) return 'N/A';
+      return new Date(dateString).toLocaleDateString('it-IT', {
+        day: '2-digit',
+        month: '2-digit',
+        year: 'numeric'
+      });
+    } catch (error) {
+      console.warn('Error formatting date:', dateString, error);
+      return 'N/A';
+    }
   };
 
   return (
@@ -445,9 +466,9 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="h6">{userPosition.entry.username}</Typography>
+                <Typography variant="h6">{userPosition.entry.username || 'N/A'}</Typography>
                 <Typography style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                  {userPosition.entry.total_points} points
+                  {userPosition.entry.total_points || 0} points
                 </Typography>
               </Box>
             </Box>
@@ -577,12 +598,12 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                     </TableCell>
                     <TableCell align="right">
                       <Typography style={{ fontWeight: 'bold' }}>
-                        {entry.total_points}
+                        {entry.total_points || 0}
                       </Typography>
                     </TableCell>
                     <TableCell align="right">
                       <Typography variant="body2" style={{ color: 'rgba(255, 255, 255, 0.7)' }}>
-                        {formatDate(entry.last_checked_on)}
+                        {entry.last_checked_on ? formatDate(entry.last_checked_on) : 'N/A'}
                       </Typography>
                     </TableCell>
                   </TableRow>
