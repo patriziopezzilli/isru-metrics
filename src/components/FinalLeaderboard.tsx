@@ -12,7 +12,6 @@ import {
   useTheme,
   makeStyles,
   Collapse,
-  IconButton,
   Table,
   TableBody,
   TableCell,
@@ -20,7 +19,10 @@ import {
   TableHead,
   TableRow,
   Paper,
-  Avatar
+  Avatar,
+  Accordion,
+  AccordionSummary,
+  AccordionDetails
 } from '@material-ui/core';
 import {
   EmojiEvents as TrophyIcon,
@@ -289,6 +291,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
   const [searchResult, setSearchResult] = useState<{ position: number; entry: FinalLeaderboardEntry } | null>(null);
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [notFound, setNotFound] = useState(false);
+  const [expandedBlocks, setExpandedBlocks] = useState<Set<number>>(new Set());
 
   // Fetch leaderboard data
   const fetchLeaderboard = async () => {
@@ -360,6 +363,43 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
       setSearchResult(null);
       setNotFound(true);
     }
+  };
+
+  // Helper functions for pagination blocks
+  const BLOCK_SIZE = 100;
+  
+  const getLeaderboardBlocks = () => {
+    if (!Array.isArray(leaderboard)) return [];
+    const blocks = [];
+    for (let i = 0; i < leaderboard.length; i += BLOCK_SIZE) {
+      blocks.push({
+        startIndex: i,
+        endIndex: Math.min(i + BLOCK_SIZE, leaderboard.length),
+        data: leaderboard.slice(i, i + BLOCK_SIZE)
+      });
+    }
+    return blocks;
+  };
+
+  const toggleBlock = (blockIndex: number) => {
+    setExpandedBlocks(prev => {
+      const newSet = new Set(prev);
+      if (newSet.has(blockIndex)) {
+        newSet.delete(blockIndex);
+      } else {
+        newSet.add(blockIndex);
+      }
+      return newSet;
+    });
+  };
+
+  const expandAllBlocks = () => {
+    const allBlockIndices = getLeaderboardBlocks().map((_, index) => index);
+    setExpandedBlocks(new Set(allBlockIndices));
+  };
+
+  const collapseAllBlocks = () => {
+    setExpandedBlocks(new Set());
   };
 
   useEffect(() => {
@@ -520,61 +560,115 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
 
         {/* Full leaderboard */}
         <Collapse in={showFullLeaderboard}>
-          <TableContainer component={Paper} className={classes.leaderboardTable}>
-            <Table size="small">
-              <TableHead>
-                <TableRow>
-                  <TableCell>Position</TableCell>
-                  <TableCell>Username</TableCell>
-                  <TableCell align="right">Points</TableCell>
-                </TableRow>
-              </TableHead>
-              <TableBody>
-                {Array.isArray(leaderboard) && leaderboard.slice(0, 50).map((entry, index) => 
-                  entry && entry.username ? (
-                  <TableRow key={entry.id || index}>
-                    <TableCell style={{ width: isMobile ? '60px' : 'auto' }}>
-                      <Box className={classes.positionCell}>
-                        {getMedalEmoji(index + 1) && (
-                          <span style={{ fontSize: isMobile ? '1rem' : '1.2rem' }}>{getMedalEmoji(index + 1)}</span>
-                        )}
-                        <Typography style={{ 
-                          fontWeight: index < 3 ? 'bold' : 'normal',
-                          fontSize: isMobile ? '0.85rem' : 'inherit'
-                        }}>
-                          #{index + 1}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell>
-                      <Box display="flex" alignItems="center" style={{ gap: isMobile ? '4px' : '8px' }}>
-                        {!isMobile && (
-                          <Avatar style={{ width: 24, height: 24, backgroundColor: '#ff6b35' }}>
-                            <PersonIcon style={{ fontSize: '1rem' }} />
-                          </Avatar>
-                        )}
-                        <Typography style={{ 
-                          fontWeight: entry.username === currentUsername ? 'bold' : 'normal',
-                          color: entry.username === currentUsername ? '#FFD700' : 'inherit'
-                        }}>
-                          {entry.username}
-                        </Typography>
-                      </Box>
-                    </TableCell>
-                    <TableCell align="right" style={{ width: isMobile ? '80px' : 'auto' }}>
-                      <Typography style={{ 
-                        fontWeight: 'bold',
-                        fontSize: isMobile ? '0.85rem' : 'inherit'
-                      }}>
-                        {entry.total_points || 0}
-                      </Typography>
-                    </TableCell>
-                  </TableRow>
-                  ) : null
-                )}
-              </TableBody>
-            </Table>
-          </TableContainer>
+          <Box style={{ marginTop: '16px' }}>
+            {/* Block controls */}
+            <Box display="flex" mb={2} flexWrap="wrap" style={{ gap: '8px' }}>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={expandAllBlocks}
+                style={{ color: '#ff6b35', borderColor: '#ff6b35' }}
+              >
+                Expand All
+              </Button>
+              <Button
+                variant="outlined"
+                size="small"
+                onClick={collapseAllBlocks}
+                style={{ color: '#ff6b35', borderColor: '#ff6b35' }}
+              >
+                Collapse All
+              </Button>
+              <Typography variant="body2" style={{ alignSelf: 'center', marginLeft: '8px', color: 'rgba(255,255,255,0.7)' }}>
+                {getLeaderboardBlocks().length} blocks • {leaderboard.length} total players
+              </Typography>
+            </Box>
+
+            {/* Leaderboard blocks */}
+            {getLeaderboardBlocks().map((block, blockIndex) => (
+              <Accordion
+                key={blockIndex}
+                expanded={expandedBlocks.has(blockIndex)}
+                onChange={() => toggleBlock(blockIndex)}
+                style={{
+                  backgroundColor: 'rgba(255, 107, 53, 0.05)',
+                  marginBottom: '8px'
+                }}
+              >
+                <AccordionSummary
+                  expandIcon={<ExpandMoreIcon style={{ color: '#ff6b35' }} />}
+                  style={{
+                    backgroundColor: 'rgba(255, 107, 53, 0.1)',
+                    minHeight: '48px'
+                  }}
+                >
+                  <Typography style={{ color: '#ff6b35', fontWeight: 'bold' }}>
+                    Positions {block.startIndex + 1} - {block.endIndex} ({block.data.length} players)
+                  </Typography>
+                </AccordionSummary>
+                <AccordionDetails style={{ padding: 0 }}>
+                  <TableContainer component={Paper} className={classes.leaderboardTable} style={{ margin: 0 }}>
+                    <Table size="small">
+                      <TableHead>
+                        <TableRow>
+                          <TableCell>Position</TableCell>
+                          <TableCell>Username</TableCell>
+                          <TableCell align="right">Points</TableCell>
+                        </TableRow>
+                      </TableHead>
+                      <TableBody>
+                        {block.data.map((entry, relativeIndex) => {
+                          const absoluteIndex = block.startIndex + relativeIndex;
+                          return entry && entry.username ? (
+                            <TableRow key={entry.id || absoluteIndex}>
+                              <TableCell style={{ width: isMobile ? '60px' : 'auto' }}>
+                                <Box className={classes.positionCell}>
+                                  {getMedalEmoji(absoluteIndex + 1) && (
+                                    <span style={{ fontSize: isMobile ? '1rem' : '1.2rem' }}>
+                                      {getMedalEmoji(absoluteIndex + 1)}
+                                    </span>
+                                  )}
+                                  <Typography style={{ 
+                                    fontWeight: absoluteIndex < 3 ? 'bold' : 'normal',
+                                    fontSize: isMobile ? '0.85rem' : 'inherit'
+                                  }}>
+                                    #{absoluteIndex + 1}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell>
+                                <Box display="flex" alignItems="center" style={{ gap: isMobile ? '4px' : '8px' }}>
+                                  {!isMobile && (
+                                    <Avatar style={{ width: 24, height: 24, backgroundColor: '#ff6b35' }}>
+                                      <PersonIcon style={{ fontSize: '1rem' }} />
+                                    </Avatar>
+                                  )}
+                                  <Typography style={{ 
+                                    fontWeight: entry.username === currentUsername ? 'bold' : 'normal',
+                                    color: entry.username === currentUsername ? '#FFD700' : 'inherit'
+                                  }}>
+                                    {entry.username}
+                                  </Typography>
+                                </Box>
+                              </TableCell>
+                              <TableCell align="right" style={{ width: isMobile ? '80px' : 'auto' }}>
+                                <Typography style={{ 
+                                  fontWeight: 'bold',
+                                  fontSize: isMobile ? '0.85rem' : 'inherit'
+                                }}>
+                                  {entry.total_points || 0}
+                                </Typography>
+                              </TableCell>
+                            </TableRow>
+                          ) : null;
+                        })}
+                      </TableBody>
+                    </Table>
+                  </TableContainer>
+                </AccordionDetails>
+              </Accordion>
+            ))}
+          </Box>
         </Collapse>
       </CardContent>
     </Card>
