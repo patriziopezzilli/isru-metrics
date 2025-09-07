@@ -119,6 +119,17 @@ export default async function handler(req, res) {
 
     const data = await response.json();
     
+    // Debug specifico per hdwatts
+    if (api === 'hdwatts-leaderboard') {
+      console.log('🎯 HDWatts API Response Debug:');
+      console.log('📦 Response status:', response.status);
+      console.log('📦 Response headers:', Object.fromEntries(response.headers.entries()));
+      console.log('📦 Data type:', typeof data);
+      console.log('📦 Is array:', Array.isArray(data));
+      console.log('📦 Data length:', Array.isArray(data) ? data.length : 'N/A');
+      console.log('📦 First item:', Array.isArray(data) && data.length > 0 ? data[0] : 'N/A');
+    }
+    
     // Validazione specifica per tipo di API
     if (api === 'isru-leaderboard' && !data.scoreDistribution) {
       console.error('❌ Invalid ISRU leaderboard data structure');
@@ -138,11 +149,15 @@ export default async function handler(req, res) {
       return;
     }
     
+    // Temporaneamente disabilitata per debug
+    /*
     if (api === 'hdwatts-leaderboard' && !Array.isArray(data)) {
       console.error('❌ Invalid HDWatts leaderboard data structure');
+      console.error('❌ Received data:', data);
       res.status(500).json({ error: 'Invalid HDWatts leaderboard data structure' });
       return;
     }
+    */
     
     console.log(`✅ Universal Proxy: Successfully fetched ${api}${username ? ` for ${username}` : ''}${activity_id ? ` (activity: ${activity_id})` : ''}`);
     
