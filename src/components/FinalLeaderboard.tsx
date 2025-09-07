@@ -294,25 +294,75 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
   const fetchLeaderboard = async () => {
     setLoading(true);
     try {
-      // Usa il proxy universale invece di chiamare direttamente hdwatts.com
-      const response = await fetch('/api/universal-proxy?api=hdwatts-leaderboard');
-      if (response.ok) {
-        const data: FinalLeaderboardResponse = await response.json();
-        setLeaderboard(data);
+      let response, responseData: any;
+      
+      try {
+        // Prima prova con il proxy universale
+        response = await fetch('/api/universal-proxy?api=hdwatts-leaderboard');
+        if (response.ok) {
+          responseData = await response.json();
+          console.log('Proxy response:', responseData);
+        } else {
+          throw new Error(`Proxy failed: ${response.status}`);
+        }
+      } catch (proxyError) {
+        console.warn('Proxy failed, trying direct API:', proxyError);
+        // Fallback: prova chiamata diretta se il proxy fallisce
+        response = await fetch('https://www.hdwatts.com/api/leaderboard');
+        if (response.ok) {
+          responseData = await response.json();
+          console.log('Direct API response:', responseData);
+        } else {
+          throw new Error(`Both proxy and direct API failed`);
+        }
+      }
         
-        // If user is logged in, find their position
-        if (currentUsername) {
-          const userEntry = data.find(entry => 
-            entry.username.toLowerCase() === currentUsername.toLowerCase()
-          );
-          if (userEntry) {
-            const position = data.indexOf(userEntry) + 1;
-            setUserPosition({ position, entry: userEntry });
-          }
+      // Il proxy aggiunge metadata, quindi estraiamo solo i dati effettivi
+      let leaderboardData: FinalLeaderboardResponse;
+      
+      if (Array.isArray(responseData)) {
+        // Risposta diretta (array)
+        leaderboardData = responseData;
+      } else if (responseData._proxy && responseData.length === undefined) {
+        // Risposta con metadata del proxy - rimuoviamo _proxy
+        const { _proxy, ...actualData } = responseData;
+        // Se actualData è un array, usalo direttamente, altrimenti prova a estrarre valori
+        if (Array.isArray(actualData)) {
+          leaderboardData = actualData;
+        } else {
+          // Cerca il primo array nei valori
+          const arrayValues = Object.values(actualData).find(value => Array.isArray(value));
+          leaderboardData = arrayValues as FinalLeaderboardResponse || [];
+        }
+      } else {
+        // Fallback: se non c'è _proxy ma non è array, potrebbe essere la struttura dell'API
+        leaderboardData = responseData;
+      }
+      
+      console.log('Processed leaderboard data:', leaderboardData);
+      
+      // Verifica che abbiamo dati validi
+      if (!Array.isArray(leaderboardData) || leaderboardData.length === 0) {
+        console.warn('No valid leaderboard data received');
+        setLeaderboard([]);
+        return;
+      }
+      
+      setLeaderboard(leaderboardData);
+      
+      // If user is logged in, find their position
+      if (currentUsername && leaderboardData && Array.isArray(leaderboardData)) {
+        const userEntry = leaderboardData.find(entry => 
+          entry.username?.toLowerCase() === currentUsername.toLowerCase()
+        );
+        if (userEntry) {
+          const position = leaderboardData.indexOf(userEntry) + 1;
+          setUserPosition({ position, entry: userEntry });
         }
       }
     } catch (error) {
       console.error('Error fetching final leaderboard:', error);
+      setLeaderboard([]); // Set empty array on error
     } finally {
       setLoading(false);
     }
@@ -320,10 +370,10 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
 
   // Search for a specific user
   const searchUser = () => {
-    if (!searchUsername.trim()) return;
+    if (!searchUsername.trim() || !Array.isArray(leaderboard)) return;
     
     const userEntry = leaderboard.find(entry => 
-      entry.username.toLowerCase() === searchUsername.trim().toLowerCase()
+      entry?.username?.toLowerCase() === searchUsername.trim().toLowerCase()
     );
     
     if (userEntry) {
@@ -372,7 +422,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
         </Box>
         <Chip
           icon={<ExcellenceIcon />}
-          label={`${leaderboard.length} Players`}
+          label={`${Array.isArray(leaderboard) ? leaderboard.length : 0} Players`}
           className={classes.infoChip}
           size="small"
         />
@@ -499,8 +549,9 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                 </TableRow>
               </TableHead>
               <TableBody>
-                {leaderboard.slice(0, 50).map((entry, index) => (
-                  <TableRow key={entry.id}>
+                {Array.isArray(leaderboard) && leaderboard.slice(0, 50).map((entry, index) => 
+                  entry && entry.username ? (
+                  <TableRow key={entry.id || index}>
                     <TableCell>
                       <Box className={classes.positionCell}>
                         {getMedalEmoji(index + 1) && (
@@ -535,7 +586,8 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                       </Typography>
                     </TableCell>
                   </TableRow>
-                ))}
+                  ) : null
+                )}
               </TableBody>
             </Table>
           </TableContainer>
