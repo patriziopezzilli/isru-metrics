@@ -322,14 +322,17 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
       console.log('📦 Response is array?', Array.isArray(responseData));
       console.log('📦 Response type:', typeof responseData);
       
-      // SEMPLIFICATO: Se è array, usalo direttamente
+      // Gestisci sia array diretto che oggetto con proprietà data
       let leaderboardData: FinalLeaderboardResponse;
       
       if (Array.isArray(responseData)) {
         leaderboardData = responseData;
         console.log('✅ Using response directly as array');
+      } else if (responseData && responseData.data && Array.isArray(responseData.data)) {
+        leaderboardData = responseData.data;
+        console.log('✅ Using response.data as array');
       } else {
-        console.error('❌ Response is not an array:', responseData);
+        console.error('❌ Response is not an array and does not have data property:', responseData);
         setLeaderboard([]);
         return;
       }
