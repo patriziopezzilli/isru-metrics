@@ -670,6 +670,56 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
             ))}
           </Box>
         </Collapse>
+
+        {/* Credits Section */}
+        <Box 
+          style={{ 
+            marginTop: '16px',
+            padding: '8px 12px',
+            backgroundColor: 'rgba(255, 107, 53, 0.05)',
+            borderRadius: '6px',
+            border: '1px solid rgba(255, 107, 53, 0.1)',
+            textAlign: 'center'
+          }}
+        >
+          <Typography 
+            variant="caption" 
+            style={{ 
+              color: 'rgba(255, 255, 255, 0.6)',
+              marginBottom: '4px',
+              fontSize: '0.7rem'
+            }}
+          >
+            Leaderboard data powered by
+          </Typography>
+          <Typography
+            component="a"
+            href="https://www.hdwatts.com"
+            target="_blank"
+            rel="noopener noreferrer"
+            variant="body2"
+            style={{
+              color: '#FFD700',
+              textDecoration: 'none',
+              fontWeight: 'bold',
+              fontSize: '0.8rem',
+              cursor: 'pointer',
+              transition: 'all 0.3s ease',
+              display: 'inline-block',
+              marginLeft: '4px'
+            }}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.color = '#ff6b35';
+              e.currentTarget.style.transform = 'scale(1.02)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.color = '#FFD700';
+              e.currentTarget.style.transform = 'scale(1)';
+            }}
+          >
+            HDWatts.com
+          </Typography>
+        </Box>
       </CardContent>
     </Card>
   );

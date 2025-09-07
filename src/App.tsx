@@ -29,7 +29,7 @@ import { UserProfileIcon } from './components/UserProfileIcon';
 import { OfflineIndicator } from './components/OfflineIndicator';
 // import { ChangelogDisclaimer } from './components/ChangelogDisclaimer';
 import AppLoader from './components/AppLoader';
-import OnlineUserCounter from './components/OnlineUserCounter';
+import { ISRULogo } from './components/ISRULogo';
 import CollapsibleFeedback from './components/CollapsibleFeedback';
 import Snackbar from '@material-ui/core/Snackbar';
 import MuiAlert from '@material-ui/lab/Alert';
@@ -330,16 +330,11 @@ const AppContent = ({
               zIndex: 2,
             }}
           >
-            {React.createElement('img', {
-              src: "/main-logo-new.jpg",
-              alt: "Main Logo",
-              style: {
-                height: isMobile ? 100 : 120,
-                maxWidth: '100%',
-                objectFit: 'contain' as const,
-                marginTop: isMobile ? 8 : 16,
-              }
-            })}
+            <ISRULogo 
+              width={isMobile ? 200 : 280}
+              height={isMobile ? 120 : 160}
+              animated={true}
+            />
           </Box>
           <Box
             style={{
