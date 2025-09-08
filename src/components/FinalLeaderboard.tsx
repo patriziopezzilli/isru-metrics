@@ -811,7 +811,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                   backgroundColor: 'rgba(255, 107, 53, 0.05)'
                 }}
               >
-                <TableContainer component={Paper} style={{ backgroundColor: 'transparent' }}>
+                <TableContainer component={Paper} className={classes.leaderboardTable} style={{ backgroundColor: 'transparent' }}>
                   <Table size={isMobile ? 'small' : 'medium'} stickyHeader>
                     <TableHead>
                       <TableRow>
@@ -867,6 +867,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                             <TableCell align="right" style={{ width: isMobile ? '80px' : 'auto' }}>
                               <Typography style={{ 
                                 fontWeight: 'bold',
+                                color: '#ff6b35',
                                 fontSize: isMobile ? '0.85rem' : 'inherit'
                               }}>
                                 {entry.total_points || 0}
@@ -957,6 +958,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                               <TableCell align="right" style={{ width: isMobile ? '80px' : 'auto' }}>
                                 <Typography style={{ 
                                   fontWeight: 'bold',
+                                  color: '#ff6b35',
                                   fontSize: isMobile ? '0.85rem' : 'inherit'
                                 }}>
                                   {entry.total_points || 0}
