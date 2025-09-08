@@ -291,9 +291,14 @@ export const CurrentUserActivities: React.FC<CurrentUserActivitiesProps> = ({ us
     return null;
   }
 
-  const completedActivities = profileData.activities.filter(activity => activity.hasSubmittedToday);
-  const pendingActivities = profileData.activities.filter(activity => !activity.hasSubmittedToday);
-  const totalActivities = profileData.activities.length;
+  // Filter out "Choose Your Ritual" activity from all calculations
+  const filteredActivities = profileData.activities.filter(activity => 
+    activity.activityTitle !== 'Choose Your Ritual'
+  );
+
+  const completedActivities = filteredActivities.filter(activity => activity.hasSubmittedToday);
+  const pendingActivities = filteredActivities.filter(activity => !activity.hasSubmittedToday);
+  const totalActivities = filteredActivities.length;
 
   return (
     <Card className={classes.card} elevation={0} style={{ marginBottom: cardMarginBottom }}>
