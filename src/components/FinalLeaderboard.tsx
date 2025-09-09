@@ -493,7 +493,6 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
           size="small"
         />
       </Box>
-  setTotalPages(responseData.totalPages || 45);
 
       <CardContent style={{ padding: isMobile ? '16px' : '24px' }}>
         {/* User's position (if logged in) */}
@@ -657,16 +656,16 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                       <TableRow key={entry.id || idx}>
                         <TableCell style={{ width: isMobile ? '60px' : 'auto' }}>
                           <Box className={classes.positionCell}>
-                            {getMedalEmoji(page * 50 + idx + 1) && (
+                            {getMedalEmoji(entry.rank) && (
                               <span style={{ fontSize: isMobile ? '1rem' : '1.2rem' }}>
-                                {getMedalEmoji(page * 50 + idx + 1)}
+                                {getMedalEmoji(entry.rank)}
                               </span>
                             )}
                             <Typography style={{ 
-                              fontWeight: idx < 3 ? 'bold' : 'normal',
+                              fontWeight: entry.rank <= 3 ? 'bold' : 'normal',
                               fontSize: isMobile ? '0.85rem' : 'inherit'
                             }}>
-                              #{page * 50 + idx + 1}
+                              #{entry.rank}
                             </Typography>
                           </Box>
                         </TableCell>
@@ -705,10 +704,15 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
             <Box display="flex" justifyContent="center" alignItems="center" mt={2} mb={2} style={{ gap: 16 }}>
               <Button
                 variant="outlined"
-                color="primary"
-                disabled={page <= 1 || loading}
+                style={{
+                  marginRight: 12,
+                  color: '#ff6b35',
+                  borderColor: '#ff6b35',
+                  fontWeight: 'bold',
+                  backgroundColor: page <= 0 || loading ? 'rgba(255,107,53,0.1)' : 'rgba(255,107,53,0.2)'
+                }}
+                disabled={page <= 0 || loading}
                 onClick={() => setPage(page - 1)}
-                style={{ marginRight: 12 }}
               >
                 Pagina precedente
               </Button>
@@ -717,10 +721,15 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
               </Typography>
               <Button
                 variant="outlined"
-                color="primary"
-                disabled={page >= totalPages || loading}
+                style={{
+                  marginLeft: 12,
+                  color: '#ff6b35',
+                  borderColor: '#ff6b35',
+                  fontWeight: 'bold',
+                  backgroundColor: page >= totalPages - 1 || loading ? 'rgba(255,107,53,0.1)' : 'rgba(255,107,53,0.2)'
+                }}
+                disabled={page >= totalPages - 1 || loading}
                 onClick={() => setPage(page + 1)}
-                style={{ marginLeft: 12 }}
               >
                 Pagina successiva
               </Button>

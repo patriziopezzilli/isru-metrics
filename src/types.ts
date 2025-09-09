@@ -264,6 +264,7 @@ export interface UserSession {
 
 // Final Leaderboard Types (hdwatts.com API)
 export interface FinalLeaderboardEntry {
+  rank: number;
   user_id: number;
   total_points: number;
   id: number;
