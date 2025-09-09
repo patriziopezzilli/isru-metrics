@@ -367,180 +367,55 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
   const [showInfoModal, setShowInfoModal] = useState(false);
   const [showSearchAndControls, setShowSearchAndControls] = useState(true);
   
-  // Virtualizzazione states
-  const [useVirtualization, setUseVirtualization] = useState(true);
-  const [visibleRange, setVisibleRange] = useState({ start: 0, end: 200 });
-  const containerRef = useRef<HTMLDivElement>(null);
+  // Paginazione
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
 
-  // Fetch leaderboard data
-  const fetchLeaderboard = async () => {
+  // Fetch leaderboard data paginata
+  const fetchLeaderboard = async (pageParam = page, searchParam = searchUsername) => {
     setLoading(true);
     try {
-      // Usa il proxy universale
-      const response = await fetch('/api/universal-proxy?api=hdwatts-leaderboard');
-      
+      const url = `/api/universal-proxy?api=hdwatts-leaderboard&page=${pageParam}&search=${encodeURIComponent(searchParam.trim())}`;
+      const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
-      
       const responseData = await response.json();
-      
-      // Gestisci sia array diretto che oggetto con proprietà data
-      let leaderboardData: FinalLeaderboardResponse;
-      
-      if (Array.isArray(responseData)) {
-        leaderboardData = responseData;
-      } else if (responseData && responseData.data && Array.isArray(responseData.data)) {
-        leaderboardData = responseData.data;
-      } else {
-        console.error('❌ Response is not an array and does not have data property:', responseData);
+      // Atteso: { data: [...], totalPages: n, total: n }
+      if (!responseData || !Array.isArray(responseData.data)) {
         setLeaderboard([]);
+        setTotalPages(1);
         return;
       }
-      
-      if (leaderboardData.length === 0) {
-        console.warn('⚠️ Leaderboard is empty');
-        setLeaderboard([]);
-        return;
-      }
-      
-      setLeaderboard(leaderboardData);
-      
-      // Auto-expand only the first block for better initial performance
-      setExpandedBlocks(new Set([0]));
-      
-      // If user is logged in, find their position
-      if (currentUsername && leaderboardData.length > 0) {
-        const userEntry = leaderboardData.find(entry => 
-          entry?.username?.toLowerCase() === currentUsername.toLowerCase()
-        );
-        if (userEntry) {
-          const position = leaderboardData.indexOf(userEntry) + 1;
-          setUserPosition({ position, entry: userEntry });
-          // Auto-collapse search and controls when user position is found
-          setShowSearchAndControls(false);
-        } else {
-          // User not found, keep search and controls open
-          setShowSearchAndControls(true);
-        }
-      } else {
-        // No logged user, keep search and controls open
-        setShowSearchAndControls(true);
-      }
-      
+      setLeaderboard(responseData.data);
+      setTotalPages(responseData.totalPages || 1);
+      // Reset user position e risultati ricerca
+      setUserPosition(null);
+      setSearchResult(null);
+      setNotFound(false);
     } catch (error) {
-      console.error('💥 Error fetching leaderboard:', error);
       setLeaderboard([]);
+      setTotalPages(1);
     } finally {
       setLoading(false);
     }
   };
 
-  // Search for a specific user
+  // Ricerca: aggiorna la tabella usando il parametro search dell'API
   const searchUser = () => {
-    if (!searchUsername.trim() || !Array.isArray(leaderboard)) return;
-    
-    const userEntry = leaderboard.find(entry => 
-      entry?.username?.toLowerCase() === searchUsername.trim().toLowerCase()
-    );
-    
-    if (userEntry) {
-      const position = leaderboard.indexOf(userEntry) + 1;
-      setSearchResult({ position, entry: userEntry });
-      setNotFound(false);
-    } else {
-      setSearchResult(null);
-      setNotFound(true);
-    }
+    setPage(1);
+    fetchLeaderboard(1, searchUsername);
   };
 
-  // Helper functions for pagination blocks
-  const BLOCK_SIZE = 50; // Ridotto da 100 a 50 per migliorare performance
-  const ROW_HEIGHT = 60; // Altezza stimata per riga
-  const CONTAINER_HEIGHT = 600; // Altezza del container virtualized
-  
-  // Virtualizzazione: calcola gli elementi visibili
-  const visibleItemsCount = Math.ceil(CONTAINER_HEIGHT / ROW_HEIGHT) + 5; // Buffer di 5 elementi
-  
-  const leaderboardBlocks = useMemo(() => {
-    if (!Array.isArray(leaderboard)) return [];
-    
-    // Se usiamo virtualizzazione e abbiamo troppi elementi, usa una lista flat
-    if (useVirtualization && leaderboard.length > 1000) {
-      const startIndex = visibleRange.start;
-      const endIndex = Math.min(visibleRange.end, leaderboard.length);
-      return [{
-        startIndex: 0,
-        endIndex: leaderboard.length,
-        data: leaderboard.slice(startIndex, endIndex),
-        isVirtualized: true,
-        virtualStart: startIndex,
-        virtualEnd: endIndex
-      }];
-    }
-    
-    // Altrimenti usa i blocchi standard
-    const blocks = [];
-    for (let i = 0; i < leaderboard.length; i += BLOCK_SIZE) {
-      blocks.push({
-        startIndex: i,
-        endIndex: Math.min(i + BLOCK_SIZE, leaderboard.length),
-        data: leaderboard.slice(i, i + BLOCK_SIZE),
-        isVirtualized: false
-      });
-    }
-    return blocks;
-  }, [leaderboard, useVirtualization, visibleRange]);
+  // Nessun blocco, la paginazione sarà gestita lato API
 
-  const toggleBlock = useCallback((blockIndex: number) => {
-    setExpandedBlocks(prev => {
-      const newSet = new Set(prev);
-      if (newSet.has(blockIndex)) {
-        newSet.delete(blockIndex);
-      } else {
-        newSet.add(blockIndex);
-      }
-      return newSet;
-    });
-  }, []);
 
-  const expandAllBlocks = useCallback(() => {
-    const allBlockIndices = leaderboardBlocks.map((_, index: number) => index);
-    setExpandedBlocks(new Set(allBlockIndices));
-  }, [leaderboardBlocks]);
-
-  const collapseAllBlocks = useCallback(() => {
-    setExpandedBlocks(new Set());
-  }, []);
-
-  // Scroll handler per virtualizzazione
-  const handleScroll = useCallback((event: React.UIEvent<HTMLDivElement>) => {
-    if (!useVirtualization || leaderboard.length <= 1000) return;
-    
-    const container = event.currentTarget;
-    const scrollTop = container.scrollTop;
-    const itemHeight = ROW_HEIGHT;
-    
-    const startIndex = Math.floor(scrollTop / itemHeight);
-    const endIndex = Math.min(
-      startIndex + visibleItemsCount,
-      leaderboard.length
-    );
-    
-    setVisibleRange({ start: startIndex, end: endIndex });
-  }, [useVirtualization, leaderboard.length, visibleItemsCount]);
-
-  // Toggle virtualizzazione per dataset molto grandi
-  const toggleVirtualization = useCallback(() => {
-    setUseVirtualization(prev => !prev);
-    if (!useVirtualization) {
-      setVisibleRange({ start: 0, end: 200 });
-    }
-  }, [useVirtualization]);
+  // Blocchi e virtualizzazione rimossi: la tabella mostrerà solo i dati della pagina corrente
 
   useEffect(() => {
     fetchLeaderboard();
-  }, [currentUsername]);
+    // eslint-disable-next-line
+  }, [page, currentUsername]);
 
   const getMedalEmoji = (position: number) => {
     switch (position) {
@@ -755,225 +630,90 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
         {/* Full leaderboard */}
         <Collapse in={showFullLeaderboard}>
           <Box style={{ marginTop: '16px' }}>
-            {/* Block controls */}
-            <Box display="flex" mb={2} flexWrap="wrap" style={{ gap: '8px' }}>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={expandAllBlocks}
-                style={{ color: '#ff6b35', borderColor: '#ff6b35' }}
-              >
-                Expand All
-              </Button>
-              <Button
-                variant="outlined"
-                size="small"
-                onClick={collapseAllBlocks}
-                style={{ color: '#ff6b35', borderColor: '#ff6b35' }}
-              >
-                Collapse All
-              </Button>
-              {leaderboard.length > 1000 && (
-                <Button
-                  variant="outlined"
-                  size="small"
-                  onClick={toggleVirtualization}
-                  style={{ 
-                    color: useVirtualization ? '#FFD700' : '#ff6b35', 
-                    borderColor: useVirtualization ? '#FFD700' : '#ff6b35',
-                    backgroundColor: useVirtualization ? 'rgba(255, 215, 0, 0.1)' : 'transparent'
-                  }}
-                >
-                  {useVirtualization ? '🚀 Virtualized' : '📊 Standard'}
-                </Button>
-              )}
-              <Typography variant="body2" style={{ alignSelf: 'center', marginLeft: '8px', color: 'rgba(255,255,255,0.7)' }}>
-                {leaderboardBlocks.length} blocks • {leaderboard.length} total players
-                {useVirtualization && leaderboard.length > 1000 && (
-                  <span style={{ color: '#FFD700', marginLeft: '8px' }}>
-                    (showing {visibleRange.end - visibleRange.start})
-                  </span>
-                )}
-              </Typography>
-            </Box>
-
-            {/* Leaderboard blocks */}
-            {useVirtualization && leaderboard.length > 1000 ? (
-              /* Modalità Virtualizzata - Rendering diretto */
-              <div 
-                ref={containerRef}
-                onScroll={handleScroll}
-                style={{
-                  height: CONTAINER_HEIGHT,
-                  overflowY: 'auto',
-                  border: '1px solid rgba(255, 107, 53, 0.3)',
-                  borderRadius: '8px',
-                  backgroundColor: 'rgba(255, 107, 53, 0.05)'
-                }}
-              >
-                <TableContainer component={Paper} className={classes.leaderboardTable} style={{ backgroundColor: 'transparent' }}>
-                  <Table size={isMobile ? 'small' : 'medium'} stickyHeader>
-                    <TableHead>
-                      <TableRow>
-                        <TableCell style={{ width: isMobile ? '60px' : 'auto', backgroundColor: 'rgba(26, 26, 26, 0.95)' }}>Position</TableCell>
-                        <TableCell style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)' }}>Username</TableCell>
-                        <TableCell align="right" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)' }}>Points</TableCell>
+            {/* Tabella paginata */}
+            <TableContainer component={Paper} className={classes.leaderboardTable} style={{ backgroundColor: 'transparent' }}>
+              <Table size={isMobile ? 'small' : 'medium'} stickyHeader>
+                <TableHead>
+                  <TableRow>
+                    <TableCell style={{ width: isMobile ? '60px' : 'auto', backgroundColor: 'rgba(26, 26, 26, 0.95)' }}>Position</TableCell>
+                    <TableCell style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)' }}>Username</TableCell>
+                    <TableCell align="right" style={{ backgroundColor: 'rgba(26, 26, 26, 0.95)' }}>Points</TableCell>
+                  </TableRow>
+                </TableHead>
+                <TableBody>
+                  {leaderboard.map((entry: FinalLeaderboardEntry, idx: number) => (
+                    entry && entry.username ? (
+                      <TableRow key={entry.id || idx}>
+                        <TableCell style={{ width: isMobile ? '60px' : 'auto' }}>
+                          <Box className={classes.positionCell}>
+                            {getMedalEmoji((page - 1) * 50 + idx + 1) && (
+                              <span style={{ fontSize: isMobile ? '1rem' : '1.2rem' }}>
+                                {getMedalEmoji((page - 1) * 50 + idx + 1)}
+                              </span>
+                            )}
+                            <Typography style={{ 
+                              fontWeight: idx < 3 ? 'bold' : 'normal',
+                              fontSize: isMobile ? '0.85rem' : 'inherit'
+                            }}>
+                              #{(page - 1) * 50 + idx + 1}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell>
+                          <Box display="flex" alignItems="center" style={{ gap: isMobile ? '4px' : '8px' }}>
+                            {!isMobile && (
+                              <Avatar style={{ width: 24, height: 24, backgroundColor: '#ff6b35' }}>
+                                <PersonIcon style={{ fontSize: '1rem' }} />
+                              </Avatar>
+                            )}
+                            <Typography style={{ 
+                              fontWeight: entry.username === currentUsername ? 'bold' : 'normal',
+                              color: entry.username === currentUsername ? '#FFD700' : 'inherit',
+                              fontSize: isMobile ? '0.85rem' : 'inherit'
+                            }}>
+                              {entry.username}
+                            </Typography>
+                          </Box>
+                        </TableCell>
+                        <TableCell align="right" style={{ width: isMobile ? '80px' : 'auto' }}>
+                          <Typography style={{ 
+                            fontWeight: 'bold',
+                            color: '#ff6b35',
+                            fontSize: isMobile ? '0.85rem' : 'inherit'
+                          }}>
+                            {entry.total_points || 0}
+                          </Typography>
+                        </TableCell>
                       </TableRow>
-                    </TableHead>
-                    <TableBody>
-                      {/* Spacer per elementi precedenti non renderizzati */}
-                      {visibleRange.start > 0 && (
-                        <TableRow style={{ height: visibleRange.start * ROW_HEIGHT }}>
-                          <TableCell colSpan={3} style={{ padding: 0, border: 'none' }} />
-                        </TableRow>
-                      )}
-                      
-                      {/* Elementi visibili */}
-                      {leaderboard.slice(visibleRange.start, visibleRange.end).map((entry: FinalLeaderboardEntry, relativeIndex: number) => {
-                        const absoluteIndex = visibleRange.start + relativeIndex;
-                        return entry && entry.username ? (
-                          <TableRow key={entry.id || absoluteIndex}>
-                            <TableCell style={{ width: isMobile ? '60px' : 'auto' }}>
-                              <Box className={classes.positionCell}>
-                                {getMedalEmoji(absoluteIndex + 1) && (
-                                  <span style={{ fontSize: isMobile ? '1rem' : '1.2rem' }}>
-                                    {getMedalEmoji(absoluteIndex + 1)}
-                                  </span>
-                                )}
-                                <Typography style={{ 
-                                  fontWeight: absoluteIndex < 3 ? 'bold' : 'normal',
-                                  fontSize: isMobile ? '0.85rem' : 'inherit'
-                                }}>
-                                  #{absoluteIndex + 1}
-                                </Typography>
-                              </Box>
-                            </TableCell>
-                            <TableCell>
-                              <Box display="flex" alignItems="center" style={{ gap: isMobile ? '4px' : '8px' }}>
-                                {!isMobile && (
-                                  <Avatar style={{ width: 24, height: 24, backgroundColor: '#ff6b35' }}>
-                                    <PersonIcon style={{ fontSize: '1rem' }} />
-                                  </Avatar>
-                                )}
-                                <Typography style={{ 
-                                  fontWeight: entry.username === currentUsername ? 'bold' : 'normal',
-                                  color: entry.username === currentUsername ? '#FFD700' : 'inherit',
-                                  fontSize: isMobile ? '0.85rem' : 'inherit'
-                                }}>
-                                  {entry.username}
-                                </Typography>
-                              </Box>
-                            </TableCell>
-                            <TableCell align="right" style={{ width: isMobile ? '80px' : 'auto' }}>
-                              <Typography style={{ 
-                                fontWeight: 'bold',
-                                color: '#ff6b35',
-                                fontSize: isMobile ? '0.85rem' : 'inherit'
-                              }}>
-                                {entry.total_points || 0}
-                              </Typography>
-                            </TableCell>
-                          </TableRow>
-                        ) : null;
-                      })}
-
-                      {/* Spacer per elementi successivi non renderizzati */}
-                      {visibleRange.end < leaderboard.length && (
-                        <TableRow style={{ height: (leaderboard.length - visibleRange.end) * ROW_HEIGHT }}>
-                          <TableCell colSpan={3} style={{ padding: 0, border: 'none' }} />
-                        </TableRow>
-                      )}
-                    </TableBody>
-                  </Table>
-                </TableContainer>
-              </div>
-            ) : (
-              /* Modalità Standard - Accordion Blocks */
-              leaderboardBlocks.map((block: any, blockIndex: number) => (
-              <Accordion
-                key={blockIndex}
-                expanded={expandedBlocks.has(blockIndex)}
-                onChange={() => toggleBlock(blockIndex)}
-                style={{
-                  backgroundColor: 'rgba(255, 107, 53, 0.05)',
-                  marginBottom: '8px'
-                }}
+                    ) : null
+                  ))}
+                </TableBody>
+              </Table>
+            </TableContainer>
+            {/* Controlli paginazione */}
+            <Box display="flex" justifyContent="center" alignItems="center" mt={2} mb={2} style={{ gap: 16 }}>
+              <Button
+                variant="outlined"
+                color="primary"
+                disabled={page <= 1 || loading}
+                onClick={() => setPage(page - 1)}
+                style={{ marginRight: 12 }}
               >
-                <AccordionSummary
-                  expandIcon={<ExpandMoreIcon style={{ color: '#ff6b35' }} />}
-                  style={{
-                    backgroundColor: 'rgba(255, 107, 53, 0.1)',
-                    minHeight: '48px'
-                  }}
-                >
-                  <Typography style={{ color: '#ff6b35', fontWeight: 'bold' }}>
-                    Positions {block.startIndex + 1} - {block.endIndex} ({block.data.length} players)
-                  </Typography>
-                </AccordionSummary>
-                <AccordionDetails style={{ padding: 0 }}>
-                  <TableContainer component={Paper} className={classes.leaderboardTable} style={{ margin: 0 }}>
-                    <Table size="small">
-                      <TableHead>
-                        <TableRow>
-                          <TableCell>Position</TableCell>
-                          <TableCell>Username</TableCell>
-                          <TableCell align="right">Points</TableCell>
-                        </TableRow>
-                      </TableHead>
-                      <TableBody>
-                        {block.data.map((entry: FinalLeaderboardEntry, relativeIndex: number) => {
-                          const absoluteIndex = block.startIndex + relativeIndex;
-                          return entry && entry.username ? (
-                            <TableRow key={entry.id || absoluteIndex}>
-                              <TableCell style={{ width: isMobile ? '60px' : 'auto' }}>
-                                <Box className={classes.positionCell}>
-                                  {getMedalEmoji(absoluteIndex + 1) && (
-                                    <span style={{ fontSize: isMobile ? '1rem' : '1.2rem' }}>
-                                      {getMedalEmoji(absoluteIndex + 1)}
-                                    </span>
-                                  )}
-                                  <Typography style={{ 
-                                    fontWeight: absoluteIndex < 3 ? 'bold' : 'normal',
-                                    fontSize: isMobile ? '0.85rem' : 'inherit'
-                                  }}>
-                                    #{absoluteIndex + 1}
-                                  </Typography>
-                                </Box>
-                              </TableCell>
-                              <TableCell>
-                                <Box display="flex" alignItems="center" style={{ gap: isMobile ? '4px' : '8px' }}>
-                                  {!isMobile && (
-                                    <Avatar style={{ width: 24, height: 24, backgroundColor: '#ff6b35' }}>
-                                      <PersonIcon style={{ fontSize: '1rem' }} />
-                                    </Avatar>
-                                  )}
-                                  <Typography style={{ 
-                                    fontWeight: entry.username === currentUsername ? 'bold' : 'normal',
-                                    color: entry.username === currentUsername ? '#FFD700' : 'inherit'
-                                  }}>
-                                    {entry.username}
-                                  </Typography>
-                                </Box>
-                              </TableCell>
-                              <TableCell align="right" style={{ width: isMobile ? '80px' : 'auto' }}>
-                                <Typography style={{ 
-                                  fontWeight: 'bold',
-                                  color: '#ff6b35',
-                                  fontSize: isMobile ? '0.85rem' : 'inherit'
-                                }}>
-                                  {entry.total_points || 0}
-                                </Typography>
-                              </TableCell>
-                            </TableRow>
-                          ) : null;
-                        })}
-                      </TableBody>
-                    </Table>
-                  </TableContainer>
-                </AccordionDetails>
-              </Accordion>
-            ))
-            )}
+                Pagina precedente
+              </Button>
+              <Typography variant="body1" style={{ color: '#FFD700', fontWeight: 'bold' }}>
+                Pagina {page} di {totalPages}
+              </Typography>
+              <Button
+                variant="outlined"
+                color="primary"
+                disabled={page >= totalPages || loading}
+                onClick={() => setPage(page + 1)}
+                style={{ marginLeft: 12 }}
+              >
+                Pagina successiva
+              </Button>
+            </Box>
           </Box>
         </Collapse>
 
