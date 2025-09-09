@@ -368,14 +368,17 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
   const [showSearchAndControls, setShowSearchAndControls] = useState(true);
   
   // Paginazione
-  const [page, setPage] = useState(1);
+  const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
 
   // Fetch leaderboard data paginata
   const fetchLeaderboard = async (pageParam = page, searchParam = searchUsername) => {
     setLoading(true);
     try {
-      const url = `/api/universal-proxy?api=hdwatts-leaderboard&page=${pageParam}&search=${encodeURIComponent(searchParam.trim())}`;
+      let url = `/api/universal-proxy?api=hdwatts-leaderboard&page=${pageParam}`;
+      if (searchParam && searchParam.trim() !== "") {
+        url += `&search=${encodeURIComponent(searchParam.trim())}`;
+      }
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
@@ -389,7 +392,6 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
       }
       setLeaderboard(responseData.data);
       setTotalPages(responseData.totalPages || 1);
-      // Reset user position e risultati ricerca
       setUserPosition(null);
       setSearchResult(null);
       setNotFound(false);
@@ -403,8 +405,8 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
 
   // Ricerca: aggiorna la tabella usando il parametro search dell'API
   const searchUser = () => {
-    setPage(1);
-    fetchLeaderboard(1, searchUsername);
+    setPage(0);
+    fetchLeaderboard(0, searchUsername);
   };
 
   // Nessun blocco, la paginazione sarà gestita lato API
@@ -646,16 +648,16 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                       <TableRow key={entry.id || idx}>
                         <TableCell style={{ width: isMobile ? '60px' : 'auto' }}>
                           <Box className={classes.positionCell}>
-                            {getMedalEmoji((page - 1) * 50 + idx + 1) && (
+                            {getMedalEmoji(page * 50 + idx + 1) && (
                               <span style={{ fontSize: isMobile ? '1rem' : '1.2rem' }}>
-                                {getMedalEmoji((page - 1) * 50 + idx + 1)}
+                                {getMedalEmoji(page * 50 + idx + 1)}
                               </span>
                             )}
                             <Typography style={{ 
                               fontWeight: idx < 3 ? 'bold' : 'normal',
                               fontSize: isMobile ? '0.85rem' : 'inherit'
                             }}>
-                              #{(page - 1) * 50 + idx + 1}
+                              #{page * 50 + idx + 1}
                             </Typography>
                           </Box>
                         </TableCell>
@@ -702,7 +704,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                 Pagina precedente
               </Button>
               <Typography variant="body1" style={{ color: '#FFD700', fontWeight: 'bold' }}>
-                Pagina {page} di {totalPages}
+                Pagina {page + 1} di {totalPages}
               </Typography>
               <Button
                 variant="outlined"

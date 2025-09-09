@@ -75,10 +75,16 @@ export default async function handler(req, res) {
       timeoutMs = 8000; // Timeout più breve per streak
       break;
       
-    case 'hdwatts-leaderboard':
-      targetUrl = 'https://www.hdwatts.com/api/leaderboard';
-      timeoutMs = 10000; // Timeout standard per hdwatts
+    case 'hdwatts-leaderboard': {
+      let hdwattsUrl = 'https://www.hdwatts.com/api/leaderboard';
+      const params = [];
+      if (typeof page !== 'undefined') params.push(`page=${encodeURIComponent(page)}`);
+      if (typeof req.query.search !== 'undefined' && req.query.search.trim() !== '') params.push(`search=${encodeURIComponent(req.query.search.trim())}`);
+      if (params.length > 0) hdwattsUrl += `?${params.join('&')}`;
+      targetUrl = hdwattsUrl;
+      timeoutMs = 10000;
       break;
+    }
       
     default:
       res.status(400).json({ 
