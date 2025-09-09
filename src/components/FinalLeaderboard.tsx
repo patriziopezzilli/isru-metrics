@@ -400,7 +400,6 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
         setTotalPages(responseData.totalPages || 1);
         setTotalPlayers(0);
       }
-      setUserPosition(null);
       setSearchResult(null);
       setNotFound(false);
     } catch (error) {
@@ -543,38 +542,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
           </Box>
         )}
 
-        {/* Toggle button for logged users */}
-        {currentUsername && userPosition && (
-          <Box style={{ 
-            display: 'flex', 
-            justifyContent: 'center', 
-            marginTop: '16px',
-            marginBottom: '8px'
-          }}>
-            <Button
-              onClick={() => setShowSearchAndControls(!showSearchAndControls)}
-              style={{
-                color: '#FFD700',
-                borderColor: '#FFD700',
-                backgroundColor: 'rgba(255, 215, 0, 0.1)',
-                textTransform: 'none',
-                borderRadius: '20px',
-                padding: '8px 24px'
-              }}
-              variant="outlined"
-              startIcon={
-                <ExpandMoreIcon 
-                  style={{ 
-                    transform: showSearchAndControls ? 'rotate(180deg)' : 'rotate(0deg)',
-                    transition: 'transform 0.3s ease'
-                  }} 
-                />
-              }
-            >
-              {showSearchAndControls ? 'Hide' : 'Open'} Full Board & Search
-            </Button>
-          </Box>
-        )}
+  {/* Toggle button for logged users rimosso, non serve più userPosition */}
 
         {/* Search section */}
         <Collapse in={showSearchAndControls}>
