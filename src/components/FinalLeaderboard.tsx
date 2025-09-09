@@ -359,7 +359,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
   const [leaderboard, setLeaderboard] = useState<FinalLeaderboardResponse>([]);
   const [loading, setLoading] = useState(false);
   const [searchUsername, setSearchUsername] = useState('');
-  const [userPosition, setUserPosition] = useState<{ position: number; entry: FinalLeaderboardEntry } | null>(null);
+  const [userRankEntry, setUserRankEntry] = useState<FinalLeaderboardEntry | null>(null);
   const [searchResult, setSearchResult] = useState<{ position: number; entry: FinalLeaderboardEntry } | null>(null);
   const [showFullLeaderboard, setShowFullLeaderboard] = useState(false);
   const [notFound, setNotFound] = useState(false);
@@ -424,6 +424,29 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
 
   useEffect(() => {
     fetchLeaderboard();
+    // Se c'è un utente loggato, cerca il suo rank in background
+    if (currentUsername) {
+      (async () => {
+        try {
+          let url = `/api/universal-proxy?api=hdwatts-leaderboard&page=0&search=${encodeURIComponent(currentUsername)}`;
+          const response = await fetch(url);
+          if (response.ok) {
+            const data = await response.json();
+            if (Array.isArray(data.data) && data.data.length > 0) {
+              setUserRankEntry(data.data[0]);
+            } else {
+              setUserRankEntry(null);
+            }
+          } else {
+            setUserRankEntry(null);
+          }
+        } catch {
+          setUserRankEntry(null);
+        }
+      })();
+    } else {
+      setUserRankEntry(null);
+    }
     // eslint-disable-next-line
   }, [page, currentUsername]);
 
@@ -496,24 +519,24 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
 
       <CardContent style={{ padding: isMobile ? '16px' : '24px' }}>
         {/* User's position (if logged in) */}
-        {currentUsername && userPosition && (
+        {currentUsername && userRankEntry && (
           <Box className={classes.userResult} style={{ marginBottom: '24px' }}>
             <Typography variant="h6" style={{ color: '#ff6b35', marginBottom: 8 }}>
               Summer Camp Position
             </Typography>
             <Box display="flex" alignItems="center" style={{ gap: '16px' }}>
               <Box className={classes.positionCell}>
-                {getMedalEmoji(userPosition.position) && (
-                  <span className={classes.medal}>{getMedalEmoji(userPosition.position)}</span>
+                {getMedalEmoji(userRankEntry.rank) && (
+                  <span className={classes.medal}>{getMedalEmoji(userRankEntry.rank)}</span>
                 )}
                 <Typography variant="h4" style={{ fontWeight: 'bold', color: '#FFD700' }}>
-                  #{userPosition.position}
+                  #{userRankEntry.rank}
                 </Typography>
               </Box>
               <Box>
-                <Typography variant="h6">{userPosition.entry.username || 'N/A'}</Typography>
+                <Typography variant="h6">{userRankEntry.username || 'N/A'}</Typography>
                 <Typography style={{ color: 'rgba(255, 255, 255, 0.8)' }}>
-                  {userPosition.entry.total_points || 0} points
+                  {userRankEntry.total_points || 0} points
                 </Typography>
               </Box>
             </Box>
@@ -714,7 +737,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                 disabled={page <= 0 || loading}
                 onClick={() => setPage(page - 1)}
               >
-                Pagina precedente
+                Previous Page
               </Button>
               <Typography variant="body1" style={{ color: '#FFD700', fontWeight: 'bold' }}>
                 Pagina {page + 1} di {totalPages}
@@ -731,7 +754,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
                 disabled={page >= totalPages - 1 || loading}
                 onClick={() => setPage(page + 1)}
               >
-                Pagina successiva
+                Next Page
               </Button>
             </Box>
           </Box>
