@@ -370,6 +370,7 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
   // Paginazione
   const [page, setPage] = useState(0);
   const [totalPages, setTotalPages] = useState(1);
+  const [totalPlayers, setTotalPlayers] = useState(0);
 
   // Fetch leaderboard data paginata
   const fetchLeaderboard = async (pageParam = page, searchParam = searchUsername) => {
@@ -384,14 +385,21 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const responseData = await response.json();
-      // Atteso: { data: [...], totalPages: n, total: n }
+      // Atteso: { data: [...], pagination: { total, totalPages, ... } }
       if (!responseData || !Array.isArray(responseData.data)) {
         setLeaderboard([]);
         setTotalPages(1);
+        setTotalPlayers(0);
         return;
       }
       setLeaderboard(responseData.data);
-      setTotalPages(responseData.totalPages || 1);
+      if (responseData.pagination) {
+        setTotalPages(responseData.pagination.totalPages || 1);
+        setTotalPlayers(responseData.pagination.total || 0);
+      } else {
+        setTotalPages(responseData.totalPages || 1);
+        setTotalPlayers(0);
+      }
       setUserPosition(null);
       setSearchResult(null);
       setNotFound(false);
@@ -480,11 +488,12 @@ export const FinalLeaderboard: React.FC<FinalLeaderboardProps> = ({ currentUsern
         </Box>
         <Chip
           icon={<ExcellenceIcon />}
-          label={`${Array.isArray(leaderboard) ? leaderboard.length : 0} Players`}
+          label={`${totalPlayers} Players`}
           className={classes.infoChip}
           size="small"
         />
       </Box>
+  setTotalPages(responseData.totalPages || 45);
 
       <CardContent style={{ padding: isMobile ? '16px' : '24px' }}>
         {/* User's position (if logged in) */}
